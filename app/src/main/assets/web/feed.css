@@ -49,9 +49,11 @@ svg{display:block}
  background:linear-gradient(to bottom,transparent,var(--card-bg) 70%);font-size:13px;font-weight:700;color:var(--text-fg-faint)}
 .f-pb.clip:not(.open) .f-pmore{display:flex}
 .f-pb #allClozeBtn{display:none}
-.f-pa{display:flex;align-items:center;gap:16px;padding:10px 12px 6px}
-.f-pa svg{width:25px;height:25px}
-.f-pa button{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700}
+/* the action row and the text under it: 23px icons with their counts beside them, then one even rhythm of 14px lines */
+.f-pa{display:flex;align-items:center;gap:14px;padding:11px 12px 9px}
+.f-pa svg{width:23px;height:23px;stroke-width:2.1}
+.f-pa button{display:flex;align-items:center;gap:5px;font-size:14px;font-weight:700;line-height:1}
+.f-pa .f-sh{margin-left:2px}
 .f-tag{color:var(--text-fg-faint)}
 /* the action buttons' animations. like: the heart pops and a ring bursts out of it (unlike: a small squash). comment: a wiggle.
    share: the plane flies off up-right and comes back. save: the bookmark drops in */
@@ -85,11 +87,10 @@ svg{display:block}
 .f-lk.on{color:#ff3040}.f-lk.on svg{fill:currentColor}
 .f-lk.pop svg{animation:lkPop .35s cubic-bezier(.2,.8,.3,1.4)}@keyframes lkPop{0%{transform:scale(.6)}60%{transform:scale(1.25)}100%{transform:none}}
 .f-sv.on svg{fill:currentColor}
-.f-pl,.f-pc,.f-pv,.f-pt{padding:0 12px}
-.f-pl{font-size:14px;font-weight:700;margin-bottom:3px}
-.f-pc{font-size:14px;line-height:1.35;margin-bottom:2px;overflow-wrap:break-word}
-.f-pv{font-size:14px;color:var(--text-fg-faint);margin:3px 0}
-.f-pt{font-size:11px;color:var(--text-fg-faint);margin-top:5px;text-transform:uppercase;letter-spacing:.02em}
+.f-pc,.f-pv,.f-pt{padding:0 12px;font-size:14px;line-height:1.4;margin:0 0 3px}
+.f-pc{overflow-wrap:break-word}
+.f-pv{color:var(--text-fg-faint)}
+.f-pt{font-size:12px;color:var(--text-fg-faint);margin:6px 0 0}
 .f-burst{position:absolute;left:50%;top:50%;width:100px;height:100px;margin:-50px 0 0 -50px;color:#ff3040;pointer-events:none;filter:drop-shadow(0 6px 14px rgba(0,0,0,.3));animation:rlB .85s ease-out forwards}
 .f-burst svg{width:100%;height:100%;fill:currentColor;stroke:none}
 @keyframes rlB{0%{transform:scale(0);opacity:0}15%{transform:scale(1.18);opacity:1}30%{transform:scale(.94)}42%,68%{transform:scale(1);opacity:1}100%{transform:translateY(-3em) scale(.9);opacity:0}}

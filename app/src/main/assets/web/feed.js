@@ -11,6 +11,8 @@ const SVG=(p,a='')=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" 
 const ICN={heart:'<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
  com:'<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',send:'<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',save:'<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>'};
 const fmt=n=>n>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':n>=1e4?Math.round(n/1e3)+'K':n>=1e3?(n/1e3).toFixed(1).replace(/\.0$/,'')+'K':''+n;
+/** "3 hours ago" → "3 hours ago" with a capital first letter (no all-caps timestamps) */
+const cap1=t=>String(t).charAt(0).toUpperCase()+String(t).slice(1);
 const avatar=a=>`<span class="f-av" style="background:${a.c}">${SVG(a.ic)}</span>`;
 /** a story: the card's answer side exactly as the reviewer draws it */
 function reviewHTML(n,o){cur={n,o};stage=1;FL=false;return `<div class="wrap"><div class="tinder-swipe tinder-swipe--answer">${face(true)}</div></div>`}
@@ -29,7 +31,7 @@ function postHTML(p,i){const a=F.acc[p.a];return `<article class="f-post" data-i
 <div class="f-pc"><b>${ESC(a.h)}</b> ${ESC(p.cap).replace(/#[^\s#]+/g,'<span class="f-tag">$&</span>')}</div>
 <div class="f-pv f-cm">View all ${fmt(p.coms)} comments</div>
 ${p.cm.map(([u,t])=>`<div class="f-pc"><b>${ESC(u)}</b> ${ESC(t)}</div>`).join('')}
-<div class="f-pt">${ESC(p.t)}</div></article>`}
+<div class="f-pt">${ESC(cap1(p.t))}</div></article>`}
 /* ---- the heatmap post: always the first post, from daily.heatmap. answers revealed per day (the app's medslave:activity), one
    block per month, Monday-first weeks, today at the right end; a tap on a day shows its count. caption: today and the streak */
 const HACC={h:'daily.heatmap',c:'#a6e3a1',ic:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/>'};
@@ -45,7 +47,7 @@ function heatPost(m){const p=F.hp,a=HACC;if(!p.likes){p.likes=800+Math.random()*
  return `<article class="f-post" data-i="h"><header class="f-ph">${avatar(a)}<span class="f-pn"><b>${a.h}</b></span></header>
 <div class="f-hmb"><div class="f-hm">${heatGrid(m)}</div><div class="f-hmt"></div></div>
 <div class="f-pa"><button class="f-lk${p.liked?' on':''}" aria-label="Like">${SVG(ICN.heart)}<span class="f-lkn">${fmt(p.likes+(p.liked?1:0))}</span></button><button class="f-cm" aria-label="Comments">${SVG(ICN.com)}<span>${fmt(p.coms)}</span></button><button class="f-sh" aria-label="Share">${SVG(ICN.send)}</button><button class="f-sv" aria-label="Save">${SVG(ICN.save)}</button></div>
-<div class="f-pc"><b>${a.h}</b> ${ESC(heatCap(m)).replace(/#[^\s#]+/g,'<span class="f-tag">$&</span>')}</div><div class="f-pt">today</div></article>`}
+<div class="f-pc"><b>${a.h}</b> ${ESC(heatCap(m)).replace(/#[^\s#]+/g,'<span class="f-tag">$&</span>')}</div><div class="f-pt">Today</div></article>`}
 function heat(m){const j=JSON.stringify(m||{});if(j==HJ&&$('[data-i="h"]'))return;HJ=j;const old=$('[data-i="h"]'),t=document.createElement('div');t.innerHTML=heatPost(m||{});const el=t.firstElementChild;
  old?old.replaceWith(el):$('#posts').prepend(el);const h=el.querySelector('.f-hm');h.scrollLeft=h.scrollWidth}
 $('#posts').addEventListener('click',e=>{const c=e.target.closest('.f-hg i[data-k]');if(!c)return;const d=new Date(c.dataset.k+'T00:00'),n=+c.dataset.c;

@@ -162,7 +162,7 @@ private fun FeedView(rs: Rs) {
     AndroidView(factory = { rs.feed.web.detach(); rs.feed.web.view.apply { setBackgroundColor(bg) } }, update = { it.setBackgroundColor(bg) }, modifier = Modifier.fillMaxSize())
 }
 
-/* Reels Mode's home bar: Reels (the last card reviewed), Home (the feed), Menu, the current one in the text colour and bolder, the
+/* Reels Mode's home bar: Menu, Home (the feed), Reels (the last card reviewed), the current one in the text colour and bolder, the
    others in a solid mid-tone. Three buttons, like the
    reviewer's (stats, home, corrections) */
 @Composable
@@ -175,9 +175,9 @@ fun NavBar(rs: Rs, current: String) {
             Icon(svg, 24.dp, if (on) P.text else off, if (on) stroke + .4f else stroke)
         }
     Row(Modifier.fillMaxWidth().solidLine(P.divider, true).padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceAround) {
-        item(Ic.REELS, current == "reels", enabled = current == "reels" || back != null) { if (current != "reels") back?.let { rs.go(it) } }
-        item(Ic.HOME, current == "feed") { if (rs.study) rs.home(); rs.tab = "feed"; if (current == "feed") rs.feed.web.top() }
         item(Ic.LIST, current == "menu") { if (rs.study) rs.home(); rs.tab = "menu" }
+        item(Ic.HOME, current == "feed") { if (rs.study) rs.home(); rs.tab = "feed"; if (current == "feed") rs.feed.web.top() }
+        item(Ic.REELS, current == "reels", enabled = current == "reels" || back != null) { if (current != "reels") back?.let { rs.go(it) } }
     }
 }
 
