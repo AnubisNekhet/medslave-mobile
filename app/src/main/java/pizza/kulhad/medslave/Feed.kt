@@ -102,10 +102,9 @@ class Feed(val rs: Rs) {
         repeat(8) {
             val ai = r.nextInt(acc.size); val (n, o, _) = card(r, acc[ai]) ?: return@repeat
             val tags = n.optJSONArray(5)?.let { t -> (0 until t.length()).map { t.getString(it).split("::").last().replace(Regex("[^\\p{L}\\p{N}_]"), "") } }.orEmpty().filter { it.isNotEmpty() }
-            val path = d.paths.getOrElse(n.optInt(2)) { "" }.split(" › ")
-            val hash = (tags.ifEmpty { path.map { it.replace(Regex("[^\\p{L}\\p{N}_]"), "") } }).filter { it.isNotEmpty() }.take(3).joinToString(" ") { "#" + it.lowercase() }
+            val hash = tags.take(3).joinToString(" ") { "#" + it.lowercase() }   // the card's own tags; no deck paths in the feed
             out.put(JSONObject().put("a", ai).put("n", n).put("o", o).put("likes", r.nextInt(120, 98000)).put("coms", r.nextInt(4, 2400))
-                .put("cap", (CAPS[r.nextInt(CAPS.size)] + " " + hash).trim()).put("where", path.joinToString(" · "))
+                .put("cap", (CAPS[r.nextInt(CAPS.size)] + " " + hash).trim())
                 .put("cm", JSONArray(List(2) { JSONArray().put(reels.names[r.nextInt(reels.names.size)] + reels.suffixes[r.nextInt(reels.suffixes.size)]).put(reels.comments[r.nextInt(reels.comments.size)]) }))
                 .put("t", listOf("2 minutes ago", "18 minutes ago", "1 hour ago", "3 hours ago", "7 hours ago", "yesterday", "2 days ago")[r.nextInt(7)]))
         }

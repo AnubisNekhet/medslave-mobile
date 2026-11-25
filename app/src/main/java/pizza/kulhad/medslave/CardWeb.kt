@@ -51,6 +51,15 @@ open class Page(protected val ctx: Context, file: String, transparent: Boolean, 
         isVerticalScrollBarEnabled = false
         isHorizontalScrollBarEnabled = false
         overScrollMode = WebView.OVER_SCROLL_NEVER
+        /* the pages' console goes to logcat (adb logcat -s medslave-web); debug builds can be inspected from desktop Chromium */
+        webChromeClient = object : android.webkit.WebChromeClient() {
+            override fun onConsoleMessage(m: android.webkit.ConsoleMessage): Boolean {
+                android.util.Log.println(if (m.messageLevel() == android.webkit.ConsoleMessage.MessageLevel.ERROR) android.util.Log.ERROR else android.util.Log.DEBUG,
+                    "medslave-web", "$file:${m.lineNumber()} ${m.message()}")
+                return true
+            }
+        }
+        if (ctx.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) WebView.setWebContentsDebuggingEnabled(true)
         addJavascriptInterface(bridge(this@Page), "App")   // the bridge only calls back once the page runs, after construction
         webViewClient = object : WebViewClient() {
             override fun shouldInterceptRequest(v: WebView, r: WebResourceRequest): WebResourceResponse? = loader.shouldInterceptRequest(r.url)
