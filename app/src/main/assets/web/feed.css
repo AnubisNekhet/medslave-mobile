@@ -8,6 +8,7 @@ html,body{height:100%;overflow:hidden}
 #feed::-webkit-scrollbar{display:none}
 /* style.css makes body text transparent (cards set their own colour); everything in the feed outside a card needs the text colour */
 #feed,#sv{color:var(--text-fg)}
+#feed{--pdiv:color-mix(in srgb,var(--card-border),color-mix(in srgb,var(--text-fg) 28%,transparent))}   /* style.css's .prettify-divider colour */
 body{margin:0;padding:0;font-family:"Carlito",Calibri,system-ui,sans-serif;color:var(--text-fg)}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
 button:active,button:hover{background:none;color:inherit}
@@ -22,7 +23,7 @@ svg{display:block}
 #stories,#posts,.f-emp2{max-width:var(--card-max-width);margin:0 auto}
 
 /* stories: avatars in a ring, the ring greys out once seen */
-.f-stories{display:flex;gap:12px;overflow-x:auto;padding:0 10px 8px;scrollbar-width:none;border-bottom:1px dashed var(--divider)}
+.f-stories{display:flex;gap:12px;overflow-x:auto;padding:0 10px 8px;scrollbar-width:none;border-bottom:1px dashed var(--pdiv)}
 .f-stories::-webkit-scrollbar{display:none}
 .f-stories[hidden]{display:none}
 .f-st{flex:none;width:70px;display:flex;flex-direction:column;align-items:center;gap:4px;margin:0}
@@ -38,10 +39,10 @@ svg{display:block}
 /* a post is a card: its account on top, the card's answer, then likes, caption and comments */
 #posts{padding:12px 10px 8px}
 .f-post{margin-bottom:14px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--card-radius);box-shadow:var(--card-box-shadow) 0 7px 14px 0,var(--card-box-shadow) 0 3px 6px 0;overflow:hidden;padding-bottom:12px}
-.f-ph{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px dashed var(--divider)}
+.f-ph{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px dashed var(--pdiv)}
 .f-pn{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.2}
 .f-pn b{font-size:14px}.f-pn small{font-size:12px;color:var(--text-fg-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.f-pb{position:relative;border-bottom:1px dashed var(--divider)}
+.f-pb{position:relative;border-bottom:1px dashed var(--pdiv)}
 .f-pb .prettify-flashcard{max-height:125vw;overflow:hidden;margin:0;border:0;border-radius:0;box-shadow:none;padding-top:.7em}
 .f-pb .prettify-field:last-of-type{margin-bottom:.9em}   /* even space above and below the answer (it has no deck path on top) */
 .f-pb.open .prettify-flashcard{max-height:none}
@@ -53,7 +54,8 @@ svg{display:block}
 .f-pa{display:flex;align-items:center;gap:14px;padding:11px 12px 9px}
 .f-pa svg{width:23px;height:23px;stroke-width:2.1}
 .f-pa button{display:flex;align-items:center;gap:5px;font-size:14px;font-weight:700;line-height:1}
-.f-pa .f-sh{margin-left:2px}
+/* optical alignment: the plane's tail leaves empty space on its left and its weight sits high; the bubble's weight sits high too */
+.f-pa .f-sh{margin-left:-5px}.f-pa .f-sh svg{position:relative;top:1px}.f-pa .f-cm svg{position:relative;top:-.5px}
 .f-tag{color:var(--text-fg-faint)}
 /* the action buttons' animations. like: the heart pops and a ring bursts out of it (unlike: a small squash). comment: a wiggle.
    share: the plane flies off up-right and comes back. save: the bookmark drops in */
@@ -74,7 +76,7 @@ svg{display:block}
 .f-in{animation:fIn .3s ease-out}@keyframes fIn{from{opacity:0}}
 @media(prefers-reduced-motion:reduce){.f-sk i::after,.f-in{animation:none}}
 /* the heatmap post (the app's heatmap look: cells in the theme accent, five steps) */
-.f-hmb{border-bottom:1px dashed var(--divider);padding:14px 0 10px;--hm:var(--accent,var(--text-fg))}
+.f-hmb{border-bottom:1px dashed var(--pdiv);padding:14px 0 10px;--hm:var(--accent,var(--text-fg))}
 .f-hm{display:flex;gap:10px;overflow-x:auto;padding:0 12px;scrollbar-width:none}.f-hm::-webkit-scrollbar{display:none}
 .f-mb{flex:none}.f-mb b{display:block;height:14px;margin-bottom:3px;font-size:10px;line-height:14px;font-weight:400;color:var(--text-fg-faint);white-space:nowrap}
 .f-hg{display:grid;grid-template-rows:repeat(7,12px);grid-auto-flow:column;grid-auto-columns:12px;gap:3px}
