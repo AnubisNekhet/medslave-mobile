@@ -1066,7 +1066,7 @@ html:not(.mobile) .extra img:active {
 }
 
 /*# sourceMappingURL=style.css.map */
-.card.card.night_mode th{background-color:#242426;}
+.card.card.night_mode th{background-color:color-mix(in srgb,var(--card-bg) 72%,#000)}   /* table headings: a shade under the theme's card colour (was the default theme's #242426 in every theme) */
 
 /* ---- medslave layout ---- */
 
