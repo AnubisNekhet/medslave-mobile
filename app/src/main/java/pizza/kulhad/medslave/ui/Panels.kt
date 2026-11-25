@@ -298,7 +298,7 @@ private fun DataSec(rs: Rs) {
     var done by remember { mutableStateOf(false) }
     LaunchedEffect(done) { if (done) { delay(1500); done = false } }
     Row2("Reset all progress") {
-        Btn(if (done) "Done ✓" else "Reset", danger = !done, enabled = !done, h = 37.dp, size = 14.4.sp, pad = 18.dp) {
+        Btn(if (done) "Done" else "Reset", danger = !done, enabled = !done, h = 37.dp, size = 14.4.sp, pad = 18.dp) {
             rs.dialog = pizza.kulhad.medslave.Dlg("Reset your progress in every deck? Each deck starts again from its first card.", "Reset", cancel = true, danger = true) { rs.resetProgress(); done = true }
         }
     }
@@ -349,7 +349,7 @@ fun CorrectionsPanel(rs: Rs) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Btn("Submit", p = true, h = 38.dp, size = 15.sp, pad = 19.dp) {
                     val x = text.trim(); if (x.isEmpty()) { st = "Write something first"; return@Btn }
-                    rs.addCorrection(c, x); text = ""; count++; st = "Saved ✓"; scope.launch { delay(700); rs.corrOpen = false }
+                    rs.addCorrection(c, x); text = ""; count++; st = "Saved"; scope.launch { delay(700); rs.corrOpen = false }
                 }
                 Txt(st, size = 13.6.sp, color = P.faint)
             }
@@ -358,7 +358,7 @@ fun CorrectionsPanel(rs: Rs) {
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Btn("Download", h = 32.dp, size = 13.sp, pad = 12.dp) { rs.saveFile("corrections.json", "application/json", rs.corrections().toString(2).toByteArray()) }
-                Btn("Copy", h = 32.dp, size = 13.sp, pad = 12.dp) { rs.copy(rs.corrections().toString(2)); st = "Copied ✓" }
+                Btn("Copy", h = 32.dp, size = 13.sp, pad = 12.dp) { rs.copy(rs.corrections().toString(2)); st = "Copied" }
                 Btn("Clear", h = 32.dp, size = 13.sp, pad = 12.dp) {
                     if (count > 0) rs.dialog = pizza.kulhad.medslave.Dlg("Delete all $count saved corrections from this device?", "Delete", cancel = true, danger = true) { rs.store.set(pizza.kulhad.medslave.CK, "[]"); count = 0 }
                 }
@@ -507,6 +507,27 @@ private fun Slot(label: String, strong: Boolean, req: Boolean, opts: List<String
                     Txt(o, bold = i == sel)
                 }
             }
+        }
+    }
+}
+
+/* ---------------------------------------------------------------- importing: the app's logo turning, how far along it is and what
+   it's doing, while the deck is read and saved (the field window in between has its own screen) */
+@Composable
+fun ImportProgress(rs: Rs) {
+    val pct = rs.impPct
+    val shown by androidx.compose.animation.core.animateFloatAsState(pct ?: 0f, tween(400), label = "imp")
+    Box(Modifier.fillMaxSize().background(P.bg.copy(alpha = .96f)).clickable(remember { MutableInteractionSource() }, null) {}, contentAlignment = Alignment.Center) {
+        Column(Modifier.widthIn(max = 320.dp).fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Spinner(76.dp)
+            Gap(4.dp)
+            Txt(if (pct != null) "${shown.toInt()}%" else "Importing", size = 30.sp, bold = true)
+            Box(Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(3.dp)).background(P.border)) {
+                if (pct != null) Box(Modifier.fillMaxWidth(shown / 100f).height(5.dp).clip(RoundedCornerShape(3.dp)).background(P.text))
+            }
+            Txt(rs.impStep, size = 14.4.sp, color = P.faint, align = TextAlign.Center, lines = 2)
+            Gap(6.dp)
+            Btn("Cancel", h = 36.dp, size = 14.4.sp, pad = 18.dp) { rs.importCancel() }
         }
     }
 }

@@ -84,6 +84,7 @@ class MainActivity : ComponentActivity() {
                     Sheets(rs)
                     if (rs.tutorial) Tutorial(rs)
                     rs.importTypes?.let { ImportPanel(rs, it) }
+                    if (rs.importing) pizza.kulhad.medslave.ui.ImportProgress(rs)
                     rs.dialog?.let { DialogBox(rs, it) }
                 }
                 /* the back gesture closes the topmost popup, then leaves the deck (the site's pOn/pOff history entries) */
@@ -96,7 +97,7 @@ class MainActivity : ComponentActivity() {
                 }
                 BackHandler(rs.reels.sheet != null) { if (rs.reels.qr) rs.reels.qr = false else rs.reels.close() }
                 BackHandler(rs.tutorial) { rs.tutorial = false }
-                BackHandler(rs.importTypes != null) { rs.importCancel() }
+                BackHandler(rs.importTypes != null || rs.importing) { rs.importCancel() }
                 BackHandler(rs.dialog != null) { if (rs.dialog?.cancel == true) rs.dialog = null }
             }
         }

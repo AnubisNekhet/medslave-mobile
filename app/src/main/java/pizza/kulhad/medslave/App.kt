@@ -86,8 +86,12 @@ class Rs(val ctx: Context) {
     // import
     var busy by mutableStateOf(false)
     var dkMsg by mutableStateOf("")
+    /** the import's progress screen: its current step and percent (null while it can't tell, e.g. copying the file) */
+    var impStep by mutableStateOf("")
+    var impPct by mutableStateOf<Float?>(null)
+    val importing get() = importer != null && importTypes == null
     var importTypes by mutableStateOf<List<ImportType>?>(null)
-    private var importer: Importer? = null
+    private var importer by mutableStateOf<Importer?>(null)
     // file pickers, set by the activity
     var saveFile: (name: String, mime: String, data: ByteArray) -> Unit = { _, _, _ -> }
     var openFile: (mimes: Array<String>, then: (Uri) -> Unit) -> Unit = { _, _ -> }
@@ -336,8 +340,8 @@ class Rs(val ctx: Context) {
         if (!loaded) { pending = uri; return }
         if (!deck.empty) { dialog = Dlg("Delete the current deck first (Settings › Data)."); return }
         if (busy) return
-        busy = true; dkMsg = "Reading note types…"
-        val imp = Importer(ctx) { m, p -> post { if (importer != null) dkMsg = m + (p?.let { " · ${it.roundToInt()}%" } ?: "") } }
+        busy = true; dkMsg = "Reading note types…"; impStep = "Opening the package…"; impPct = null
+        val imp = Importer(ctx) { m, p -> post { if (importer != null) { dkMsg = m + (p?.let { " · ${it.roundToInt()}%" } ?: ""); impStep = m; if (p != null) impPct = p } } }
         importer = imp
         io.execute {
             try { val t = imp.scan(uri); post { if (importer === imp) { dkMsg = "Choose the fields"; settingsOpen = false; importTypes = t } } }
@@ -346,9 +350,9 @@ class Rs(val ctx: Context) {
     }
     fun importGo(map: Map<String, Choice>) {
         val imp = importer ?: return
-        importTypes = null; dkMsg = "Importing…"
+        importTypes = null; dkMsg = "Importing…"; impStep = "Reading cards…"; impPct = 8f
         io.execute {
-            try { imp.build(map); imp.close(); post { if (importer === imp) { importer = null; busy = false; store.dropProgress(); last = null; dkMsg = "Imported ✓"; loadDeck() } } }
+            try { imp.build(map); imp.close(); post { if (importer === imp) { importer = null; busy = false; store.dropProgress(); last = null; dkMsg = "Imported"; loadDeck() } } }
             catch (e: Throwable) { post { importFail(imp, e) } }
         }
     }
