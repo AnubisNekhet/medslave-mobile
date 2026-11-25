@@ -1,1 +1,6 @@
-<resources><color name="bg">#e6e9ef</color></resources>
+<resources>
+    <color name="bg">#e6e9ef</color>
+    <!-- launcher icon: the default dark theme's card colour and its accent -->
+    <color name="icon_bg">#2e2f31</color>
+    <color name="icon_fg">#f9e2af</color>
+</resources>

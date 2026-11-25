@@ -62,6 +62,7 @@ git tag v1.3 && git push origin v1.3
   - `ui/`: the Compose screens.
 - `app/src/main/assets/web/`: the card page (`card.html`, `card.js`, `style.css`), fonts and MathJax.
 - `app/src/main/assets/reels.json`: Reels Mode's songs, comments and accounts.
+- `art/logo.svg`: the logo (the studying man) as an SVG. The app icon (`res/drawable/ic_launcher_foreground.xml`, an adaptive icon with a monochrome layer for themed icons) and the in-app logo (`res/drawable/logo.xml`) use the same path.
 
 ## Third-party
 
