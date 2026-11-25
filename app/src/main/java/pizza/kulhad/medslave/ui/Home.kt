@@ -43,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
@@ -85,7 +86,8 @@ fun Logo(size: Dp, modifier: Modifier = Modifier, color: Color = P.text) =
 fun Home(rs: Rs) {
     val listW = remember { mutableStateOf(0) }
     val d = LocalDensity.current.density
-    Box(Modifier.fillMaxSize().background(P.bg).windowInsetsPadding(WindowInsets.systemBars)) {
+    Column(Modifier.fillMaxSize().background(P.bg).windowInsetsPadding(WindowInsets.systemBars)) {
+    Box(Modifier.weight(1f)) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val vh = maxHeight; val vw = maxWidth
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -99,7 +101,8 @@ fun Home(rs: Rs) {
                         Logo(26.dp)
                         Txt("medslave", size = 32.sp, bold = true, spacing = (-.64).sp)
                     }
-                    Column(Modifier.width(IntrinsicSize.Max).widthIn(min = vw * .42f, max = vw - 20.dp).onSizeChanged { listW.value = it.width }) {
+                    /* phones: the list spans the screen (up to 30em); wider screens: at least 42% of the width */
+                    Column(Modifier.width(IntrinsicSize.Max).widthIn(min = if (vw < 600.dp) minOf(vw - 20.dp, 480.dp) else vw * .42f, max = vw - 20.dp).onSizeChanged { listW.value = it.width }) {
                         if (rs.deck.empty) Empty(rs, vw)
                         rs.deck.subjects.forEach { s ->
                             val n = rs.deck.top.find { it.name == s.name } ?: return@forEach
@@ -114,13 +117,36 @@ fun Home(rs: Rs) {
                             }
                         }
                     }
-                    if (listW.value > 0) Heatmap(rs, (listW.value / d).dp)
+                    /* Reels Mode moves the heatmap to the bottom bar */
+                    if (!rs.set.reels && listW.value > 0) Heatmap(rs, (listW.value / d).dp)
                 }
             }
         }
         /* settings: a round button in the top right */
         Box(Modifier.align(Alignment.TopEnd).padding(12.dp).size(42.dp).border(1.dp, P.border, CircleShape).press(bg = P.card, shape = CircleShape) { rs.settingsOpen = true },
             contentAlignment = Alignment.Center) { Icon(Ic.GEAR, 19.dp, P.text) }
+    }
+    /* Reels Mode: a bottom bar in the same place as the reviewer's: heatmap, back to the last card reviewed, credits */
+    if (rs.loaded && rs.set.reels) {
+        val back = rs.recent()
+        Row(Modifier.fillMaxWidth().solidLine(P.divider, true).padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceAround) {
+            IconBtn(Ic.CAL, Modifier.size(51.dp, 42.dp), size = 24.dp, stroke = 2f, plain = true) { rs.heatOpen = true }
+            Box(Modifier.size(51.dp, 42.dp).alpha(if (back != null) 1f else .35f)) {
+                IconBtn(Ic.HISTORY, Modifier.fillMaxSize(), size = 24.dp, stroke = 2f, plain = true) { back?.let { rs.go(it) } }
+            }
+            Box(Modifier.size(51.dp, 42.dp).press(shape = RoundedCornerShape(8.dp)) { rs.creditsOpen = true }, contentAlignment = Alignment.Center) { Logo(22.dp) }
+        }
+    }
+    }
+}
+
+/** the activity heatmap, opened from the home bar */
+@Composable
+fun HeatPanel(rs: Rs) {
+    Popup("Activity", { rs.heatOpen = false }) {
+        BoxWithConstraints(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 18.dp), contentAlignment = Alignment.Center) {
+            Heatmap(rs, maxWidth)
+        }
     }
 }
 
@@ -138,7 +164,7 @@ private fun Empty(rs: Rs, vw: Dp) {
 /* ---------------------------------------------------------------- heatmap (heatmap.js): answers revealed per day, one block per month,
    Monday-first columns, today at the right end; scrolling left goes back in time. A tap shows the day and its count */
 @Composable
-private fun Heatmap(rs: Rs, w: Dp) {
+fun Heatmap(rs: Rs, w: Dp) {
     val m = remember(rs.heatTick) { rs.store.actMap() }
     val mx = remember(m) { m.values.maxOrNull() ?: 0 }
     val today = remember(rs.heatTick) { LocalDate.now() }

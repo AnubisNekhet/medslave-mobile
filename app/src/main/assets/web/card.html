@@ -3,11 +3,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="/style.css">
 <style>
-/* the app's card view: the document itself scrolls (the WebView), the app draws the screen around it */
+/* the app's card view. the page never scrolls: a card taller than the view scrolls inside itself (body padding .5em top and bottom) */
 :root{padding:0}
-html,body{height:auto;min-height:100%;overflow:visible;overscroll-behavior:auto;background:transparent!important}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none;background:transparent!important}
 body{margin:0}
-#stage{overflow:visible;flex:none;min-height:0}
+#stage{overflow:visible;flex:none;min-height:0;padding-bottom:0}
+#stage.long>.wrap:not(.ghost){padding-bottom:0}
+#stage .prettify-flashcard{max-height:calc(100vh - 1em);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
+#stage .prettify-flashcard::-webkit-scrollbar{display:none}
 </style></head>
 <body class="card night_mode nightMode"><div id="stage"></div>
 <script src="/card.js"></script></body></html>

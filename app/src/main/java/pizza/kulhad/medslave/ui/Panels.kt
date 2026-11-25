@@ -188,8 +188,14 @@ private fun TinderDemo() {
     Box(Modifier.height(104.dp), contentAlignment = Alignment.Center) {
         Mini(Modifier.graphicsLayer { translationY = 5.6f * density; scaleX = .9f; scaleY = .9f; alpha = .6f })
         Mini(Modifier.graphicsLayer { translationX = x * density; rotationZ = r; alpha = a })
+        /* tpT: the finger lands (12–22%), drags right with the card and lifts off (30–48%) */
+        val fs = seg(t, 0f to 1.6f, .12f to 1.6f, .22f to 1f, 1f to 1f)
+        Tap(Modifier.graphicsLayer { translationX = seg(t, 0f to 0f, .30f to 0f, .48f to 45f, 1f to 45f) * density; translationY = 12 * density
+            scaleX = fs; scaleY = fs; alpha = seg(t, 0f to 0f, .12f to 0f, .22f to 1f, .30f to 1f, .48f to 0f, 1f to 0f) })
     }
 }
+/** the finger in the review style previews (.tap) */
+@Composable private fun Tap(m: Modifier) = Box(m.size(22.dp).clip(CircleShape).background(P.text.copy(alpha = .3f)).border(2.dp, P.text, CircleShape))
 @Composable
 private fun FlipDemo() {
     val t by rememberInfiniteTransition(label = "f").animateFloat(0f, 1f, infiniteRepeatable(tween(3000, easing = LinearEasing)), label = "f")
@@ -197,6 +203,10 @@ private fun FlipDemo() {
     val deg = when { t < .30f -> 0f; t < .50f -> (t - .30f) / .20f * 180f; t < .80f -> 180f; else -> 180f + (t - .80f) / .20f * 180f }
     Box(Modifier.height(104.dp), contentAlignment = Alignment.Center) {
         Mini(Modifier.graphicsLayer { rotationX = deg; cameraDistance = 8 * density }, answer = deg % 360f in 90f..270f)
+        /* tpD: two swipes up, one before each flip */
+        val fs = seg(t, 0f to 1.6f, .06f to 1.6f, .14f to 1f, .56f to 1f, .57f to 1.6f, .64f to 1f, 1f to 1f)
+        Tap(Modifier.graphicsLayer { translationY = seg(t, 0f to 18f, .14f to 18f, .28f to -18f, .34f to -24f, .56f to -24f, .57f to 18f, .64f to 18f, .78f to -18f, .84f to -24f, 1f to -24f) * density
+            scaleX = fs; scaleY = fs; alpha = seg(t, 0f to 0f, .06f to 0f, .14f to 1f, .28f to 1f, .34f to 0f, .56f to 0f, .57f to 0f, .64f to 1f, .78f to 1f, .84f to 0f, 1f to 0f) })
     }
 }
 /** Reels: Repost is pressed (red, the arrows turn, a cross pops in), then the card and its buttons scroll up and the next one rises in */
@@ -207,12 +217,15 @@ private fun ReelsDemo() {
     val x = seg(t, 0f to 0f, .27f to 0f, .35f to 1f, 1f to 1f)
     val s = androidx.compose.animation.core.FastOutSlowInEasing.transform(seg(t, 0f to 0f, .42f to 0f, .70f to 1f, 1f to 1f))
     Box(Modifier.height(104.dp).fillMaxWidth().clipToBounds()) {
-        ReelSlide(Modifier.graphicsLayer { translationY = -s * size.height }, turn, x)
+        val fs = seg(t, 0f to 1.6f, .10f to 1.6f, .20f to 1f, 1f to 1f)
+        ReelSlide(Modifier.graphicsLayer { translationY = -s * size.height }, turn, x) {
+            Tap(Modifier.graphicsLayer { scaleX = fs * .8f; scaleY = fs * .8f; alpha = seg(t, 0f to 0f, .10f to 0f, .20f to 1f, .28f to 1f, .36f to 0f, 1f to 0f) })
+        }
         ReelSlide(Modifier.graphicsLayer { translationY = (1 - s) * size.height }, 0f, 0f)
     }
 }
 @Composable
-private fun ReelSlide(m: Modifier, turn: Float, x: Float) {
+private fun ReelSlide(m: Modifier, turn: Float, x: Float, tap: @Composable () -> Unit = {}) {
     Box(m.fillMaxSize(), contentAlignment = Alignment.Center) {
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             Mini()
@@ -221,6 +234,7 @@ private fun ReelSlide(m: Modifier, turn: Float, x: Float) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(Ic.REPOST, 15.dp, if (turn > 0f) HEART else P.text, modifier = Modifier.graphicsLayer { rotationZ = turn * 180f })
                     if (x > 0f) Icon(Ic.CROSS, 15.dp, HEART, 2.6f, modifier = Modifier.graphicsLayer { scaleX = x; scaleY = x })
+                    tap()
                 }
             }
         }

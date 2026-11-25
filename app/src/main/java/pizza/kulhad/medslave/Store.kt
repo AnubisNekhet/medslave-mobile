@@ -17,6 +17,7 @@ const val SK = "medslave:settings"
 const val CK = "medslave:corrections"
 const val AK = "medslave:activity"    // answers revealed per day {yyyy-mm-dd: n}
 const val SEEN = "medslave:seen"
+const val RK = "medslave:recent"      // the deck reviewed last (its path), for the home bar's resume button
 
 class Store(ctx: Context) {
     private val p = ctx.getSharedPreferences("medslave", Context.MODE_PRIVATE)
@@ -32,7 +33,7 @@ class Store(ctx: Context) {
     fun replaceAll(data: Map<String, String>) {
         val e = p.edit(); keys().forEach { e.remove(it) }; data.forEach { (k, v) -> e.putString(k, v) }; e.commit()
     }
-    fun dropProgress() { val e = p.edit(); e.remove(LK); e.remove(OK); e.remove(AGK); e.apply() }
+    fun dropProgress() { val e = p.edit(); e.remove(LK); e.remove(OK); e.remove(AGK); e.remove(RK); e.apply() }
 
     fun actMap(): Map<String, Int> { val o = obj(AK); return o.keys().asSequence().associateWith { o.optInt(it) } }
     fun actBump() { val k = LocalDate.now().toString(); val m = obj(AK); m.put(k, m.optInt(k) + 1); set(AK, m.toString()) }

@@ -118,15 +118,15 @@ fun ReelOverlay(rs: Rs) {
                     r.song?.let { s -> androidx.compose.foundation.text.BasicText("♪ ${s.title} · ${s.artist}", style = TextStyle(color = P.text.copy(alpha = .85f), fontSize = 11.5.sp, fontFamily = Carlito, shadow = glowStyle()), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
                 }
             }
-            Column(Modifier.onGloballyPositioned { r.setExcl(1, it.boundsInWindow()) }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Column(Modifier.onGloballyPositioned { r.setExcl(1, it.boundsInWindow()) }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(11.dp)) {
                 /* like: a pop when it turns on */
                 val pop = remember { Animatable(1f) }
                 LaunchedEffect(r.likePop) { if (r.likePop > 0) pop.animateTo(1f, keyframes { durationMillis = 350; .6f at 0; 1.25f at 210; 1f at 350 }) }
                 Act(onClick = { r.like(!r.liked) }) {
-                    Icon(Ic.HEART, 34.dp, if (r.liked) HEART else P.text, fill = r.liked, modifier = Modifier.scale(pop.value))
+                    Icon(Ic.HEART, 25.dp, if (r.liked) HEART else P.text, fill = r.liked, modifier = Modifier.scale(pop.value))
                     ActLabel(kfmt(r.likes + if (r.liked) 1 else 0))
                 }
-                Act(onClick = { r.open("com") }) { Icon(Ic.COMMENT, 34.dp, P.text); ActLabel(kfmt(r.coms)) }
+                Act(onClick = { r.open("com") }) { Icon(Ic.COMMENT, 25.dp, P.text); ActLabel(kfmt(r.coms)) }
                 /* Repost = missed it: red, the arrows turn half a turn, a cross pops in, then the card is requeued and scrolls up */
                 val turn = remember { Animatable(0f) }; val x = remember { Animatable(0f) }
                 LaunchedEffect(r.repostAt) {
@@ -139,20 +139,20 @@ fun ReelOverlay(rs: Rs) {
                 Act(onClick = {
                     if (rs.cur != null && !rs.leaving && !r.reposting) { r.reposting = true; r.repostAt++; rs.repost { r.reposting = false } }
                 }) {
-                    Box(Modifier.size(34.dp), contentAlignment = Alignment.Center) {
-                        Icon(Ic.REPOST, 34.dp, if (red) HEART else P.text, modifier = Modifier.rotate(if (red) turn.value else 0f))
-                        if (red) Icon(Ic.CROSS, 34.dp, HEART, 2.6f, modifier = Modifier.scale(x.value))
+                    Box(Modifier.size(25.dp), contentAlignment = Alignment.Center) {
+                        Icon(Ic.REPOST, 25.dp, if (red) HEART else P.text, modifier = Modifier.rotate(if (red) turn.value else 0f))
+                        if (red) Icon(Ic.CROSS, 25.dp, HEART, 2.6f, modifier = Modifier.scale(x.value))
                     }
                     ActLabel("Repost")
                 }
-                Act(onClick = { r.open("share") }) { Icon(Ic.SEND, 34.dp, P.text); ActLabel("Share") }
+                Act(onClick = { r.open("share") }) { Icon(Ic.SEND, 25.dp, P.text); ActLabel("Share") }
                 /* music: a tap mutes, a long press opens the genre switches */
                 var art by remember { mutableStateOf<ImageBitmap?>(null) }
                 LaunchedEffect(r.song) { art = null; r.song?.let { s -> r.art(s.art) { if (r.song === s) art = it } } }
-                Box(Modifier.padding(top = 2.dp).size(26.dp).border(1.5.dp, P.text, RoundedCornerShape(7.dp)).clip(RoundedCornerShape(7.dp))
+                Box(Modifier.padding(top = 2.dp).size(20.dp).border(1.5.dp, P.text, RoundedCornerShape(5.dp)).clip(RoundedCornerShape(5.dp))
                     .pointerInputTap({ r.tapMusic() }, { hap.performHapticFeedback(HapticFeedbackType.LongPress); r.open("music") }), contentAlignment = Alignment.Center) {
                     art?.let { Image(it, null, Modifier.fillMaxSize().graphicsLayer { alpha = if (r.muted) .25f else .55f }, contentScale = ContentScale.Crop) }
-                    Icon(Ic.NOTE + if (r.muted) Ic.SLASH else "", 14.dp, P.text)
+                    Icon(Ic.NOTE + if (r.muted) Ic.SLASH else "", 11.dp, P.text)
                 }
             }
         }
@@ -247,7 +247,7 @@ private fun CommentSheet(rs: Rs, modifier: Modifier) {
                     Txt("Reply", size = 11.5.sp, bold = true, color = P.faint)
                 }
                 Column(Modifier.clickable(remember { MutableInteractionSource() }, null) { c.liked = !c.liked }.padding(3.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Ic.HEART, 16.dp, if (c.liked) HEART else P.faint, fill = c.liked)
+                    Icon(Ic.HEART, 11.dp, if (c.liked) HEART else P.faint, fill = c.liked)
                     val n = c.likes + if (c.liked) 1 else 0
                     Txt(if (n > 0) kfmt(n) else "", size = 10.9.sp, color = if (c.liked) HEART else P.faint)
                 }

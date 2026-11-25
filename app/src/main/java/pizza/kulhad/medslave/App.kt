@@ -67,6 +67,7 @@ class Rs(val ctx: Context) {
     var progressOpen by mutableStateOf(false)
     var corrOpen by mutableStateOf(false)
     var creditsOpen by mutableStateOf(false)
+    var heatOpen by mutableStateOf(false)
     var tutorial by mutableStateOf(false)
     var dialog by mutableStateOf<Dlg?>(null)
     var heatTick by mutableIntStateOf(0)
@@ -123,7 +124,9 @@ class Rs(val ctx: Context) {
     fun resetProgress() { last = null; store.dropProgress() }
 
     /* ---------------------------------------------------------------- study (deck.js) */
-    fun go(n: Node) { picker = null; study = true; begin(deck.notesFor(n), n.name, n.ps) }
+    fun go(n: Node) { picker = null; study = true; store.set(RK, n.ps); begin(deck.notesFor(n), n.name, n.ps) }
+    /** the home bar's middle button: back to the last card reviewed, in the deck it was in */
+    fun recent(): Node? = store.get(RK)?.let { k -> deck.nodes.find { it.ps == k } }
 
     fun begin(notes: List<Note>, name: String, key: String, resume: Boolean = true) {
         val sv = if (resume) lastOf(key) else null

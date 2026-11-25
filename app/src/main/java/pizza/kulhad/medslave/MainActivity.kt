@@ -71,6 +71,7 @@ class MainActivity : ComponentActivity() {
                     if (rs.study) Study(rs) else Home(rs)
                     rs.picker?.let { Picker(rs, it) }
                     if (rs.creditsOpen) Credits(rs)
+                    if (rs.heatOpen) pizza.kulhad.medslave.ui.HeatPanel(rs)
                     if (rs.settingsOpen) SettingsPanel(rs)
                     if (rs.progressOpen) ProgressPanel(rs)
                     if (rs.corrOpen) CorrectionsPanel(rs)
@@ -81,8 +82,8 @@ class MainActivity : ComponentActivity() {
                 }
                 /* the back gesture closes the topmost popup, then leaves the deck (the site's pOn/pOff history entries) */
                 BackHandler(rs.study) { rs.home() }
-                BackHandler(rs.picker != null || rs.creditsOpen || rs.settingsOpen || rs.progressOpen || rs.corrOpen) {
-                    rs.picker = null; rs.creditsOpen = false; rs.settingsOpen = false; rs.progressOpen = false; rs.corrOpen = false
+                BackHandler(rs.picker != null || rs.heatOpen || rs.creditsOpen || rs.settingsOpen || rs.progressOpen || rs.corrOpen) {
+                    rs.picker = null; rs.heatOpen = false; rs.creditsOpen = false; rs.settingsOpen = false; rs.progressOpen = false; rs.corrOpen = false
                 }
                 BackHandler(rs.reels.sheet != null) { if (rs.reels.qr) rs.reels.qr = false else rs.reels.close() }
                 BackHandler(rs.tutorial) { rs.tutorial = false }

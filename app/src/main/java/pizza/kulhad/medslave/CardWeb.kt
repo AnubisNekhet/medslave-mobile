@@ -30,6 +30,7 @@ class CardBridge(private val w: CardWeb) {
     @JavascriptInterface fun tap() = h.post { w.onTap() }
     @JavascriptInterface fun h(px: Float) = h.post { w.contentH = px }
     @JavascriptInterface fun ready(seq: Int) = h.post { w.ready(seq) }
+    @JavascriptInterface fun sc(top: Boolean, bot: Boolean) = h.post { w.top = top; w.bot = bot }
 }
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -38,6 +39,9 @@ class CardWeb(private val ctx: Context) {
     var seqN by mutableIntStateOf(1)
     var contentH by mutableFloatStateOf(0f)   // the card's height in CSS px (= dp)
     var onTap: () -> Unit = {}
+    /** the card's own scroll (a card taller than the view scrolls inside itself, the page never does) */
+    internal var top = true
+    internal var bot = true
 
     private var loaded = false
     private val queue = ArrayList<String>()
@@ -88,7 +92,7 @@ class CardWeb(private val ctx: Context) {
     fun theme(t: String, dark: Boolean) = js("R.theme(${q(t)},$dark)")
     /** draws a card; onReady runs once it's on screen */
     fun show(noteJson: String, o: Int, stage: Int, flip: Boolean, onReady: () -> Unit = {}) {
-        val s = ++seq; waits.clear(); waits[s] = onReady
+        val s = ++seq; waits.clear(); waits[s] = onReady; top = true; bot = true
         js("R.show($s,$noteJson,$o,$stage,$flip)")
     }
     fun clear() { waits.clear(); js("R.clear()") }
@@ -102,7 +106,7 @@ class CardWeb(private val ctx: Context) {
         view.postVisualStateCallback(s.toLong(), object : WebView.VisualStateCallback() { override fun onComplete(id: Long) { f() } })
     }
 
-    fun atTop() = !view.canScrollVertically(-1)
-    fun atBottom() = !view.canScrollVertically(1)
+    fun atTop() = top
+    fun atBottom() = bot
     fun detach() { (view.parent as? ViewGroup)?.removeView(view) }
 }
