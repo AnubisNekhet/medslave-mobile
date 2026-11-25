@@ -28,6 +28,7 @@ class FeedBridge(private val f: Feed) {
     @JavascriptInterface fun imp() = h.post { f.rs.deckPick() }
     @JavascriptInterface fun settings() = h.post { f.rs.settingsSec = null; f.rs.settingsOpen = true }
     @JavascriptInterface fun credits() = h.post { f.rs.creditsOpen = true }
+    @JavascriptInterface fun refresh() = h.post { f.refresh() }
 }
 
 class FeedWeb(ctx: Context, f: Feed) : Page(ctx, "feed.html", false, { FeedBridge(f) }) {
@@ -37,6 +38,7 @@ class FeedWeb(ctx: Context, f: Feed) : Page(ctx, "feed.html", false, { FeedBridg
     fun close() = js("R.close()")
     fun top(instant: Boolean = false) = js("R.top($instant)")
     fun heat(j: String) = js("R.heat($j)")
+    fun refreshed(j: String) = js("R.refreshed($j)")
     /** the status and navigation bar heights (CSS px): the page runs behind the status bar and pads itself */
     fun insets(top: Float, bottom: Float) = js("R.insets($top,$bottom)")
 }
@@ -84,6 +86,10 @@ class Feed(val rs: Rs) {
             main.post { if (deck === d) { bucket = b; web.feed(j.toString()) } }
         }
     }
+
+    /** pull to refresh: a new set of posts (the stories stay) */
+    fun refresh() { if (acc.isEmpty()) return web.refreshed("[]"); val d = deck; salt = System.currentTimeMillis(); page = 0
+        io.execute { val l = posts(0); main.post { if (deck === d) web.refreshed(l.toString()) } } }
 
     fun more() { if (acc.isEmpty()) return; val p = ++page; val d = deck; io.execute { val l = posts(p); main.post { if (deck === d) web.posts(l.toString()) } } }
 

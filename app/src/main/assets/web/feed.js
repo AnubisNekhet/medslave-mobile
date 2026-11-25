@@ -2,8 +2,8 @@
    them over through R.*; this draws them. Posts and stories show cards' answers (face.js).
    App.more(): near the end of the posts, the app sends more (R.posts). App.com(handle, n) / App.share(): the app's comment and
    share sheets. App.story(open): the story viewer opened or closed (the app hides its bottom bar). App.seen(group). App.imp().
-   App.settings() / App.credits(): the gear in the top right, and the logo (as on the Menu) */
-const A_=window.App||{more(){},com(){},share(){},story(){},seen(){},imp(){},settings(){},credits(){}};
+   App.settings() / App.credits(): the gear in the top right, and the logo (as on the Menu). App.refresh(): pulled to refresh (R.refreshed) */
+const A_=window.App||{more(){},com(){},share(){},story(){},seen(){},imp(){},settings(){},credits(){},refresh(){}};
 const F={acc:[],posts:[],groups:[],wait:false};
 function fitX(){}   /* face.js calls it after MathJax; the feed has nothing to refit */
 const ESC=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
@@ -80,6 +80,17 @@ $('#posts').addEventListener('click',e=>{const el=e.target.closest('.f-post');if
  /* a double tap on the card likes it: a heart bursts in the middle */
  const now=Date.now();if(now-LT<320&&LX===el){LT=0;const h=document.createElement('i');h.className='f-burst';h.innerHTML=SVG(ICN.heart);b.appendChild(h);setTimeout(()=>h.remove(),900);if(!p.liked)like(el,p,true)}else{LT=now;LX=el}});
 const FD=$('#feed');FD.addEventListener('scroll',()=>{if(!F.wait&&F.posts.length&&FD.clientHeight+FD.scrollTop>FD.scrollHeight-FD.clientHeight*1.5){F.wait=true;F.asked=Date.now();A_.more()}},{passive:true});
+/* pull to refresh: dragging down from the top of the feed pulls the stories and posts down with a logo that turns as it comes;
+   let go past PULL and the logo spins while a new set of posts loads (the stories and the heatmap post stay) */
+const PULL=70,PTR={y:null,d:0,busy:false};
+function ptrSet(d,anim){const k=[$('#stories'),$('#posts'),$('#empty')],p=$('#ptr');PTR.d=d;
+ k.forEach(e=>{e.style.transition=anim?'transform .3s cubic-bezier(.2,.8,.2,1)':'none';e.style.transform=d?`translateY(${d}px)`:''});
+ p.style.transition=anim?'opacity .3s,transform .3s cubic-bezier(.2,.8,.2,1)':'none';p.style.opacity=Math.min(1,d/PULL);p.style.transform=`translate(-50%,${Math.min(d,PULL)*.55}px) rotate(${d*3}deg)`}
+FD.addEventListener('touchstart',e=>{PTR.y=!PTR.busy&&FD.scrollTop<=0&&e.touches.length==1?e.touches[0].clientY:null},{passive:true});
+FD.addEventListener('touchmove',e=>{if(PTR.y==null)return;const dy=e.touches[0].clientY-PTR.y;if(dy<=0){if(PTR.d)ptrSet(0);return}
+ if(e.cancelable)e.preventDefault();ptrSet(Math.min(130,dy*.5))},{passive:false});
+FD.addEventListener('touchend',()=>{if(PTR.y==null)return;PTR.y=null;if(PTR.d<PULL)return ptrSet(0,true);
+ PTR.busy=true;PTR.t=Date.now();ptrSet(PULL,true);$('#ptr').classList.add('spin');A_.refresh()});
 $('#eimp').onclick=()=>A_.imp();$('#wm').onclick=()=>A_.credits();$('#gear').onclick=()=>A_.settings();
 
 /* ---- stories: the row of accounts, and the viewer (one page per account, swiped sideways; tap right / left for the next /
@@ -127,6 +138,8 @@ const R={
  feed(d){DATA.paths=d.paths;SET.source=!!d.source;F.acc=d.acc;F.posts=[];F.groups=d.groups;$('#posts').innerHTML='';svClose();rings();
   $('#empty').hidden=!!d.acc.length;HJ='';heat(d.act);addPosts(d.posts);FD.scrollTop=0},
  heat(m){heat(m)},
+ refreshed(l){setTimeout(()=>{$('#posts').querySelectorAll('.f-post:not([data-i="h"]),.f-loadmore').forEach(e=>e.remove());F.posts=[];F.wait=false;addPosts(l);
+  $('#ptr').classList.remove('spin');ptrSet(0,true);PTR.busy=false},Math.max(0,600+Math.random()*900-(Date.now()-PTR.t)))},   /* a believable wait, then the new posts */
  insets(t,b){const s=document.documentElement.style;s.setProperty('--st',t+'px');s.setProperty('--sb',b+'px')},   /* status / navigation bar heights: the page runs behind the status bar */
  posts(l){setTimeout(()=>addPosts(l),Math.max(0,500+Math.random()*900-(Date.now()-(F.asked||0))))},
  stories(g){if(SV.on){F.next=g;return}F.groups=g;rings()},   /* new stories wait while the viewer is open */
