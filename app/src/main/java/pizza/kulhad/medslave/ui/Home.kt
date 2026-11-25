@@ -148,14 +148,14 @@ private fun FeedView(rs: Rs) {
     AndroidView(factory = { rs.feed.web.detach(); rs.feed.web.view.apply { setBackgroundColor(bg) } }, update = { it.setBackgroundColor(bg) }, modifier = Modifier.fillMaxSize())
 }
 
-/* Reels Mode's home bar: Feed, Reels (the last card reviewed), Menu, the current one in full colour. Three buttons, like the
+/* Reels Mode's home bar: Feed, Reels (the last card reviewed), Menu, all in the text colour; the current one is drawn bolder. Three buttons, like the
    reviewer's (stats, home, corrections) */
 @Composable
 fun NavBar(rs: Rs, current: String) {
     val back = rs.recent()
     @Composable fun item(svg: String, on: Boolean, enabled: Boolean = true, stroke: Float = 2f, go: () -> Unit) =
-        Box(Modifier.size(51.dp, 42.dp).alpha(if (enabled) 1f else .35f).press(enabled, shape = RoundedCornerShape(8.dp), onClick = go), contentAlignment = Alignment.Center) {
-            Icon(svg, 24.dp, if (on) P.text else P.text.copy(alpha = .55f), if (on) stroke + .4f else stroke)
+        Box(Modifier.size(51.dp, 42.dp).press(enabled, shape = RoundedCornerShape(8.dp), onClick = go), contentAlignment = Alignment.Center) {
+            Icon(svg, 24.dp, P.text, if (on) stroke + .4f else stroke)
         }
     Row(Modifier.fillMaxWidth().solidLine(P.divider, true).padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceAround) {
         item(Ic.HOME, current == "feed") { if (rs.study) rs.home(); rs.tab = "feed"; if (current == "feed") rs.feed.web.top() }
