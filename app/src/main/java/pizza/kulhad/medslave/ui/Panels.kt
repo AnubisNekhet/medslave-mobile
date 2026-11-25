@@ -81,17 +81,6 @@ fun SettingsPanel(rs: Rs) {
     Popup({ SettingsTitle(rs, names) }, { rs.settingsOpen = false }) { SettingsBody(rs, names) }
 }
 
-/** Reels Mode: Settings is one of the home views, with the bottom bar under it */
-@Composable
-fun SettingsPage(rs: Rs) {
-    val names = mapOf("ap" to "Appearance", "rv" to "Reviewing", "da" to "Data")
-    androidx.activity.compose.BackHandler(rs.settingsSec != null) { rs.settingsSec = null }
-    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-        Row(Modifier.fillMaxWidth().dashedBottom(P.divider).padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) { SettingsTitle(rs, names, 20.sp) }
-        Column(Modifier.widthIn(max = 480.dp).fillMaxWidth()) { SettingsBody(rs, names) }
-    }
-}
-
 @Composable
 private fun SettingsTitle(rs: Rs, names: Map<String, String>, size: androidx.compose.ui.unit.TextUnit = 16.sp) {
     val sec = rs.settingsSec
@@ -191,8 +180,7 @@ private fun Appearance(rs: Rs) {
 
 /** tinder | flip | reels (Reels keeps the saved Tinder/Flip choice for when it's turned off) */
 private fun setStyle(rs: Rs, v: String) {
-    /* leaving Reels from its Settings view: Settings stays open, as the popup of the plain home */
-    if (v == "reels") rs.set.reels = true else { if (rs.set.reels && rs.tab == "settings" && !rs.study) rs.settingsOpen = true; rs.set.reels = false; rs.set.style = v }
+    if (v == "reels") rs.set.reels = true else { rs.set.reels = false; rs.set.style = v }
     rs.set.save(); redraw(rs); rs.reels.onCard()
 }
 /** the card on screen again, in the current style */

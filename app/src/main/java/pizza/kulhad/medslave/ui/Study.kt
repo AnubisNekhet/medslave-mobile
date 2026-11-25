@@ -130,10 +130,10 @@ private fun hint(rs: Rs): String {
 @Composable
 private fun Footer(rs: Rs, reels: Boolean) {
     if (reels) {
-        /* Reels: stats, home, corrections become a bottom nav bar */
+        /* Reels: three buttons, like the home bar: stats, home (the feed), corrections */
         Row(Modifier.fillMaxWidth().solidLine(P.divider, true).padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceAround) {
             IconBtn(Ic.PIE, Modifier.size(51.dp, 42.dp), size = 24.dp, plain = true) { rs.progressOpen = true }
-            IconBtn(Ic.HOME, Modifier.size(51.dp, 42.dp), size = 24.dp, plain = true) { rs.home() }
+            IconBtn(Ic.HOME, Modifier.size(51.dp, 42.dp), size = 24.dp, plain = true) { rs.home(); rs.tab = "feed" }
             IconBtn(Ic.PEN, Modifier.size(51.dp, 42.dp), size = 24.dp, stroke = 2f, plain = true) { if (rs.cur != null) rs.corrOpen = true }
         }
         return

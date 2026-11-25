@@ -98,6 +98,14 @@ class Reels(private val rs: Rs) {
         } else if (!want && song != null) play()
     }
 
+    /** a short buzz, like the site's navigator.vibrate(12) (Samsung often ignores the haptic-feedback route) */
+    fun buzz() {
+        runCatching {
+            val v = if (android.os.Build.VERSION.SDK_INT >= 31) rs.ctx.getSystemService(android.os.VibratorManager::class.java).defaultVibrator
+                    else @Suppress("DEPRECATION") rs.ctx.getSystemService(android.os.Vibrator::class.java)
+            v.vibrate(android.os.VibrationEffect.createOneShot(15, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+        }
+    }
     fun like(v: Boolean) { liked = v; if (v) likePop++ }
     fun burst(x: Float, y: Float) { bursts.add(Burst(x, y, (Math.random() * 30 - 15).toFloat(), System.nanoTime())); if (!liked) like(true) }
 

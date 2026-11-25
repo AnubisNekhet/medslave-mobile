@@ -88,20 +88,15 @@ fun Logo(size: Dp, modifier: Modifier = Modifier, color: Color = P.text) =
 fun Home(rs: Rs) {
     Column(Modifier.fillMaxSize().background(P.bg).windowInsetsPadding(WindowInsets.systemBars)) {
         Box(Modifier.weight(1f)) {
-            if (!rs.set.reels) Menu(rs, gear = true)
-            else when (rs.tab) {
-                "menu" -> Menu(rs, gear = false)
-                "settings" -> SettingsPage(rs)
-                else -> FeedView(rs)
-            }
+            if (!rs.set.reels || rs.tab == "menu") Menu(rs) else FeedView(rs)
         }
-        if (rs.loaded && rs.set.reels && !rs.feed.storyOpen) HomeBar(rs)
+        if (rs.loaded && rs.set.reels && !rs.feed.storyOpen) NavBar(rs, if (rs.tab == "menu") "menu" else "feed")
     }
 }
 
 /** the deck list (Reels Mode: the Menu view) */
 @Composable
-private fun Menu(rs: Rs, gear: Boolean) {
+private fun Menu(rs: Rs) {
     val listW = remember { mutableStateOf(0) }
     Box(Modifier.fillMaxSize()) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -137,8 +132,8 @@ private fun Menu(rs: Rs, gear: Boolean) {
                 }
             }
         }
-        /* settings: a round button in the top right (Reels Mode has Settings in the bottom bar) */
-        if (gear) Box(Modifier.align(Alignment.TopEnd).padding(12.dp).size(42.dp).border(1.dp, P.border, CircleShape).press(bg = P.card, shape = CircleShape) { rs.settingsSec = null; rs.settingsOpen = true },
+        /* settings: a round button in the top right */
+        Box(Modifier.align(Alignment.TopEnd).padding(12.dp).size(42.dp).border(1.dp, P.border, CircleShape).press(bg = P.card, shape = CircleShape) { rs.settingsSec = null; rs.settingsOpen = true },
             contentAlignment = Alignment.Center) { Icon(Ic.GEAR, 19.dp, P.text) }
     }
 }
@@ -153,24 +148,22 @@ private fun FeedView(rs: Rs) {
     AndroidView(factory = { rs.feed.web.detach(); rs.feed.web.view.apply { setBackgroundColor(bg) } }, update = { it.setBackgroundColor(bg) }, modifier = Modifier.fillMaxSize())
 }
 
-/* Reels Mode: a bottom bar where the reviewer's is. The views are Feed, Menu, Reels (back to the last card reviewed) and Settings;
-   each view's bar holds the other three, always in that order */
+/* Reels Mode's home bar: Feed, Reels (the last card reviewed), Menu, the current one in full colour. Three buttons, like the
+   reviewer's (stats, home, corrections) */
 @Composable
-private fun HomeBar(rs: Rs) {
+fun NavBar(rs: Rs, current: String) {
     val back = rs.recent()
-    Row(Modifier.fillMaxWidth().solidLine(P.divider, true).padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceAround) {
-        listOf("feed", "menu", "reels", "settings").filter { it != rs.tab }.forEach { k ->
-            when (k) {
-                "feed" -> IconBtn(Ic.HOME, Modifier.size(51.dp, 42.dp), size = 24.dp, plain = true) { rs.tab = "feed" }
-                "menu" -> IconBtn(Ic.LIST, Modifier.size(51.dp, 42.dp), size = 24.dp, stroke = 2f, plain = true) { rs.tab = "menu" }
-                "reels" -> Box(Modifier.size(51.dp, 42.dp).alpha(if (back != null) 1f else .35f)) {
-                    IconBtn(Ic.REELS, Modifier.fillMaxSize(), size = 24.dp, stroke = 2f, plain = true) { back?.let { rs.go(it) } }
-                }
-                "settings" -> IconBtn(Ic.GEAR, Modifier.size(51.dp, 42.dp), size = 24.dp, stroke = 2f, plain = true) { rs.settingsSec = null; rs.tab = "settings" }
-            }
+    @Composable fun item(svg: String, on: Boolean, enabled: Boolean = true, stroke: Float = 2f, go: () -> Unit) =
+        Box(Modifier.size(51.dp, 42.dp).alpha(if (enabled) 1f else .35f).press(enabled, shape = RoundedCornerShape(8.dp), onClick = go), contentAlignment = Alignment.Center) {
+            Icon(svg, 24.dp, if (on) P.text else P.text.copy(alpha = .55f), if (on) stroke + .4f else stroke)
         }
+    Row(Modifier.fillMaxWidth().solidLine(P.divider, true).padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceAround) {
+        item(Ic.HOME, current == "feed") { if (rs.study) rs.home(); rs.tab = "feed"; if (current == "feed") rs.feed.web.top() }
+        item(Ic.REELS, current == "reels", enabled = current == "reels" || back != null) { if (current != "reels") back?.let { rs.go(it) } }
+        item(Ic.LIST, current == "menu") { if (rs.study) rs.home(); rs.tab = "menu" }
     }
 }
+
 
 /** the activity heatmap, opened from the home bar */
 @Composable

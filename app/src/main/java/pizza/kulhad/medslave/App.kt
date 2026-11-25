@@ -54,7 +54,7 @@ class Rs(val ctx: Context) {
     val reels = Reels(this)
     val feed = Feed(this)
     var dark = true
-    /** Reels Mode's home views: feed | menu | settings */
+    /** Reels Mode's home views: feed | menu */
     var tab by mutableStateOf("feed")
     lateinit var scope: CoroutineScope
     var activity: Activity? = null

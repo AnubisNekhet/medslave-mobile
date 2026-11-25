@@ -26,6 +26,8 @@ class FeedBridge(private val f: Feed) {
     @JavascriptInterface fun story(open: Boolean) = h.post { f.storyOpen = open }
     @JavascriptInterface fun seen(g: Int) = h.post { f.seen(g) }
     @JavascriptInterface fun imp() = h.post { f.rs.deckPick() }
+    @JavascriptInterface fun settings() = h.post { f.rs.settingsSec = null; f.rs.settingsOpen = true }
+    @JavascriptInterface fun credits() = h.post { f.rs.creditsOpen = true }
 }
 
 class FeedWeb(ctx: Context, f: Feed) : Page(ctx, "feed.html", false, { FeedBridge(f) }) {
@@ -33,7 +35,8 @@ class FeedWeb(ctx: Context, f: Feed) : Page(ctx, "feed.html", false, { FeedBridg
     fun posts(j: String) = js("R.posts($j)")
     fun stories(j: String) = js("R.stories($j)")
     fun close() = js("R.close()")
-    fun top() = js("R.top()")
+    fun top(instant: Boolean = false) = js("R.top($instant)")
+    fun heat(j: String) = js("R.heat($j)")
 }
 
 class Feed(val rs: Rs) {
@@ -58,6 +61,7 @@ class Feed(val rs: Rs) {
 
     /** the feed is on screen: rebuilt for a new deck, stories renewed when the 5-minute slot has changed */
     fun show() {
+        made?.heat(act())   // the heatmap post follows the reviews done since
         if (deck !== rs.deck) build()
         else if (slot() != bucket) { val b = slot(); io.execute { val g = stories(b); main.post { bucket = b; web.stories(g.toString()) } } }
     }
@@ -74,12 +78,17 @@ class Feed(val rs: Rs) {
         io.execute {
             val j = JSONObject().put("paths", JSONArray(d.paths)).put("source", rs.set.source)
                 .put("acc", JSONArray(acc.map { a -> JSONObject().put("h", a.h).put("ic", a.ic).put("c", a.c) }))
-                .put("posts", posts(0)).put("groups", stories(b))
+                .put("posts", posts(0)).put("groups", stories(b)).put("act", JSONObject(act()))
             main.post { if (deck === d) { bucket = b; web.feed(j.toString()) } }
         }
     }
 
     fun more() { if (acc.isEmpty()) return; val p = ++page; val d = deck; io.execute { val l = posts(p); main.post { if (deck === d) web.posts(l.toString()) } } }
+
+    /** answers revealed per day (medslave:activity), for the heatmap post */
+    private fun act(): String = rs.store.get(AK) ?: "{}"
+    /** the app was opened: the feed starts at the top, on the heatmap post */
+    fun opened() { made?.top(true) }
 
     fun comments(handle: String) { rs.reels.name = handle; rs.reels.open("com") }
     fun seen(g: Int) { groups.getOrNull(g)?.let { seen.add("$bucket:${acc[it].h}") } }

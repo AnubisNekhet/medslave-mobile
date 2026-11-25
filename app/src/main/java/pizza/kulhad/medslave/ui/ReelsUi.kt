@@ -149,10 +149,10 @@ fun ReelOverlay(rs: Rs) {
                 /* music: a tap mutes, a long press opens the genre switches */
                 var art by remember { mutableStateOf<ImageBitmap?>(null) }
                 LaunchedEffect(r.song) { art = null; r.song?.let { s -> r.art(s.art) { if (r.song === s) art = it } } }
-                Box(Modifier.padding(top = 2.dp).size(20.dp).border(1.5.dp, P.text, RoundedCornerShape(5.dp)).clip(RoundedCornerShape(5.dp))
-                    .pointerInputTap({ r.tapMusic() }, { hap.performHapticFeedback(HapticFeedbackType.LongPress); r.open("music") }), contentAlignment = Alignment.Center) {
+                Box(Modifier.padding(top = 2.dp).size(27.dp).border(1.5.dp, P.text, RoundedCornerShape(7.dp)).clip(RoundedCornerShape(7.dp))
+                    .pointerInputTap({ r.tapMusic() }, { r.buzz(); r.open("music") }), contentAlignment = Alignment.Center) {
                     art?.let { Image(it, null, Modifier.fillMaxSize().graphicsLayer { alpha = if (r.muted) .25f else .55f }, contentScale = ContentScale.Crop) }
-                    Icon(Ic.NOTE + if (r.muted) Ic.SLASH else "", 11.dp, P.text)
+                    Icon(Ic.NOTE + if (r.muted) Ic.SLASH else "", 15.dp, P.text)
                 }
             }
         }

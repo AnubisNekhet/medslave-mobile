@@ -13,8 +13,11 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 button:active,button:hover{background:none;color:inherit}
 svg{display:block}
 
-.f-top{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:center;height:48px;padding:0 14px;background-color:var(--bgc)}
+.f-top{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:center;height:62px;padding:0 14px;background-color:var(--bgc)}
 .f-wm{display:flex;align-items:center;gap:8px;font-size:26px;font-weight:700;letter-spacing:-.02em}
+/* settings: the Menu's round button, in the top right */
+.f-gear{position:absolute;right:12px;top:10px;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--card-border);background:var(--card-bg)}
+.f-gear:active{background:var(--press-bg)}.f-gear svg{width:19px;height:19px}
 .f-wm .lg{width:21px;height:21px;align-self:center}
 #stories,#posts,.f-emp2{max-width:var(--card-max-width);margin:0 auto}
 
@@ -38,9 +41,9 @@ svg{display:block}
 .f-ph{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px dashed var(--divider)}
 .f-pn{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.2}
 .f-pn b{font-size:14px}.f-pn small{font-size:12px;color:var(--text-fg-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.f-pm{color:var(--text-fg-faint);font-weight:700;letter-spacing:1px}
 .f-pb{position:relative;border-bottom:1px dashed var(--divider)}
-.f-pb .prettify-flashcard{max-height:125vw;overflow:hidden;margin:0;border:0;border-radius:0;box-shadow:none}
+.f-pb .prettify-flashcard{max-height:125vw;overflow:hidden;margin:0;border:0;border-radius:0;box-shadow:none;padding-top:.7em}
+.f-pb .prettify-field:last-of-type{margin-bottom:.9em}   /* even space above and below the answer (it has no deck path on top) */
 .f-pb.open .prettify-flashcard{max-height:none}
 .f-pmore{display:none;position:absolute;left:0;right:0;bottom:0;height:70px;align-items:flex-end;justify-content:center;padding-bottom:10px;
  background:linear-gradient(to bottom,transparent,var(--card-bg) 70%);font-size:13px;font-weight:700;color:var(--text-fg-faint)}
@@ -48,6 +51,18 @@ svg{display:block}
 .f-pb #allClozeBtn{display:none}
 .f-pa{display:flex;align-items:center;gap:16px;padding:10px 12px 6px}
 .f-pa svg{width:25px;height:25px}
+.f-pa button{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700}
+.f-tag{color:var(--text-fg-faint)}
+/* the heatmap post (the app's heatmap look: cells in the theme accent, five steps) */
+.f-hmb{border-bottom:1px dashed var(--divider);padding:14px 0 10px;--hm:var(--accent,var(--text-fg))}
+.f-hm{display:flex;gap:10px;overflow-x:auto;padding:0 12px;scrollbar-width:none}.f-hm::-webkit-scrollbar{display:none}
+.f-mb{flex:none}.f-mb b{display:block;height:14px;margin-bottom:3px;font-size:10px;line-height:14px;font-weight:400;color:var(--text-fg-faint);white-space:nowrap}
+.f-hg{display:grid;grid-template-rows:repeat(7,12px);grid-auto-flow:column;grid-auto-columns:12px;gap:3px}
+.f-hg i{border-radius:3px;background:color-mix(in srgb,var(--hm) 7%,transparent)}.f-hg i.f{background:none}
+.f-hg i.l1{background:color-mix(in srgb,var(--hm) 22%,transparent)}.f-hg i.l2{background:color-mix(in srgb,var(--hm) 42%,transparent)}
+.f-hg i.l3{background:color-mix(in srgb,var(--hm) 66%,transparent)}.f-hg i.l4{background:color-mix(in srgb,var(--hm) 92%,transparent)}
+.f-hg i.t{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--hm) 70%,transparent)}
+.f-hmt{padding:8px 12px 0;font-size:12px;color:var(--text-fg-faint)}
 .f-pa .f-sv{margin-left:auto}
 .f-lk.on{color:#ff3040}.f-lk.on svg{fill:currentColor}
 .f-lk.pop svg{animation:lkPop .35s cubic-bezier(.2,.8,.3,1.4)}@keyframes lkPop{0%{transform:scale(.6)}60%{transform:scale(1.25)}100%{transform:none}}
@@ -67,8 +82,7 @@ svg{display:block}
 .f-emp2 .nx{height:40px;padding:0 22px;font-size:16px;font-weight:700;border-radius:8px;border:1px solid var(--card-border);background:var(--text-fg);color:var(--card-bg)}
 
 /* the story viewer: one page per account, swiped sideways; bars on top count its stories */
-#sv{position:fixed;inset:0;z-index:20;display:none;background-color:inherit}
-body.night_mode #sv{background-color:#000}
+#sv{position:fixed;inset:0;z-index:20;display:none;background-color:var(--bgc)}   /* the reviewer's background */
 #sv.on{display:block}
 #svp{display:flex;height:100%;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior:none}
 #svp::-webkit-scrollbar{display:none}
@@ -80,7 +94,8 @@ body.night_mode #sv{background-color:#000}
 .f-sh b{font-size:14px}.f-sh small{flex:1;font-size:13px;color:var(--text-fg-faint)}
 .f-sh .f-av{width:32px;height:32px}
 .f-sx{width:36px;height:36px;font-size:28px;line-height:1;color:var(--text-fg)}
-.f-sc{flex:1;min-height:0;overflow-y:auto;display:flex;padding:8px 8px 24px}
-.f-sc>.f-si{margin:auto;width:100%;max-width:var(--card-max-width)}
+/* a story's card sits as it does in the reviewer: at the top, in a .wrap */
+.f-sc{flex:1;min-height:0;overflow-y:auto;padding:.5em .2em 1em}
+.f-sc>.f-si{width:100%}
 .f-sc .prettify-flashcard{margin:0}
 .f-sc #allClozeBtn{display:none}

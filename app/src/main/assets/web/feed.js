@@ -1,8 +1,9 @@
 /* medslave · feed.js: Reels Mode's home feed. The app (Feed.kt) makes the accounts, posts and stories from the deck and hands
    them over through R.*; this draws them. Posts and stories show cards' answers (face.js).
    App.more(): near the end of the posts, the app sends more (R.posts). App.com(handle, n) / App.share(): the app's comment and
-   share sheets. App.story(open): the story viewer opened or closed (the app hides its bottom bar). App.seen(group). App.imp() */
-const A_=window.App||{more(){},com(){},share(){},story(){},seen(){},imp(){}};
+   share sheets. App.story(open): the story viewer opened or closed (the app hides its bottom bar). App.seen(group). App.imp().
+   App.settings() / App.credits(): the gear in the top right, and the logo (as on the Menu) */
+const A_=window.App||{more(){},com(){},share(){},story(){},seen(){},imp(){},settings(){},credits(){}};
 const F={acc:[],posts:[],groups:[],wait:false};
 function fitX(){}   /* face.js calls it after MathJax; the feed has nothing to refit */
 const ESC=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
@@ -11,7 +12,9 @@ const ICN={heart:'<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1
  com:'<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',send:'<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',save:'<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>'};
 const fmt=n=>n>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':n>=1e4?Math.round(n/1e3)+'K':n>=1e3?(n/1e3).toFixed(1).replace(/\.0$/,'')+'K':''+n;
 const avatar=a=>`<span class="f-av" style="background:${a.c}">${SVG(a.ic)}</span>`;
-/** a card's answer side, as the reviewer shows it */
+/** a story: the card's answer side exactly as the reviewer draws it */
+function reviewHTML(n,o){cur={n,o};stage=1;FL=false;return `<div class="wrap"><div class="tinder-swipe tinder-swipe--answer">${face(true)}</div></div>`}
+/** a post: the card's answer side without its deck path */
 function answerHTML(n,o){cur={n,o};stage=1;FL=false;return face(true).replace(/^(<div class="prettify-flashcard[^"]*">)<div class="prettify-deck">[\s\S]*?<\/div>(?:<hr[^>]*>|<div class="prettify-divider[^"]*"><\/div>)/,'$1')}   /* no deck path in the feed */
 /* after new cards are on the page: images, MathJax, occlusion boxes, and whether a post needs 'more' */
 function settle(el){imgs(el);mj(el);el.querySelectorAll('.f-pb').forEach(clip)}
@@ -20,20 +23,39 @@ document.addEventListener('load',e=>{if(e.target.tagName!='IMG')return;ioBox(e.t
 
 /* ---- posts */
 function postHTML(p,i){const a=F.acc[p.a];return `<article class="f-post" data-i="${i}">
-<header class="f-ph">${avatar(a)}<span class="f-pn"><b>${ESC(a.h)}</b></span><span class="f-pm">···</span></header>
+<header class="f-ph">${avatar(a)}<span class="f-pn"><b>${ESC(a.h)}</b></span></header>
 <div class="f-pb">${answerHTML(p.n,p.o)}<div class="f-pmore">more</div></div>
-<div class="f-pa"><button class="f-lk" aria-label="Like">${SVG(ICN.heart)}</button><button class="f-cm" aria-label="Comments">${SVG(ICN.com)}</button><button class="f-sh" aria-label="Share">${SVG(ICN.send)}</button><button class="f-sv" aria-label="Save">${SVG(ICN.save)}</button></div>
-<div class="f-pl"><span class="f-lkn">${fmt(p.likes)}</span> likes</div>
-<div class="f-pc"><b>${ESC(a.h)}</b> ${ESC(p.cap)}</div>
+<div class="f-pa"><button class="f-lk" aria-label="Like">${SVG(ICN.heart)}<span class="f-lkn">${fmt(p.likes)}</span></button><button class="f-cm" aria-label="Comments">${SVG(ICN.com)}<span>${fmt(p.coms)}</span></button><button class="f-sh" aria-label="Share">${SVG(ICN.send)}</button><button class="f-sv" aria-label="Save">${SVG(ICN.save)}</button></div>
+<div class="f-pc"><b>${ESC(a.h)}</b> ${ESC(p.cap).replace(/#[^\s#]+/g,'<span class="f-tag">$&</span>')}</div>
 <div class="f-pv f-cm">View all ${fmt(p.coms)} comments</div>
 ${p.cm.map(([u,t])=>`<div class="f-pc"><b>${ESC(u)}</b> ${ESC(t)}</div>`).join('')}
 <div class="f-pt">${ESC(p.t)}</div></article>`}
+/* ---- the heatmap post: always the first post, from daily.heatmap. answers revealed per day (the app's medslave:activity), one
+   block per month, Monday-first weeks, today at the right end; a tap on a day shows its count. caption: today and the streak */
+const HACC={h:'daily.heatmap',c:'#a6e3a1',ic:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/>'};
+const HM=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],dk=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+F.hp={likes:0,coms:0,liked:false};let HJ='';
+function heatGrid(m){const t=new Date();t.setHours(0,0,0,0);const mx=Math.max(0,...Object.values(m).map(Number).filter(isFinite));let o='';
+ for(let i=11;i>=0;i--){const f=new Date(t.getFullYear(),t.getMonth()-i,1),y=f.getFullYear(),mo=f.getMonth(),last=i?new Date(y,mo+1,0).getDate():t.getDate();let g='<i class="f"></i>'.repeat((f.getDay()+6)%7);
+  for(let d=1;d<=last;d++){const k=dk(new Date(y,mo,d)),c=+m[k]||0,l=c&&mx?Math.max(1,Math.ceil(4*c/mx)):0;g+=`<i class="l${l}${!i&&d==last?' t':''}" data-k="${k}" data-c="${c}"></i>`}
+  o+=`<div class="f-mb"><b>${HM[mo]}${mo?'':' '+y}</b><div class="f-hg">${g}</div></div>`}return o}
+function heatCap(m){const t=new Date();let n=+m[dk(t)]||0,s=0;const d=new Date(t);if(!n)d.setDate(d.getDate()-1);while(+m[dk(d)]>0){s++;d.setDate(d.getDate()-1)}
+ return (n?`${n} card${n==1?'':'s'} today`:'no cards yet today')+(s>1?` · ${s}-day streak 🔥`:'')+' #consistency #dailygrind'}
+function heatPost(m){const p=F.hp,a=HACC;if(!p.likes){p.likes=800+Math.random()*40000|0;p.coms=20+Math.random()*900|0}
+ return `<article class="f-post" data-i="h"><header class="f-ph">${avatar(a)}<span class="f-pn"><b>${a.h}</b></span></header>
+<div class="f-hmb"><div class="f-hm">${heatGrid(m)}</div><div class="f-hmt">Tap a day to see its count</div></div>
+<div class="f-pa"><button class="f-lk${p.liked?' on':''}" aria-label="Like">${SVG(ICN.heart)}<span class="f-lkn">${fmt(p.likes+(p.liked?1:0))}</span></button><button class="f-cm" aria-label="Comments">${SVG(ICN.com)}<span>${fmt(p.coms)}</span></button><button class="f-sh" aria-label="Share">${SVG(ICN.send)}</button><button class="f-sv" aria-label="Save">${SVG(ICN.save)}</button></div>
+<div class="f-pc"><b>${a.h}</b> ${ESC(heatCap(m)).replace(/#[^\s#]+/g,'<span class="f-tag">$&</span>')}</div><div class="f-pt">today</div></article>`}
+function heat(m){const j=JSON.stringify(m||{});if(j==HJ&&$('[data-i="h"]'))return;HJ=j;const old=$('[data-i="h"]'),t=document.createElement('div');t.innerHTML=heatPost(m||{});const el=t.firstElementChild;
+ old?old.replaceWith(el):$('#posts').prepend(el);const h=el.querySelector('.f-hm');h.scrollLeft=h.scrollWidth}
+$('#posts').addEventListener('click',e=>{const c=e.target.closest('.f-hg i[data-k]');if(!c)return;const d=new Date(c.dataset.k+'T00:00'),n=+c.dataset.c;
+ c.closest('.f-post').querySelector('.f-hmt').textContent=d.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short',year:'numeric'})+' · '+n+' card'+(n==1?'':'s')+' done'});
 function addPosts(l){const box=$('#posts'),at=F.posts.length;F.posts.push(...l);$('.f-loadmore')?.remove();
  const t=document.createElement('div');t.innerHTML=l.map((p,k)=>postHTML(p,at+k)).join('')+(l.length?'<div class="f-loadmore"><i class="lg"></i></div>':'');
  const els=[...t.children];els.forEach(e=>box.appendChild(e));els.forEach(settle);F.wait=false}
 function like(el,p,v){p.liked=v;const b=el.querySelector('.f-lk');b.classList.toggle('on',v);b.classList.remove('pop');void b.offsetWidth;if(v)b.classList.add('pop');el.querySelector('.f-lkn').textContent=fmt(p.likes+(v?1:0))}
 let LT=0,LX=null;
-$('#posts').addEventListener('click',e=>{const el=e.target.closest('.f-post');if(!el)return;const p=F.posts[+el.dataset.i],a=F.acc[p.a];
+$('#posts').addEventListener('click',e=>{const el=e.target.closest('.f-post');if(!el)return;const hp=el.dataset.i=='h',p=hp?F.hp:F.posts[+el.dataset.i],a=hp?HACC:F.acc[p.a];
  if(e.target.closest('.f-lk'))return like(el,p,!p.liked);
  if(e.target.closest('.f-cm'))return A_.com(a.h,p.coms);
  if(e.target.closest('.f-sh'))return A_.share();
@@ -43,7 +65,7 @@ $('#posts').addEventListener('click',e=>{const el=e.target.closest('.f-post');if
  /* a double tap on the card likes it: a heart bursts in the middle */
  const now=Date.now();if(now-LT<320&&LX===el){LT=0;const h=document.createElement('i');h.className='f-burst';h.innerHTML=SVG(ICN.heart);b.appendChild(h);setTimeout(()=>h.remove(),900);if(!p.liked)like(el,p,true)}else{LT=now;LX=el}});
 const FD=$('#feed');FD.addEventListener('scroll',()=>{if(!F.wait&&F.posts.length&&FD.clientHeight+FD.scrollTop>FD.scrollHeight-FD.clientHeight*1.5){F.wait=true;A_.more()}},{passive:true});
-$('#eimp').onclick=()=>A_.imp();
+$('#eimp').onclick=()=>A_.imp();$('#wm').onclick=()=>A_.credits();$('#gear').onclick=()=>A_.settings();
 
 /* ---- stories: the row of accounts, and the viewer (one page per account, swiped sideways; tap right / left for the next /
    previous story, hold to pause; each story runs DUR ms, then the next, then the next account) */
@@ -57,7 +79,7 @@ function svBuild(){$('#svp').innerHTML=F.groups.map(g=>{const a=F.acc[g.a];retur
 function svShow(g,i){const G=F.groups[g];if(!G)return svClose();SV.g=g;SV.i=i;SV.el=0;
  [...$('#svp').children].forEach((s,k)=>{if(k!=g)s.querySelector('.f-sc').innerHTML=''});
  const s=page(g);s.querySelectorAll('.f-bar i').forEach((b,k)=>b.style.width=k<i?'100%':'0');
- const c=s.querySelector('.f-sc');c.innerHTML='<div class="f-si">'+answerHTML(G.items[i].n,G.items[i].o)+'</div>';c.scrollTop=0;imgs(c);mj(c);
+ const c=s.querySelector('.f-sc');c.innerHTML='<div class="f-si">'+reviewHTML(G.items[i].n,G.items[i].o)+'</div>';c.scrollTop=0;imgs(c);mj(c);
  if(!G.seen){G.seen=true;A_.seen(g)}}
 function svTick(t){if(!SV.on)return;const dt=SV.last?t-SV.last:0;SV.last=t;if(!SV.hold)SV.el+=dt;
  const b=page(SV.g)?.querySelectorAll('.f-bar i')[SV.i];if(b)b.style.width=Math.min(100,SV.el/SV.DUR*100)+'%';
@@ -82,8 +104,9 @@ const R={
  theme(t,dark){document.documentElement.dataset.theme=t;document.body.classList.toggle('night_mode',dark);document.body.classList.toggle('nightMode',dark);
   document.body.style.setProperty('--bgc',getComputedStyle(document.body).backgroundColor)},
  feed(d){DATA.paths=d.paths;SET.source=!!d.source;F.acc=d.acc;F.posts=[];F.groups=d.groups;$('#posts').innerHTML='';svClose();rings();
-  $('#empty').hidden=!!d.acc.length;addPosts(d.posts);FD.scrollTop=0},
+  $('#empty').hidden=!!d.acc.length;HJ='';heat(d.act);addPosts(d.posts);FD.scrollTop=0},
+ heat(m){heat(m)},
  posts(l){addPosts(l)},
  stories(g){if(SV.on){F.next=g;return}F.groups=g;rings()},   /* new stories wait while the viewer is open */
  close(){svClose()},
- top(){FD.scrollTo({top:0,behavior:'smooth'})}};
+ top(i){if(SV.on&&i)svClose();FD.scrollTo({top:0,behavior:i?'instant':'smooth'})}};

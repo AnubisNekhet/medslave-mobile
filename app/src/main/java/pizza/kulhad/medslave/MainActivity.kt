@@ -82,7 +82,7 @@ class MainActivity : ComponentActivity() {
                 }
                 /* the back gesture closes the topmost popup, then leaves the deck (the site's pOn/pOff history entries) */
                 BackHandler(rs.study) { rs.home() }
-                /* Reels Mode's home: back leaves the Menu / Settings view for the feed, and closes an open story */
+                /* Reels Mode's home: back leaves the Menu view for the feed, and closes an open story */
                 BackHandler(!rs.study && rs.set.reels && rs.tab != "feed") { rs.tab = "feed" }
                 BackHandler(!rs.study && rs.set.reels && rs.feed.storyOpen) { rs.feed.web.close() }
                 BackHandler(rs.picker != null || rs.heatOpen || rs.creditsOpen || rs.settingsOpen || rs.progressOpen || rs.corrOpen) {
@@ -110,6 +110,7 @@ class MainActivity : ComponentActivity() {
         if (u != null) { i?.action = null; rs.study = false; rs.importUri(u) }
     }
 
+    override fun onStart() { super.onStart(); if (!rs.study) rs.feed.opened() }
     override fun onPause() { super.onPause(); rs.reels.pause(true) }
     override fun onResume() { super.onResume(); rs.reels.pause(false) }
     override fun onDestroy() {

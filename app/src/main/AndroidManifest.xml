@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Reels Mode streams 30-second song previews and their cover art -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- a short buzz when the music box is long-pressed -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:label="@string/app_name"
