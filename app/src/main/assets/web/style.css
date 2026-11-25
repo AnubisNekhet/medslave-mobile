@@ -1,0 +1,1483 @@
+:root{color-scheme:light dark}
+/*------------------------------------------------------------------
+Hey there! This card layout is a fork of Pranav Deshai's Prettify Card Layout.
+His repo: https://github.com/pranavdeshai/anki-prettify
+Buy him a coffee at: https://www.buymeacoffee.com/pranavdeshai
+If you liked my take on his theme you can buy me a coffee here:
+https://www.buymeacoffee.com/anubisnekhet
+------------------------------------------------------------------*/
+/* -------------------------------------------------- PREFERENCES */
+/* -------------------------------------------------- COLOR PREFS */
+:root {
+  --card-max-width: 40em;
+  --card-text-align: left;
+  --font-size-regular: 16px;
+  --font-size-small: 14px;
+  --img-width: 50%;
+  --img-brightness: 0.95;
+  --img-filter: none;
+  --font-weight: 600;
+  --table-radius: 0.8em;
+  --card-radius: 8px;
+  --mochi-toggle: block;
+}
+
+.mobile {
+  --card-max-width: 40em;
+  --card-text-align: left;
+  --font-size-regular: 16px;
+  --font-size-small: 14px;
+  --img-width: 50%;
+  --img-brightness: 0.95;
+  --img-filter: none;
+  --font-weight: 600;
+  --table-radius: 0.8em;
+  --card-radius: 8px;
+  --mochi-mobile-toggle: block;
+}
+
+/* -------------------------------------------------- COLORS */
+.card.card.night_mode {
+  background-color: #242426;
+  --text-fg: #ffffffe6;
+  --text-fg-faint: #ffffffb3;
+  --text-bg-selected: #ffffff1f;
+  --press-bg: var(--text-bg-selected);
+  --card-bg: #2e2f31;
+  --card-border: #ffffff0a;
+  --card-box-shadow: #0000001f;
+  --divider: #ffffff1f;
+  --tag-fg: #ffffffb3;
+  --tag-bg: #ffffff14;
+  --tag-fg-active: #ffffff;
+  --tag-bg-active: #ffffff1f;
+  --hover-bg: var(--tag-bg-active);
+  --hover-fg: var(--tag-fg-active);
+}
+
+/*--------------------------------------------------- THEME VARS */
+.card {
+  --text-fg: #4c4f69;
+  --text-fg-faint: #6c6f85;
+  --text-bg-selected: #bcc0cc;
+  --press-bg: #dfe2e9;   /* menu press highlight: lighter than selection, which matches the borders */
+  --card-border: #bcc0cc;
+  --card-box-shadow: #00000017;   /* light mode: 25% lighter than #0000001f */
+  --divider: #bcc0cc;
+  --tag-fg: #5c5f77;
+  --tag-bg: #9ca0b0;
+  --tag-fg-active: #de9584;
+  --tag-bg-active: #acb0be;
+  --hover-bg: #e7eaf0;   /* button hover: a faint tint between the card colour and --press-bg; text keeps its colour */
+  --hover-fg: var(--text-fg);
+  --tag-border: transparent;
+  --cloze-fg: #e49320;
+  --cloze-bg: #eff1f5;
+  --link-fg: #2a6ef5;
+  --link-bg: transparent;
+  --link-fg-active: #04a5e5;
+  --link-bg-active: transparent;
+  --bold-fg: #e49320;
+  --italic-fg: #40a02b;
+  --h1-fg: #40a02b;
+  --h2-fg: #179299;
+  --h3-fg: #8839ef;
+  --h4-fg: #d20f39;
+  --h5-fg: #04a5e5;
+  --bold-italic-fg: var(--bold-fg);
+  --highlight1: #e64553;
+  --highlight2: #40a02b;
+  --highlight3: #7287fd;
+  --highlight4: #fe640b;
+  --scheme-rosewater: #de9584;
+  --scheme-flamingo: #dd7878;
+  --scheme-pink: #ec83d0;
+  --scheme-mauve: #8839ef;
+  --scheme-red: #d20f39;
+  --scheme-maroon: #e64553;
+  --scheme-peach: #fe640b;
+  --scheme-yellow: #e49320;
+  --scheme-green: #40a02b;
+  --scheme-teal: #179299;
+  --scheme-sky: #04a5e5;
+  --scheme-sapphire: #209fb5;
+  --scheme-blue: #2a6ef5;
+  --scheme-lavender: #7287fd;
+  --scheme-crust: #dce0e8;
+  --scheme-grey: #6c6f85;
+  --mark-color: rgba(228, 147, 32, 0.2);
+  --callout-base: var(--ctp-yellow);
+  --ctp-rosewater: 222, 149, 132;
+  --ctp-flamingo: 221, 120, 120;
+  --ctp-pink: 236, 131, 208;
+  --ctp-mauve: 136, 57, 239;
+  --ctp-red: 210, 15, 57;
+  --ctp-maroon: 230, 69, 83;
+  --ctp-peach: 254, 100, 11;
+  --ctp-yellow: 228, 147, 32;
+  --ctp-green: 64, 160, 43;
+  --ctp-teal: 23, 146, 153;
+  --ctp-sky: 4, 165, 229;
+  --ctp-sapphire: 32, 159, 181;
+  --ctp-blue: 42, 110, 245;
+  --ctp-lavender: 114, 135, 253;
+  --ctp-text: 76, 79, 105;
+  --ctp-subtext1: 92, 95, 119;
+  --ctp-subtext0: 108, 111, 133;
+  --ctp-overlay2: 124, 127, 147;
+  --ctp-overlay1: 140, 143, 161;
+  --ctp-overlay0: 156, 160, 176;
+  --ctp-surface2: 172, 176, 190;
+  --ctp-surface1: 188, 192, 204;
+  --ctp-surface0: 204, 208, 218;
+  --ctp-base: 239, 241, 245;
+  --ctp-mantle: 230, 233, 239;
+  --ctp-crust: 220, 224, 232;
+}
+
+.card {
+  --card-bg: #eff1f5;
+  background-color: #e6e9ef;
+}
+
+.card.night_mode,
+.card_nightMode {
+  --text-fg: #ffffff;
+  --text-fg-faint: #bdbdbd;
+  --text-bg-selected: #545454;
+  --press-bg: var(--text-bg-selected);
+  --card-border: #545454;
+  --card-box-shadow: #0000001f;
+  --divider: #545454;
+  --tag-fg: #d2d2d2;
+  --tag-bg: #7e7e7e;
+  --tag-fg-active: #f5e0dc;
+  --tag-bg-active: #696969;
+  --hover-bg: var(--tag-bg-active);
+  --hover-fg: var(--tag-fg-active);
+  --tag-border: transparent;
+  --cloze-fg: #f9e2af;
+  --cloze-bg: #2a2a2a;
+  --link-fg: #87b0f9;
+  --link-bg: transparent;
+  --link-fg-active: #89dceb;
+  --link-bg-active: transparent;
+  --bold-fg: #f9e2af;
+  --italic-fg: #a6e3a1;
+  --h1-fg: #a6e3a1;
+  --h2-fg: #94e2d5;
+  --h3-fg: #cba6f7;
+  --h4-fg: #f38ba8;
+  --h5-fg: #89dceb;
+  --bold-italic-fg: var(--bold-fg);
+  --highlight1: #eba0ac;
+  --highlight2: #a6e3a1;
+  --highlight3: #b4befe;
+  --highlight4: #fab387;
+  --scheme-rosewater: #f5e0dc;
+  --scheme-flamingo: #f2cdcd;
+  --scheme-pink: #f5c2e7;
+  --scheme-mauve: #cba6f7;
+  --scheme-red: #f38ba8;
+  --scheme-maroon: #eba0ac;
+  --scheme-peach: #fab387;
+  --scheme-yellow: #f9e2af;
+  --scheme-green: #a6e3a1;
+  --scheme-teal: #94e2d5;
+  --scheme-sky: #89dceb;
+  --scheme-sapphire: #74c7ec;
+  --scheme-blue: #87b0f9;
+  --scheme-lavender: #b4befe;
+  --scheme-crust: #000000;
+  --scheme-grey: #bdbdbd;
+  --mark-color: rgba(249, 226, 175, 0.2);
+  --callout-base: var(--ctp-yellow);
+  --ctp-rosewater: 245, 224, 220;
+  --ctp-flamingo: 242, 205, 205;
+  --ctp-pink: 245, 194, 231;
+  --ctp-mauve: 203, 166, 247;
+  --ctp-red: 243, 139, 168;
+  --ctp-maroon: 235, 160, 172;
+  --ctp-peach: 250, 179, 135;
+  --ctp-yellow: 249, 226, 175;
+  --ctp-green: 166, 227, 161;
+  --ctp-teal: 148, 226, 213;
+  --ctp-sky: 137, 220, 235;
+  --ctp-sapphire: 116, 199, 236;
+  --ctp-blue: 135, 176, 249;
+  --ctp-lavender: 180, 190, 254;
+  --ctp-text: 255, 255, 255;
+  --ctp-subtext1: 210, 210, 210;
+  --ctp-subtext0: 189, 189, 189;
+  --ctp-overlay2: 168, 168, 168;
+  --ctp-overlay1: 147, 147, 147;
+  --ctp-overlay0: 126, 126, 126;
+  --ctp-surface2: 105, 105, 105;
+  --ctp-surface1: 84, 84, 84;
+  --ctp-surface0: 63, 63, 63;
+  --ctp-base: 42, 42, 42;
+  --ctp-mantle: 21, 21, 21;
+  --ctp-crust: 0, 0, 0;
+}
+
+.card.night_mode,
+.card.nightMode {
+  background-color: #2a2a2a;
+  --card-bg: #3f3f3f;
+}
+
+/*--------------------------------------------------- CARD STYLING */
+/* -------------------------------------------------- BACKGROUND */
+.card {
+  cursor: default;
+  padding: 0.5em 0.2em;
+}
+
+html:not(.mobile) .card {
+  padding: 0.5em;
+}
+
+.card::-webkit-scrollbar {
+  display: none;
+}
+
+body,
+body.nightMode,
+body.night_mode {
+  color: transparent;
+}
+
+/* -------------------------------------------------- FLASHCARD */
+.prettify-flashcard {
+  background-color: var(--card-bg);
+  border-radius: var(--card-radius);
+  border: 1px solid var(--card-border);
+  box-shadow:
+    var(--card-box-shadow) 0px 7px 14px 0px,
+    var(--card-box-shadow) 0px 3px 6px 0px;
+  color: var(--text-fg);
+  font-family: var(--font-family);
+  font-size: var(--font-size-regular);
+  line-height: 1.5;
+  margin: 0 auto;
+  max-width: var(--card-max-width);
+  text-align: var(--card-text-align);
+  word-wrap: normal;
+}
+
+.prettify-flashcard ::selection {
+  background-color: var(--text-bg-selected);
+}
+
+.cloze-type {
+  text-align: left;
+}
+
+/* -------------------------------------------------- FIELDS */
+.prettify-field {
+  margin: 1em;
+  margin-bottom: 1em;
+}
+
+.mobile .prettify-field {
+  margin: 0.25em;
+  margin-bottom: 0.75em;
+}
+
+.prettify-field:last-of-type {
+  margin-bottom: 1.4em;
+}
+
+/* -------------------------------------------------- CLOZE */
+.cloze {
+  border-radius: 0.25em;
+  font-weight: bold;
+  background-color: var(--cloze-bg);
+  color: var(--cloze-fg);
+  padding: 0 0.1em;
+}
+
+/* -------------------------------------------------- DECK */
+.prettify-deck {
+  margin: 0.75em;
+  margin-left: 1em;
+  margin-bottom: 0.5em;
+  display: flex;
+  color: var(--text-fg-faint);
+  font-size: var(--font-size-small);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: scroll;
+  contain: inline-size;   /* the path's length never adds to the card's width; it scrolls instead */
+  /* the heatmap's edge fade: a side that still has hidden path fades out over 28px (.sl/.sr set by deckFade in card.js) */
+  --fl: 0px;
+  --fr: 0px;
+  transition: --fl .15s, --fr .15s;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--fl), #000 calc(100% - var(--fr)), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 var(--fl), #000 calc(100% - var(--fr)), transparent);
+}
+.prettify-deck.sl { --fl: 28px; }
+.prettify-deck.sr { --fr: 28px; }
+
+.prettify-deck::-webkit-scrollbar {
+  display: none;
+}
+
+.mobile .prettify-deck {
+  margin: 1em;
+}
+
+.prettify-subdeck {
+  text-overflow: ellipsis;
+  overflow: clip;
+  min-width: fit-content;
+}
+
+/* -------------------------------------------------- TAGS */
+.prettify-tags {
+  margin: 0.5em;
+  margin-left: 1em;
+  margin-bottom: 1em;
+  display: flex;
+  flex-flow: row wrap;
+  font-size: var(--font-size-small);
+}
+
+.mobile .prettify-tags {
+  margin: 1em;
+}
+
+.prettify-tag {
+  all: initial;
+  background-color: var(--tag-bg);
+  border-radius: 0.2em;
+  color: var(--tag-fg);
+  display: inline;
+  font-size: var(--font-size-small);
+  font-family: var(--font-family);
+  margin: 0.25em;
+  padding: 0.25em;
+  transition: all 0.25s;
+  word-break: break-word;
+}
+
+.prettify-tag:hover {
+  background-color: var(--tag-bg-active);
+  color: var(--tag-fg-active);
+  cursor: pointer;
+}
+
+.extra {
+  color: var(--text-fg-faint);
+  font-size: var(--font-size-small);
+}
+
+/* an extra note inside a cloze takes the cloze's colour, without the bold */
+.cloze .extra {
+  color: inherit;
+  font-weight: normal;
+}
+
+/* -------------------------------------------------- DIVIDER */
+.prettify-field hr {
+  border: none;
+  border-bottom: 1px dashed color-mix(in srgb, var(--card-border), color-mix(in srgb, var(--text-fg) 28%, transparent));
+  background-color: transparent;
+  width: 80%;
+}
+
+.prettify-divider {
+  background-color: transparent;
+  border: none;
+  border-bottom: 1px dashed color-mix(in srgb, var(--card-border), color-mix(in srgb, var(--text-fg) 28%, transparent));
+  padding: 0;
+}
+
+/* -------------------------------------------------- TABLES */
+table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  border-collapse: separate;
+  border-spacing: 0;
+  position: relative;
+  box-align: center;
+  margin-left: auto;
+  margin-right: auto;
+  border: 1px solid;
+  text-align: center;
+  border-color: var(--card-border);
+  margin-top: 10px;
+}
+
+/* keep the horizontal scrollbar on screen whenever the table is clipped (Android/Cromite otherwise hides overlay scrollbars) */
+table::-webkit-scrollbar {
+  height: 12px;
+  width: 0;
+}
+table::-webkit-scrollbar-track {
+  background: transparent;
+}
+table::-webkit-scrollbar-thumb {
+  background: var(--card-border);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: 20px;
+  min-width: 30px;
+}
+table {
+  /* scroll shadows: a soft inset shadow on each side that still has hidden content (covers stay with the content, shadows stay at the edges) */
+  background:
+    linear-gradient(to right, var(--card-bg) 30%, transparent) left center / 40px 100% no-repeat local,
+    linear-gradient(to left, var(--card-bg) 30%, transparent) right center / 40px 100% no-repeat local,
+    linear-gradient(to right, rgba(0,0,0,.22), transparent) left center / 14px 100% no-repeat scroll,
+    linear-gradient(to left, rgba(0,0,0,.22), transparent) right center / 14px 100% no-repeat scroll;
+  overscroll-behavior-x: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--card-border) transparent;
+}
+
+td,
+th {
+  padding: 0 0.6em;
+  border: 1px solid;
+  text-align: center;
+  border-color: var(--card-border);
+}
+
+/*
+tr:first-child td:first-child, tr:first-child th:first-child { border-top-left-radius: 0.8em; }
+tr:first-child td:last-child, tr:first-child th:last-child { border-top-right-radius: 0.8em; }
+tr:last-child td:first-child, tr:last-child th:first-child { border-bottom-left-radius: 0.8em; }
+tr:last-child td:last-child, tr:last-child th:last-child { border-bottom-right-radius: 0.8em; }
+tr:first-child td, tr:first-child th { border-top-width: 2px;}
+tr:last-child td, tr:last-child th { border-bottom-width: 2px;}
+tr td:first-child, tr th:first-child { border-left-width: 2px;}
+tr td:last-child, tr th:last-child { border-right-width: 2px;}*/
+tr:nth-of-type(odd) {
+  background-color: var(--card-box-shadow);
+}
+
+/* -------------------------------------------------- HYPERLINKS */
+a,
+a:visited {
+  text-decoration: none;
+  color: var(--link-fg);
+}
+
+a:hover,
+a:active {
+  text-decoration: underline;
+  color: var(--link-fg-active);
+}
+
+/* -------------------------------------------------- FORMATTING */
+h1 {
+  color: var(--text-fg);
+  margin: 0em;
+}
+h1.title {
+  color: var(--text-fg);
+}
+
+h2 {
+  color: var(--text-fg);
+  margin: 0em;
+}
+h2.title {
+  color: var(--text-fg);
+}
+
+h3 {
+  color: var(--text-fg);
+  margin: 0em;
+}
+h3.title {
+  color: var(--text-fg);
+}
+
+h4 {
+  color: var(--text-fg);
+  margin: 0em;
+}
+h4.title {
+  color: var(--text-fg);
+}
+
+h5 {
+  color: var(--text-fg);
+  margin: 0em;
+}
+h5.title {
+  color: var(--text-fg);
+}
+
+h6 {
+  color: var(--text-fg);
+  margin: 0em;
+}
+h6.title {
+  color: var(--text-fg);
+}
+
+pre {
+  font-size: var(--font-size-small);
+  background-color: var(--cloze-bg);
+  padding: 10px;
+  border-radius: calc(var(--card-radius) * 0.5);
+  max-width: fit-content;
+  min-width: 80%;
+  margin: 0 auto;
+}
+
+.title-field {
+  color: var(--text-fg);
+  font-size: 140%;
+  font-weight: bold;
+}
+
+:is(h1, h2, h3, h4, h5, h6) + :is(ul, ol) {
+  margin-block-start: 5px;
+}
+
+ol li::marker {
+  color: var(--scheme-blue);
+}
+
+mark {
+  background-color: var(--mark-color);
+  border-radius: 3px;
+  color: var(--text-fg);
+}
+
+/* ------------------------------------------------------- INPUT */
+input {
+  background-color: var(--card-bg);
+  border-width: 2px;
+  border-style: solid;
+  border-color: var(--card-border);
+  border-radius: 7px;
+  min-height: 25px;
+  font-family: var(--font-family) !important;
+  font-size: var(--font-size-regular) !important;
+  color: var(--text-fg-faint);
+  padding: 10px;
+}
+
+input::selection {
+  background-color: rgb(var(--ctp-blue)) !important;
+  color: var(--card-bg) !important;
+}
+
+/*--------REPLAY BUTTON-----------*/
+.replay-button svg circle {
+  fill: var(--card-bg);
+  stroke: var(--tag-bg);
+  stroke-width: 4px;
+}
+
+.replay-button svg path {
+  fill: var(--tag-bg);
+  stroke: var(--tag-bg);
+}
+
+.morsecode {
+  padding: 15px 20px;
+  margin-left: 5px;
+  margin-right: 5px;
+  border-radius: 10px;
+  background-color: rgba(220, 224, 232, 0.4);
+  border: solid 2px var(--card-border);
+}
+
+.replay-button svg {
+  padding: 20px;
+  width: 0px;
+  height: 0px;
+  background-color: var(--text-fg);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'%3E%3C/circle%3E%3Cpolygon points='10 8 16 12 10 16 10 8'%3E%3C/polygon%3E%3C/svg%3E");
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+}
+
+/*--------------------------CENTER TEXT DIV------------------------*/
+.center-text {
+  text-align: center;
+}
+/* lists in centred text: the list is centred as one block and its items left-aligned, so the markers line up.
+   .prettify-flashcard outweighs the .shift-right paddings below, which would cut the markers off */
+.prettify-flashcard .center-text :is(ul, ol) {
+  display: table;
+  margin-inline: auto;
+  padding-inline: 1.7em 0.3em;
+  text-align: left;
+}
+.prettify-flashcard .center-text li :is(ul, ol) {
+  display: block;
+  margin: 0;
+}
+
+.shift-right {
+  padding-left: 20px;
+}
+.shift-right :is(ul, ol) {
+  padding-inline-start: 15px;
+}
+.shift-right :is(ul, ol):first-child {
+  margin-block-start: 5px;
+}
+.shift-right .center-text {
+  padding-left: 0;
+}
+.shift-right .center-text > :is(ul, ol) {
+  padding-inline-start: 5px;
+}
+.shift-right .center-text > :is(ul, ol):first-child {
+  margin-block-start: 5px;
+}
+
+.center-text .shift-right {
+  padding-left: 0;
+}
+.center-text .shift-right > :is(ul, ol) {
+  padding-inline-start: 5px;
+}
+.center-text .shift-right > :is(ul, ol):first-child {
+  margin-block-start: 5px;
+}
+
+/*--------------------------------------- MOCHI */
+.prettify-flip {
+  color: var(--text-fg-faint);
+  font-size: var(--font-size-small);
+  padding: 1em 0;
+  background: rgba(255, 255, 255, 0.0196078431);
+  border-top: 1px dashed var(--divider);
+  display: var(--mochi-mobile-toggle, var(--mochi-toggle, none));
+}
+
+.prettify-hint {
+  color: var(--text-fg-faint);
+  opacity: 0.5;
+  font-size: var(--font-size-small);
+  font-family: var(--font-family);
+  padding-top: 1em;
+  display: var(--mochi-mobile-toggle, var(--mochi-toggle, none));
+}
+
+.prettify-flip svg {
+  height: 20px;
+  width: 20px;
+  margin-bottom: calc(-13px + 0.5 * var(--font-size-small));
+}
+
+.prettify-hint svg {
+  height: 20px;
+  width: 20px;
+  margin-bottom: calc(-12px + 0.5 * var(--font-size-small));
+}
+
+[href="https://anki.tenderapp.com/kb/problems/no-cloze-found-on-card"]
+{
+  display: block;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+/*
+@keyframes open {
+  0% {
+    max-height: 0;
+  }
+  100% {
+    max-height: 100vh;
+  }
+}
+body .prettify-field--back {
+  animation: open 3s ease !important;
+  overflow: hidden;
+}
+*/
+/*------------------------------------- BUTTONS */
+button,
+.isMac button {
+  color: var(--tag-fg);
+  color: var(--text-fg);
+  border-radius: 0.2em;
+  box-shadow: none;
+  border: 1px solid var(--card-border);
+  border-bottom-color: var(--card-border);
+  font-size: var(--font-size-small);
+  font-family: inherit;
+  transition: all 0.25s;
+  background: none;
+  background-color: var(--tag-bg);
+}
+button:active,
+.isMac button:active {
+  background: none;
+  background-color: var(--tag-bg-active);
+  color: var(--tag-fg-active);
+  cursor: pointer;
+}
+/* hover styling only where a pointer can hover; on touch screens :hover sticks after a tap */
+@media (hover:hover){
+button:hover,
+.isMac button:hover {
+  background: none;
+  background-color: var(--hover-bg);
+  color: var(--hover-fg);
+  cursor: pointer;
+}
+}
+
+/*------------------------------------- SCROLLBARS */
+::-webkit-scrollbar {
+  width: 11px;
+  background-color: transparent;
+}
+
+::-webkit-scrollbar:horizontal {
+  height: 11px;
+}
+
+::-webkit-scrollbar-corner {
+  background-color: transparent;
+}
+
+::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-clip: padding-box;
+  border-radius: 20px;
+  border: 3px solid transparent;
+  background-color: rgba(var(--ctp-text), 0.1);
+  border-width: 3px 3px 3px 3px;
+  min-height: 45px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(var(--ctp-text), 0.2);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background-color: rgba(var(--ctp-text), 0.3);
+}
+
+/*--------------------------------------------------- ADDITIONS */
+/*--------------------------IMAGE OCCLUSION---------------------------*/
+#io-overlay img,
+#io-original img {
+  transition: none !important;
+  width: 100% !important;
+  opacity: 1;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  border-radius: 0;
+  margin: 0;
+}
+
+#io-overlay img:hover,
+#io-original img:hover {
+  cursor: unset;
+  filter: none;
+  max-width: 100%;
+  max-height: 100%;
+  opacity: 1;
+}
+
+html:not(.mobile) #io-overlay img:active,
+html:not(.mobile) #io-original img:active {
+  border: none;
+  cursor: unset;
+  filter: none;
+  left: unset;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  opacity: 1;
+  position: inherit;
+  top: unset;
+  transform: none;
+  z-index: inherit;
+}
+
+*::selection {
+  background-color: var(--card-bg);
+}
+
+/* OCCLUSION CSS START - don't edit this */
+#io-overlay {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  z-index: 3;
+}
+
+#io-original {
+  position: relative;
+  top: 0;
+  width: 100%;
+  z-index: 2;
+  visibility: hidden;
+}
+
+#io-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* OCCLUSION CSS END */
+/* OTHER STYLES */
+#io-header {
+  font-size: 1.1em;
+  margin-bottom: 0.2em;
+}
+
+#io-footer {
+  max-width: 80%;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 0.8em;
+  font-style: italic;
+}
+
+#io-extra-wrapper {
+  /* the wrapper is needed to center the
+   left-aligned blocks below it */
+  width: 80%;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 0.5em;
+}
+
+#io-extra {
+  text-align: center;
+  display: inline-block;
+}
+
+.io-extra-entry {
+  margin-top: 0.8em;
+  font-size: 0.9em;
+  text-align: left;
+}
+
+.io-field-descr {
+  margin-bottom: 0.2em;
+  font-weight: bold;
+  font-size: 1em;
+}
+
+/* ADJUSTMENTS FOR MOBILE DEVICES */
+.mobile .card,
+.mobile #content {
+  font-size: 120%;
+  margin: 0;
+}
+
+.mobile #io-extra-wrapper {
+  width: 95%;
+}
+
+.mobile #io-revl-btn {
+  font-size: 0.8em;
+}
+
+.mobile #io-wrapper,
+.mobile .io-wrapper {
+  max-width: 90%;
+  max-height: 90%;
+  margin: auto;
+}
+
+/* -------------------------------------------------- IMAGES */
+img.zoomable-image,
+.zoomable-image img,
+.extra img {
+  border-radius: 0.25em;
+  display: block;
+  margin: 1em auto;
+  max-width: var(--img-width) !important;
+  transition:
+    max-width 0.25s 0.1s,
+    opacity 0.25s 0.1s,
+    filter 0.1s,
+    transform 0s;
+}
+
+.night_mode img.zoomable-image,
+.night_mode .zoomable-image img,
+.night_mode .extra img {
+  filter: var(--img-filter);
+  opacity: var(--img-brightness);
+}
+
+img.zoomable-image:hover,
+.zoomable-image img:hover,
+.extra img:hover {
+  cursor: zoom-in;
+  filter: none;
+  max-width: 100% !important;
+  opacity: 1;
+}
+
+img.zoomable-image + br,
+.zoomable-image img + br,
+.extra img + br {
+  display: none;
+}
+
+html:not(.mobile) img.zoomable-image:active,
+html:not(.mobile) .zoomable-image img:active,
+html:not(.mobile) .extra img:active {
+  border: 1px solid var(--link-fg-active);
+  cursor: zoom-out;
+  filter: none;
+  left: 0;
+  max-width: 95% !important;
+  opacity: 1;
+  position: fixed;
+  top: 0;
+  transform: translate(calc(50vw - 50%), calc(50vh - 50%));
+  z-index: 100;
+}
+
+.prettify-species {
+  color: var(--scheme-green);
+  font-style: italic;
+}
+
+[tag="S_Aureus"] {
+  --tag-fg: rgb(var(--ctp-red));
+  --tag-bg: rgba(var(--ctp-red), 0.2);
+}
+
+[tag="Entamoeba_Histolytica"] {
+  --tag-fg: rgb(var(--ctp-green));
+  --tag-bg: rgba(var(--ctp-green), 0.2);
+}
+
+[tag="Hepatitis"],
+[tag="Hepatitis_A"],
+[tag="Hepatitis_B"],
+[tag="Hepatitis_C"],
+[tag="Hepatitis_D"],
+[tag="Hepatitis_E"],
+[tag="Neisseria_gonorrhoeae"] {
+  --tag-fg: rgb(var(--ctp-teal));
+  --tag-bg: rgba(var(--ctp-teal), 0.2);
+}
+
+[tag="Neisseria_meningitidis"] {
+  --tag-fg: rgb(var(--ctp-blue));
+  --tag-bg: rgba(var(--ctp-blue), 0.2);
+}
+
+.cloze.cloze-inactive {
+  color: var(--scheme-red);
+}
+
+.prettify-tags {
+  display: block;
+}
+
+/* -------------------------------------------------- FONTS */
+@font-face {
+  font-family: "Carlito";
+  src: url(fonts/carlito-regular.woff2) format('woff2');
+  font-style: normal;
+  font-weight: 400;
+}
+@font-face {
+  font-family: "Carlito";
+  src: url(fonts/carlito-italic.woff2) format('woff2');
+  font-style: italic;
+  font-weight: 400;
+}
+@font-face {
+  font-family: "Carlito";
+  src: url(fonts/carlito-bold.woff2) format('woff2');
+  font-style: normal;
+  font-weight: 700;
+}
+@font-face {
+  font-family: "Carlito";
+  src: url(fonts/carlito-bolditalic.woff2) format('woff2');
+  font-style: italic;
+  font-weight: 700;
+}
+/*---------------------------------- SELECT FONTS */
+:root {
+  --font-family: "Carlito";
+}
+
+.mobile {
+  --font-family: "Carlito";
+}
+
+#FlipFront,
+#FlipBack {
+  transition: 0.5s cubic-bezier(0.15, 0.5, 0.3, 1.3);
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+#FlipBack,
+#FlipFront.flipped {
+  transform: rotateX(180deg);
+}
+#FlipFront,
+#FlipBack.flipped {
+  transform: rotateX(0deg);
+}
+
+/* -------------------------------------------------- TINDER SWIPE (AnkiDroid) */
+.nsx{touch-action:pan-y}   /* see fitX() */
+#stage.fitY{touch-action:pan-x}   /* see fitX() */
+#stage img{-webkit-user-drag:none}
+.tinder-swipe {
+  position: relative;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* answer-card glow while swiping */
+.tinder-swipe--answer .prettify-flashcard {
+  transition: box-shadow 0.05s linear;
+}
+
+.tinder-swipe--answer.drag-left .prettify-flashcard {
+  box-shadow:
+    var(--card-box-shadow) 0px 7px 14px 0px,
+    var(--card-box-shadow) 0px 3px 6px 0px,
+    0 0 2.5em 0.3em rgba(var(--ctp-red), var(--glow-opacity, 0));
+}
+
+.tinder-swipe--answer.drag-right .prettify-flashcard {
+  box-shadow:
+    var(--card-box-shadow) 0px 7px 14px 0px,
+    var(--card-box-shadow) 0px 3px 6px 0px,
+    0 0 2.5em 0.3em rgba(var(--ctp-green), var(--glow-opacity, 0));
+}
+
+/*# sourceMappingURL=style.css.map */
+.card.card.night_mode th{background-color:#242426;}
+
+/* ---- medslave layout ---- */
+
+:root{box-sizing:border-box;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) 0 env(safe-area-inset-left,0px)}   /* notch and sideways insets; the bottom is padded inside .ft and #home .wrap */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;height:100dvh;margin:0;overflow:hidden;overscroll-behavior:none;font-family:var(--font-family),"Carlito",Calibri,system-ui,sans-serif}   /* the page itself never scrolls (home and cards scroll inside), so a phone's address bar has no reason to hide; 100dvh follows it if it does, keeping the footer at the real bottom */
+button{font:inherit;cursor:pointer;border:0;background:none}
+.scr{height:100%;display:none;flex-direction:column;overflow:hidden}.scr.on{display:flex}
+.wrap{width:100%;max-width:var(--card-max-width);margin:0 auto;padding:0 .6em}
+#home{overflow-y:auto;display:none}#home.on{display:flex;flex-direction:column}
+#home .wrap{margin:auto;padding-top:1em;padding-bottom:calc(1.5em + env(safe-area-inset-bottom,0px))}   /* auto margins: centred when it fits, scrolls normally when it doesn't */
+#home h1{text-align:center;color:var(--text-fg);font-size:2rem;margin:.9em 0 .6em;letter-spacing:-.02em}
+#list{width:max-content;min-width:42vw;max-width:100%;margin:0 auto}
+@media (max-width:600px){#list{min-width:80vw}}
+/* no deck yet: the import prompt in place of the subject list */
+.emp{display:flex;flex-direction:column;align-items:center;gap:.6em;box-sizing:border-box;width:min(24em,calc(100vw - 2em));margin:0 auto;padding:1.6em 0;text-align:center;color:var(--text-fg)}.emp b{font-size:1.15rem}.emp p{margin:0;color:var(--text-fg-faint)}.emp .nx{height:2.5em;padding:0 1.4em;margin-top:.3em}.emp small{min-height:1.2em;color:var(--text-fg-faint);font-size:.85rem}
+
+.subjrow{display:grid;grid-template-columns:1fr 2.2em;align-items:center;gap:.3em;width:100%;margin:0 auto .3em;padding:0}
+.subjrow.nk .sn{grid-column:1/-1}   /* a subject without subdecks: full width */
+.sn{display:block;width:100%;padding:.6em;text-align:center;color:var(--text-fg);font-size:1rem;font-weight:700;border:1px solid var(--card-border);background:var(--card-bg);border-radius:6px}
+.sn:active,.sd:active,.ch:active{background:var(--press-bg)}
+.sd,.ch{width:2.2em;height:2.2em;display:grid;place-items:center;color:var(--text-fg-faint);border-radius:6px}.sd{border:1px solid var(--card-border);background:var(--card-bg)}.sd[disabled]{visibility:hidden}
+#pop,#cp,#ip,#sp{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;padding:1em;background:rgba(0,0,0,.55)}#pop.on,#cp.on,#ip.on,#sp.on{display:flex}
+.pp.card{width:100%;max-width:30em;max-height:80%;display:flex;flex-direction:column;padding:0;border:1px solid var(--card-border);border-radius:var(--card-radius);box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.ph{display:flex;justify-content:space-between;align-items:center;padding:.5em .6em .5em 1em;border-bottom:1px dashed var(--divider);color:var(--text-fg);font-weight:700}.ph button{width:2.2em;height:2.2em;font-size:1.4rem;color:var(--text-fg-faint)}
+.pl{overflow-y:auto;padding:.4em .4em .8em}.pr{display:flex;align-items:center;padding-left:calc(var(--d)*1.2em)}
+.pn{flex:1;display:flex;justify-content:space-between;gap:.6em;text-align:left;padding:.55em .5em;color:var(--text-fg);border-radius:6px}.pn:active{background:var(--press-bg)}.pn em{font-style:normal;color:var(--text-fg-faint);font-size:.85em}
+.ch svg{transition:transform .15s}.ch.o svg{transform:rotate(90deg)}.ch.e{visibility:hidden}
+.top{display:flex;align-items:center;gap:.6em;padding:.4em 0 .6em;color:var(--text-fg)}.top b{flex:1;text-align:center}.top i{width:2.6em}
+.top button{display:grid;place-items:center;padding:0}
+.top button,.nx{background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--card-radius);color:var(--text-fg);width:2.6em;height:2.4em;font-size:1.2rem}
+#study>.stw{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}   /* the card area: #stage, plus the Reels overlay laid over it */
+.stw>#stage{flex:1}
+#stage{position:relative;flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;touch-action:pan-y;padding-bottom:1em}
+.ft{display:flex;flex-direction:column;align-items:center;gap:.5em;padding:.5em 0 calc(.9em + env(safe-area-inset-bottom,0px));color:var(--text-fg-faint);font-size:.85rem}.nx{width:auto;padding:0 1.6em;font-size:1rem;font-weight:700}
+.sequentialCloze+.center-text,#allClozeBtn{margin-top:.6em}#allClozeBtn,#fhome{background:color-mix(in srgb,var(--card-bg) 96%,#fff);border:1px solid var(--card-border);border-radius:var(--card-radius);color:var(--text-fg);padding:.4em .96em;font-weight:700;font-size:.95rem}
+.fr{display:flex;align-items:center;justify-content:center;gap:.6em}.nx.cb{width:2.6em;padding:0;display:grid;place-items:center}
+/* Next / Next Cloze label: both labels share one grid cell, so the button is always as wide as 'Next Cloze ›' and never changes size */
+.nxg{display:inline-grid;justify-items:center;align-items:center}.nxg>*{grid-area:1/1}
+.nxn{white-space:nowrap}.nxc,.nxl{display:flex;align-items:baseline;gap:.25em;white-space:nowrap}.nxc{visibility:hidden}
+#nxt.cl .nxn{visibility:hidden}#nxt.cl .nxc{visibility:visible}
+#ct{width:100%;min-height:7em;resize:vertical;margin:.7em 0 .4em;padding:.6em .7em;font:inherit;font-size:1rem;color:var(--text-fg);background:var(--card-bg);border:1px solid var(--card-border);border-radius:8px}
+.cf{padding:.2em 1em 1em}.cm{font-size:.8rem;color:var(--text-fg-faint);word-break:break-all}.cr{display:flex;gap:.5em;align-items:center;margin-top:.6em}
+.cr .nx{height:2.4em;font-size:.95rem;padding:0 1.2em}.cr .nx.p{background:var(--text-fg);color:var(--card-bg)}.cs{flex:1;font-size:.85rem;color:var(--text-fg-faint)}
+.cx{margin-top:1em;padding-top:.8em;border-top:1px dashed var(--divider);font-size:.82rem;color:var(--text-fg-faint)}.cx button{text-decoration:underline;margin-right:.9em;color:var(--text-fg-faint)}
+.io-c{position:relative;display:inline-block;max-width:100%}.io-c img{display:block;max-width:100%;height:auto;margin:0 auto}.io-c svg{position:absolute;inset:0;width:100%;height:100%}
+/* IO one by one (card.js rects): covered boxes, the next one (.cloze-pulse) in salmon, uncovered ones clear */
+.io-c .io-r,.io-c .io-a{fill:#ffeba2;stroke:#212121;stroke-width:1px;vector-effect:non-scaling-stroke}
+.io-c .io-r.cloze-pulse{fill:#fa8072;stroke:#ff0;stroke-width:2px;animation:none;cursor:pointer}
+.io-c .io-r.cloze-revealed{fill:transparent;stroke:none}
+.io-c .io-a{fill:rgba(255,235,162,.25);stroke:#ffeba2}
+
+/* a leaving answer card (leaveUp's copy) is flattened to a plain card: question face gone, answer face
+   with no 3D. Safari can stop drawing a hidden-backface face whose ancestor is being moved, which made the answer vanish instead of riding up */
+.ghost .flip-front,.ghost .fade-front{display:none}
+.ghost .flip-back,.ghost .fade-back{position:static!important;transform:none!important;-webkit-backface-visibility:visible!important;backface-visibility:visible!important;opacity:1!important;transition:none!important;overflow:visible!important}   /* Flip: the next card, dragged up from below the answer (bindUp) */
+/* ---- Flip review style (settings) ----
+   each face keeps its own height: the hidden face is out of flow and clipped to the shown face (so it adds no scroll height),
+   and advance() adds .half when the flip is edge-on (90°, ~15% into the bouncy curve = 76ms), so the card's size swaps while no
+   surface is showing. fades instead animate the card's height across the whole fade and add .half at the end. keep those delays in step with these times */
+:root{--flip-time:.5s;--fade-time:.35s}
+.flip-wrap,.fade-wrap{display:grid;grid-template-columns:minmax(0,1fr);position:relative;align-items:start}   /* minmax(0,…): the column may not grow to fit content, so a long deck path can't widen the card */
+.flip-back,.fade-back,.half>.flip-front,.half>.fade-front{position:absolute;top:0;left:0;bottom:0;overflow:hidden}
+.half>.flip-back,.half>.fade-back{position:static;overflow:visible}   /* the shown answer must not stay clipped, or its card shadow is cut off */
+/* fade: the hidden face's clip box reaches 18px past the card (padding keeps the card where it was), so its shadow isn't cut while it fades in */
+.fade-wrap:not(.half)>.fade-back,.half>.fade-front{left:-18px;right:-18px;bottom:-18px;width:auto;padding:0 18px 18px}
+.flip-wrap{perspective:1000px;overflow:visible;justify-items:center}
+.flip-front,.flip-back,.fade-front,.fade-back{grid-column:1;grid-row:1;width:100%;padding:0;border:0;box-shadow:none;background:transparent}
+.flip-front,.flip-back{transition:transform var(--flip-time) cubic-bezier(.15,.5,.3,1.3);-webkit-backface-visibility:hidden;backface-visibility:hidden}
+/* the face turned away is also visibility:hidden (it swaps at .half, the 90° point). backface-visibility alone let a separately drawn child,
+   like the masked deck path, show through mirrored */
+.flip-wrap:not(.half)>.flip-back,.flip-wrap.half>.flip-front{visibility:hidden}
+.flip-back{transform:rotateX(-180deg)}
+.flip-wrap.flipped .flip-back{transform:rotateX(0deg)}
+.flip-wrap.flipped .flip-front{transform:rotateX(180deg)}
+.fade-front,.fade-back{transition:opacity var(--fade-time)}
+.fade-back{opacity:0;pointer-events:none}
+.fade-wrap.flipped .fade-back{opacity:1;pointer-events:auto}
+.fade-wrap.flipped .fade-front{opacity:0;pointer-events:none}
+.flip-wrap.flipped .flip-front,.fade-wrap.flipped .fade-front{pointer-events:none}
+@media(prefers-reduced-motion:reduce){.flip-front,.flip-back,.fade-front,.fade-back{transition:none}}
+
+/* ---- progress popout + finished screen ---- */
+.pgb{padding:.4em 1em 1.1em;text-align:center}
+.ring{width:9.5em;height:9.5em;display:block;margin:.6em auto .4em}
+.ring circle{fill:none;stroke-width:10}.ring .rt{stroke:var(--card-border)}.ring .rb{stroke:var(--text-fg);stroke-linecap:round;transition:stroke-dashoffset .6s ease}
+.ring text{fill:var(--text-fg);font-size:24px;font-weight:700}
+.stats{display:flex;justify-content:space-around;gap:.5em;margin-top:.8em}.stats div{display:flex;flex-direction:column}.stats b{font-size:1.5rem;color:var(--text-fg)}.stats span{font-size:.8rem;color:var(--text-fg-faint)}
+.fin-card{padding:1.4em 1em}.fin-card .title{margin-top:0}.fbtn{display:flex;gap:.7em;justify-content:center;margin-top:1.3em}.fbtn .nx{height:2.6em}.fbtn .nx.p{background:var(--text-fg);color:var(--card-bg)}
+#study.fin .ft{display:none}
+
+/* ---- logo, loading screen, settings ---- */
+#home h1{display:flex;align-items:baseline;justify-content:center;gap:.25em}
+.lg{flex:none;align-self:anchor-center;width:.8em;height:.8em;background:currentColor;-webkit-mask:url(/res/logo.png) center/contain no-repeat;mask:url(/res/logo.png) center/contain no-repeat}   /* painted in the text colour, so it follows light/dark */
+#sbtn{flex:none;align-self:center;display:grid;place-items:center;width:.76em;height:.76em;border-radius:8px;color:var(--text-fg-faint)}#sbtn svg{width:.37em;height:.37em}#sbtn:active{background:var(--press-bg)}
+#home.ld .hw,#home.ld #sbtn{display:none}
+#home.ld .lg{width:4.5rem;height:4.5rem;animation:lgp 1.4s ease-in-out infinite,lgs 2.4s linear infinite}
+@keyframes lgp{50%{opacity:.4}}
+@keyframes lgs{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){#home.ld .lg{animation:none}}
+.sg{padding:.3em 1em 1em;overflow-y:auto;overflow-x:hidden}   /* x hidden: the sections slide in sideways (.sv.in), which briefly overflowed and flashed a scrollbar */
+/* settings: section menu (.sm, .smi rows) and the open section (.sv); .in slides it in (from the right, or from the left when going back) */
+.pt{display:flex;align-items:center;gap:.15em}.ph .pt button{border:0;background:none;width:1.6em;margin-left:-.45em;font-size:1.6rem;line-height:1}
+.sm{display:flex;flex-direction:column;padding:.4em 0 .1em}.sm[hidden],.sv[hidden]{display:none}
+.smi{display:flex;align-items:center;gap:.85em;width:100%;padding:.75em .2em;text-align:left;color:var(--text-fg);border:0;border-radius:.6em;background:none}
+.smi+.smi{border-top:1px dashed var(--divider)}
+.smi:hover{background:color-mix(in srgb,var(--text-fg) 5%,transparent)}
+.smi:focus-visible{outline:2px solid var(--text-fg);outline-offset:-2px}
+.smi span{flex:1;display:flex;flex-direction:column;gap:.2em;font-size:1rem}.smi small{font-size:.8rem;color:var(--text-fg-faint);font-weight:400}
+.smc{flex:none;display:grid;place-items:center;width:2.3em;height:2.3em;border-radius:.6em;background:color-mix(in srgb,var(--text-fg) 8%,transparent)}.smc svg{width:1.25em;height:1.25em}
+.smr{flex:none;font-style:normal;font-size:1.4rem;color:var(--text-fg-faint)}
+.sv{padding-top:.3em}
+.sv.in{animation:svIn .22s ease-out}.sm.in{animation:svBk .22s ease-out}
+@keyframes svIn{from{transform:translateX(1.5em);opacity:0}}@keyframes svBk{from{transform:translateX(-1.5em);opacity:0}}
+@media(prefers-reduced-motion:reduce){.sv.in,.sm.in{animation:none}}
+.so.sc{cursor:default;padding-bottom:.4em}
+/* review style picker: two boxes, a looping sketch of each style with its name underneath */
+.rv{display:grid;grid-template-columns:1fr 1fr;gap:.7em;padding-bottom:.4em}
+.rvo{position:relative;display:flex;flex-direction:column;border:1px solid var(--divider);border-radius:var(--card-radius);overflow:hidden;cursor:pointer;color:var(--text-fg-faint);transition:border-color .2s,color .2s,box-shadow .2s}
+.rvo input{position:absolute;opacity:0;pointer-events:none}
+.rvo>span{padding:.5em;text-align:center;font-weight:700;font-size:.9rem;border-top:1px solid var(--divider)}
+.rvo:has(input:disabled){opacity:.45;cursor:default}
+.rvo:has(input:checked){border-color:var(--text-fg);color:var(--text-fg);box-shadow:0 0 0 1px var(--text-fg)}
+.rvo:has(input:focus-visible){outline:2px solid var(--text-fg);outline-offset:3px}
+.rvd{position:relative;height:6.5em;display:flex;align-items:center;justify-content:center;overflow:hidden;perspective:220px;background:color-mix(in srgb,var(--text-fg) 5%,transparent)}
+.rc{position:absolute;box-sizing:border-box;width:3.4em;height:4.4em;display:flex;flex-direction:column;justify-content:center;gap:.4em;padding:0 .55em;border:1px solid var(--divider);border-radius:.45em;background:var(--card-bg);box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.rc u,.rc s,.rc em{display:block;height:.28em;border-radius:.2em;background:var(--text-fg-faint);opacity:.55;text-decoration:none}
+.rc u+s+u,.rc u+em+u{width:65%}
+.rc s{height:.5em;opacity:1;background:var(--text-fg-faint);width:80%}   /* hidden cloze */
+.rc em{height:.5em;opacity:1;background:var(--text-fg);width:80%}        /* revealed */
+.rv-t .rb{transform:translateY(.35em) scale(.9);opacity:.6}
+.rv-t .rt{animation:rvT 3s ease-in-out infinite}
+@keyframes rvT{0%,30%{transform:none;opacity:1}55%{transform:translateX(3.6em) rotate(22deg);opacity:0}56%{transform:translateY(.35em) scale(.9);opacity:0}78%,100%{transform:none;opacity:1}}
+.rf{position:relative;width:3.4em;height:4.4em;transform-style:preserve-3d;animation:rvD 3s ease-in-out infinite}
+.rf .rc{left:0;top:0;-webkit-backface-visibility:hidden;backface-visibility:hidden}.rf .ra{transform:rotateX(180deg)}
+@keyframes rvD{0%,30%{transform:rotateX(0)}50%,80%{transform:rotateX(180deg)}100%{transform:rotateX(360deg)}}
+/* fingertip: a circle that presses on the sketch card and drags it the way that style is swiped (timed with rvT / rvD) */
+.tap{position:absolute;left:50%;top:50%;width:1.1em;height:1.1em;margin:-.55em;border-radius:50%;background:color-mix(in srgb,var(--text-fg) 28%,transparent);border:1.5px solid color-mix(in srgb,var(--text-fg) 65%,transparent);opacity:0;pointer-events:none;z-index:2}
+.rv-t .tap{animation:tpT 3s ease-in-out infinite}
+@keyframes tpT{0%,12%{transform:scale(1.6);opacity:0}22%,30%{transform:scale(1);opacity:1}48%{transform:translateX(3em) scale(1);opacity:0}100%{transform:translateX(3em);opacity:0}}
+.rv-d .tap{animation:tpD 3s ease-in-out infinite}
+@keyframes tpD{0%,6%{transform:translateY(1.2em) scale(1.6);opacity:0}14%{transform:translateY(1.2em) scale(1);opacity:1}28%{transform:translateY(-1.2em);opacity:1}34%,56%{transform:translateY(-1.6em);opacity:0}57%{transform:translateY(1.2em) scale(1.6);opacity:0}64%{transform:translateY(1.2em) scale(1);opacity:1}78%{transform:translateY(-1.2em);opacity:1}84%,100%{transform:translateY(-1.6em);opacity:0}}
+/* New Card Reveal picker: three smaller boxes, each sketch loops its reveal */
+.rv3{grid-template-columns:repeat(3,1fr);gap:.55em}.rv3 .rvd{font-size:.8em;height:6.2em}.rv3 .rvo>span{font-size:.8rem;padding:.45em .3em}
+.rn-n .rc{animation:rnN 2.4s steps(1) infinite}
+@keyframes rnN{0%{opacity:1}48%{opacity:1}49%{opacity:0}58%{opacity:0}59%{opacity:1}100%{opacity:1}}
+.rn-p .rc{animation:rnP 2.4s infinite}
+@keyframes rnP{0%,20%{transform:scale(.8);opacity:0;animation-timing-function:cubic-bezier(.2,.7,.3,1)}42%{transform:scale(1.02);opacity:1;animation-timing-function:ease-in-out}52%,85%{transform:none;opacity:1}100%{transform:none;opacity:0}}
+.rn-u .rc{animation:rnU 2.4s infinite}
+@keyframes rnU{0%,15%{transform:translateY(6em);animation-timing-function:cubic-bezier(.2,.7,.3,1)}42%{transform:translateY(-.12em);animation-timing-function:ease-in-out}52%,80%{transform:none;animation-timing-function:ease-in}100%{transform:translateY(-6em)}}
+@media(prefers-reduced-motion:reduce){.rv-t .rt,.rf,.tap,.rv3 .rc{animation:none}}
+.so{display:flex;align-items:center;gap:1em;padding:.6em 0;color:var(--text-fg);cursor:pointer}
+.so span{flex:1;display:flex;flex-direction:column;gap:.2em}.so small{font-size:.8rem;color:var(--text-fg-faint);font-weight:400}
+.sw{-webkit-appearance:none;appearance:none;flex:none;position:relative;box-sizing:border-box;width:2.8em;height:1.6em;min-height:0;margin:0;padding:0;border:0;border-radius:1em;background:var(--card-border);cursor:pointer;transition:background .2s}
+.sw::after{content:"";position:absolute;top:.2em;left:.2em;width:1.2em;height:1.2em;border-radius:50%;background:var(--text-fg-faint);transition:transform .2s,background .2s}
+.sw:checked{background:var(--text-fg)}.sw:checked::after{transform:translateX(1.2em);background:var(--card-bg)}
+.sw:focus-visible{outline:2px solid var(--text-fg);outline-offset:2px}
+.sn2{margin:0 0 .2em;font-size:.8rem;color:var(--text-fg-faint)}
+
+/* ---- deck loading (subject file fetched on first open) ---- */
+.sld{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.8em;min-height:60vh;color:var(--text-fg);text-align:center}
+.sld .lg{width:3.5rem;height:3.5rem;animation:lgp 1.4s ease-in-out infinite,lgs 2.4s linear infinite}.sld p{margin:0}.sld .nx{height:2.4em}
+@media(prefers-reduced-motion:reduce){.sld .lg{animation:none}}
+
+/* ---- card images ---- */
+/* never wider than the card or taller than the screen (Anki's reviewer does the same). Images marked
+   zoomable-image or in Extra keep their own --img-width cap from the rules above (those use !important) */
+.prettify-flashcard img{max-width:100%;max-height:80vh;height:auto}
+@media (hover:hover){#allClozeBtn:hover,#fhome:hover{background:color-mix(in srgb,var(--card-bg) 94%,#fff)}}
+#allClozeBtn:active,#fhome:active{background:color-mix(in srgb,var(--card-bg) 92%,#fff)}
+
+/* ---- header logo: the pen writes (logo-base = logo with the pen filled in, logo-hand = the pen cut-out, extended down into the band) ---- */
+#home:not(.ld) .lg,.cred .lg{-webkit-mask:url(/res/logo-base.png) center/contain no-repeat,url(/res/logo-hand.png) 32.759% 33.929%/9.375% 12.500% no-repeat;-webkit-mask-composite:source-out;mask:url(/res/logo-base.png) center/contain no-repeat,url(/res/logo-hand.png) 32.759% 33.929%/9.375% 12.500% no-repeat;mask-composite:subtract;animation:lgw 2s ease-in-out infinite}
+@keyframes lgw{0%{-webkit-mask-position:center,32.759% 33.929%;mask-position:center,32.759% 33.929%}10%{-webkit-mask-position:center,33.276% 33.036%;mask-position:center,33.276% 33.036%}20%{-webkit-mask-position:center,33.793% 33.929%;mask-position:center,33.793% 33.929%}30%{-webkit-mask-position:center,34.310% 33.036%;mask-position:center,34.310% 33.036%}40%{-webkit-mask-position:center,34.828% 33.929%;mask-position:center,34.828% 33.929%}50%{-webkit-mask-position:center,35.345% 33.036%;mask-position:center,35.345% 33.036%}60%{-webkit-mask-position:center,35.690% 33.929%;mask-position:center,35.690% 33.929%}72%{-webkit-mask-position:center,34.138% 32.589%;mask-position:center,34.138% 32.589%}84%{-webkit-mask-position:center,32.759% 33.393%;mask-position:center,32.759% 33.393%}90%{-webkit-mask-position:center,32.759% 33.929%;mask-position:center,32.759% 33.929%}100%{-webkit-mask-position:center,32.759% 33.929%;mask-position:center,32.759% 33.929%}}
+@media(prefers-reduced-motion:reduce){#home:not(.ld) .lg,.cred .lg{animation:none}}
+
+/* ---- extra/source fields under a cloze: not bold, plain extra-text colour (same as on basic cards), never the cloze colour ---- */
+.prettify-field.cloze-extra,.prettify-field.cloze-extra .extra{font-weight:normal;color:var(--text-fg-faint)}
+.prettify-field.cloze-extra b,.prettify-field.cloze-extra strong{font-weight:normal}
+
+/* ---- credits popup (opened from the header logo or name) ---- */
+#cr{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;padding:1em;background:rgba(0,0,0,.55)}#cr.on{display:flex}
+.cred{text-align:center;padding:1.6em 1em 1.8em;overflow-y:auto}   /* scrolls if the deck table outgrows the popup */
+.cred .lg{display:block;margin:0 auto;width:6rem;height:6rem;background:var(--text-fg)}
+.cred-name{margin-top:.7em;font-size:1.6rem;font-weight:700;color:var(--text-fg);letter-spacing:-.02em}
+.cred-sub{margin-top:.35em;font-size:.95rem;color:var(--text-fg-faint)}
+.cred-txt{margin:1.1em auto 0;max-width:22em;font-size:.95rem;line-height:1.4;color:var(--text-fg)}
+.cred-d{display:grid;grid-template-columns:repeat(auto-fill,minmax(10.5em,1fr));gap:.5em;margin-top:1.2em;text-align:left}   /* deck pills, filled by credDecks() */
+.dp{display:flex;align-items:center;gap:.55em;padding:.4em 1em .4em .4em;border-radius:999px;background:var(--cl);color:#fff}
+.night_mode .dp{background:var(--cd);color:#1e1e2e}   /* dark mode: mocha pastels, dark text */
+.dpi{flex:none;display:grid;place-items:center;width:2.2em;height:2.2em;border-radius:50%;background:rgba(255,255,255,.22)}
+.night_mode .dpi{background:rgba(30,30,46,.12)}
+.dpt{display:flex;flex-direction:column;min-width:0;line-height:1.2}
+.dpt b{font-size:.9rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dpt small{font-size:.75rem;opacity:.85;font-variant-numeric:tabular-nums}
+.dp.dpa,.night_mode .dp.dpa{grid-column:1/-1;justify-self:center;padding-right:1.4em;background:#fff;color:#1e1e2e;box-shadow:0 0 0 1px var(--card-border)}   /* total pill: full row, centred, white accent, rod of Asclepius */
+.dpa .dpi,.night_mode .dpa .dpi{background:rgba(30,30,46,.08)}
+.dpa .dpt b{font-size:1rem}
+
+/* ---- credits: a bit more pen travel than the header (the logo is bigger here) ---- */
+@keyframes lgwc{0%{-webkit-mask-position:center,32.759% 33.929%;mask-position:center,32.759% 33.929%}10%{-webkit-mask-position:center,33.793% 32.143%;mask-position:center,33.793% 32.143%}20%{-webkit-mask-position:center,34.828% 33.929%;mask-position:center,34.828% 33.929%}30%{-webkit-mask-position:center,35.862% 32.143%;mask-position:center,35.862% 32.143%}40%{-webkit-mask-position:center,36.897% 33.929%;mask-position:center,36.897% 33.929%}50%{-webkit-mask-position:center,37.931% 32.143%;mask-position:center,37.931% 32.143%}60%{-webkit-mask-position:center,38.621% 33.929%;mask-position:center,38.621% 33.929%}72%{-webkit-mask-position:center,35.517% 31.250%;mask-position:center,35.517% 31.250%}84%{-webkit-mask-position:center,32.759% 32.857%;mask-position:center,32.759% 32.857%}90%{-webkit-mask-position:center,32.759% 33.929%;mask-position:center,32.759% 33.929%}100%{-webkit-mask-position:center,32.759% 33.929%;mask-position:center,32.759% 33.929%}}
+.cred .lg{animation:lgwc 2s ease-in-out infinite}
+/* ---- title (logo + word, opens credits): pops out a little while pressed; pointer cursor on mice ---- */
+#home h1 .ttl{display:flex;align-items:baseline;gap:.25em;transform-origin:center;transition:transform .2s cubic-bezier(.22,1,.36,1);-webkit-tap-highlight-color:transparent}   /* logo + word scale together around their shared centre */
+#home h1 .ttl:has(.lg:active,.hw:active){transform:scale(.94);transition-duration:.1s;transition-timing-function:cubic-bezier(.33,1,.68,1)}   /* pressed: squish in a little */
+body:has(#cr.on) #home h1 .ttl{transform:scale(1.08);transition-duration:.35s;transition-timing-function:cubic-bezier(.34,1.56,.64,1)}   /* released, credits open: shoot out past 1.08 (easeOutBack) and settle there; easeOutQuint back on close */
+@media (hover:hover){#home h1 .lg,#home h1 .hw{cursor:pointer}}
+
+/* ---- settings: reset all progress ---- */
+.so.rs{cursor:default;margin-top:.5em}.rsb{flex:none;height:2.3em;padding:0 1.1em;font-size:.9rem;color:#e5534b}.rsb:disabled{color:var(--text-fg-faint)}
+.so.bk{flex-wrap:wrap;gap:.6em 1em}.bkr{flex-basis:100%;display:flex;gap:.6em}.bkb{flex:1;height:2.3em;padding:0 1.1em;font-size:.9rem}   /* backup: Export/Import on their own line under the text */
+
+/* ---- first visit: how swiping works (dimmed overlay, a demo card that gets swiped right, then left) ---- */
+#tut{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;padding:1em;background:rgba(0,0,0,.4);animation:tfi .3s ease}
+#tut.on{display:flex}
+@keyframes tfi{from{opacity:0}}
+.pp.card.tb{max-width:21em;align-items:center;text-align:center;padding:1.2em 1.2em 1.1em;color:var(--text-fg);cursor:pointer}
+.td{position:relative;width:100%;height:8.5em;overflow:hidden}
+.tc{position:absolute;left:50%;top:50%;width:5.4em;height:7em;margin:-3.5em 0 0 -2.7em;box-sizing:border-box;padding:1.1em .7em;display:flex;flex-direction:column;gap:.55em;border:1.5px solid color-mix(in srgb,var(--text-fg) 35%,transparent);border-radius:10px;background:color-mix(in srgb,var(--text-fg) 6%,var(--card-bg));transform-origin:50% 120%;animation:tcs 5.6s ease-in-out infinite}
+.tc i{display:block;height:.4em;border-radius:.2em;background:color-mix(in srgb,var(--text-fg) 25%,transparent)}.tc i:nth-child(2){width:75%}.tc i:nth-child(3){width:55%}
+.tf{position:absolute;left:50%;top:58%;width:2.2em;height:2.2em;margin:-1.1em 0 0 -1.1em;border-radius:50%;box-sizing:border-box;border:2px solid var(--text-fg);background:color-mix(in srgb,var(--text-fg) 30%,transparent);animation:tfs 5.6s ease-in-out infinite}
+@keyframes tcs{0%,8%{transform:none;opacity:1}30%{transform:translateX(3.2em) rotate(9deg);opacity:1}40%{transform:translateX(7em) rotate(18deg);opacity:0}41%{transform:none;opacity:0}50%,58%{transform:none;opacity:1}80%{transform:translateX(-3.2em) rotate(-9deg);opacity:1}90%{transform:translateX(-7em) rotate(-18deg);opacity:0}91%{transform:none;opacity:0}100%{transform:none;opacity:1}}
+@keyframes tfs{0%{transform:translateX(0) scale(1.4);opacity:0}8%{transform:translateX(0) scale(1);opacity:1}30%{transform:translateX(3.2em) scale(1);opacity:1}38%,50%{transform:translateX(4.6em) scale(1);opacity:0}51%{transform:translateX(0) scale(1.4);opacity:0}58%{transform:translateX(0) scale(1);opacity:1}80%{transform:translateX(-3.2em) scale(1);opacity:1}88%,100%{transform:translateX(-4.6em) scale(1);opacity:0}}
+.tt{margin:.9em 0 .3em;line-height:1.4}.ts{margin:0 0 1em;font-size:.85rem;color:var(--text-fg-faint)}
+/* Flip mode: swipe up flips the card in place, a second swipe up sends it off the top */
+.tb.up .tc{transform-origin:50% 50%;animation-name:tcu}.tb.up .tf{top:70%;animation-name:tfu}
+@keyframes tcu{0%,14%{transform:none;opacity:1}21%{transform:scaleY(0);opacity:1}28%,58%{transform:none;opacity:1}80%{transform:translateY(-2.6em);opacity:1}90%{transform:translateY(-6em);opacity:0}91%{transform:none;opacity:0}100%{transform:none;opacity:1}}
+@keyframes tfu{0%{transform:translateY(0) scale(1.4);opacity:0}8%{transform:translateY(0) scale(1);opacity:1}28%{transform:translateY(-2.6em) scale(1);opacity:1}36%,50%{transform:translateY(-3.6em) scale(1);opacity:0}51%{transform:translateY(0) scale(1.4);opacity:0}58%{transform:translateY(0) scale(1);opacity:1}80%{transform:translateY(-2.6em) scale(1);opacity:1}88%,100%{transform:translateY(-3.6em) scale(1);opacity:0}}
+/* Reels: a Repost button beside the demo card (.tb.reel .trp). on the 5.6s loop it is pressed while the answer rests (34–42%), turns red,
+   its arrows turn and a cross pops in, then it resets as the card goes up */
+.trp{display:none;position:absolute;left:calc(50% + 4.1em);top:50%;margin-top:-1.4em;flex-direction:column;align-items:center;gap:.15em;color:var(--text-fg);animation:trpC 5.6s ease-in-out infinite}
+.tb.reel .trp{display:flex}.trp .rp-i{width:1.8em;height:1.8em;animation:trpP 5.6s ease-in-out infinite}.trp .rp-i svg{display:block;width:100%;height:100%}
+.trp .rp-i>svg:first-child{animation:trpT 5.6s ease-in-out infinite}.trp .rp-x{animation:trpX 5.6s ease-out infinite}.trp small{font-size:.62rem;font-weight:700;color:var(--text-fg)}
+@keyframes trpC{0%,38%{color:var(--text-fg)}41%,58%{color:#ff3040}66%,100%{color:var(--text-fg)}}
+@keyframes trpP{0%,34%{transform:none}38%{transform:scale(.8)}43%,100%{transform:none}}
+@keyframes trpT{0%,39%{transform:none}48%,100%{transform:rotate(180deg)}}
+@keyframes trpX{0%,42%{opacity:0;transform:scale(0)}47%{opacity:1;transform:scale(1.25)}50%,58%{opacity:1;transform:scale(1)}64%,100%{opacity:0;transform:scale(0)}}
+@media(prefers-reduced-motion:reduce){.trp,.trp .rp-i,.trp .rp-i>svg:first-child,.trp .rp-x{animation:none}}
+@media(prefers-reduced-motion:reduce){#tut,.tc,.tf{animation:none}.tf{opacity:1;transform:translateX(1.6em)}.tc{transform:translateX(.8em) rotate(4deg)}.tb.up .tf{transform:translateY(-1.3em)}.tb.up .tc{transform:none}}
+
+/* ---- home heatmap (cards answered per day, this browser): a block per month with a gap between them, white streaks at stepped opacities; scrolls sideways with the table scroll shadows ---- */
+#hm{--hm:var(--text-fg);--c:12px;--g:3px;width:max-content;max-width:100%;margin:1.4em auto 0;position:relative;font-size:10px;line-height:14px;color:var(--text-fg-faint)}
+.night_mode #hm{--hm:#fff}
+#home.ld #hm{display:none}
+#hm .hb{position:relative;min-width:0}
+/* scroll hint: the grid fades out at an edge that has more to scroll (a mask, so it works on any theme's background) */
+@property --fl{syntax:"<length>";inherits:false;initial-value:0px}
+@property --fr{syntax:"<length>";inherits:false;initial-value:0px}
+#hm .hs{--fl:0px;--fr:0px;transition:--fl .15s,--fr .15s;-webkit-mask-image:linear-gradient(to right,transparent,#000 var(--fl),#000 calc(100% - var(--fr)),transparent);mask-image:linear-gradient(to right,transparent,#000 var(--fl),#000 calc(100% - var(--fr)),transparent)}
+#hm .hb.sl .hs{--fl:28px}#hm .hb.sr .hs{--fr:28px}
+#hm .hs{display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:none;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+#hm .hs::-webkit-scrollbar{display:none}
+#hm .mb{flex:none}
+#hm .mb b{display:block;height:14px;margin-bottom:var(--g);font-weight:400;white-space:nowrap}
+#hm .hg{display:grid;grid-template-rows:repeat(7,var(--c));grid-auto-flow:column;grid-auto-columns:var(--c);gap:var(--g)}
+#hm .hg i{border-radius:3px;background:color-mix(in srgb,var(--hm) 7%,transparent)}
+#hm .hg i.f{background:none}
+#hm .hg i.l1{background:color-mix(in srgb,var(--hm) 22%,transparent)}
+#hm .hg i.l2{background:color-mix(in srgb,var(--hm) 42%,transparent)}
+#hm .hg i.l3{background:color-mix(in srgb,var(--hm) 66%,transparent)}
+#hm .hg i.l4{background:color-mix(in srgb,var(--hm) 92%,transparent)}
+#hm .hg i.t{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--hm) 70%,transparent)}
+
+/* tap bubble for a heatmap cell: date and cards done; inverted colours so it reads in both themes */
+#hmt{position:absolute;z-index:2;display:none;pointer-events:none;transform:translate(-50%,calc(-100% - 8px));white-space:nowrap;padding:.4em .6em;border-radius:6px;background:var(--hm);color:var(--card-bg);font-size:11px;line-height:1.3;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+#hmt.on{display:block}
+#hmt b{display:block;font-weight:600}
+/* sequential cloze: pulse on the first hidden cloze (set from JS) */
+/* a solid circle grows from the span's centre, fading in then out; clipped to the span. Only background-image is set, so the cloze keeps its own background */
+@property --cpr{syntax:'<percentage>';inherits:false;initial-value:0%}
+@property --cpa{syntax:'<percentage>';inherits:false;initial-value:0%}
+.cloze.cloze-pulse{background-image:radial-gradient(circle at 50% 50%,color-mix(in srgb,var(--text-fg) var(--cpa),transparent) var(--cpr),transparent calc(var(--cpr) + 1px));animation:clozePulse 1s ease-in-out infinite;border-radius:.2em;cursor:pointer}
+@keyframes clozePulse{0%{--cpr:8%;--cpa:0%}45%{--cpa:28%}100%{--cpr:80%;--cpa:0%}}
+@media(prefers-reduced-motion:reduce){.cloze.cloze-pulse{animation:none;--cpr:80%;--cpa:16%}}
+
+/* ---- themes (Settings › Appearance › Theme): html[data-theme] = ctp | tokyo | nord | dracula; 'default' uses the rules above.
+   colours are the themes' own palette entries: Catppuccin v1.8.0 Latte/Mocha, Tokyo Night 'night', Nord nord0-15, Dracula and its light
+   variant Alucard. exceptions: Dracula's faint text is Foreground at 70% (it has no secondary text colour), and Alucard's darker
+   surfaces are Background mixed toward Comment (it ships none). tokyo has no light set, so light mode keeps the default.
+   light = .card without .night_mode, dark = .card.card.night_mode. --accent tints the home heatmap */
+html[data-theme=ctp] .card:not(.night_mode){background-color:#e6e9ef;--card-bg:#eff1f5;--text-fg:#4c4f69;--text-fg-faint:#6c6f85;--text-bg-selected:#bcc0cc;--press-bg:#ccd0da;--card-border:#bcc0cc;--card-box-shadow:#00000017;--divider:#bcc0cc;--tag-fg:#5c5f77;--tag-bg:#ccd0da;--tag-fg-active:#4c4f69;--tag-bg-active:#bcc0cc;--hover-bg:color-mix(in srgb,#eff1f5 55%,#ccd0da);--hover-fg:#4c4f69;--tag-border:transparent;--cloze-fg:#df8e1d;--cloze-bg:#eff1f5;--link-fg:#1e66f5;--link-fg-active:#04a5e5;--bold-fg:#df8e1d;--bold-italic-fg:#df8e1d;--italic-fg:#40a02b;--h1-fg:#40a02b;--h2-fg:#179299;--h3-fg:#8839ef;--h4-fg:#d20f39;--h5-fg:#04a5e5;--h6-fg:#6c6f85;--mark-color:color-mix(in srgb,#df8e1d 22%,transparent);--scheme-red:#d20f39;--scheme-green:#40a02b;--scheme-blue:#1e66f5;--ctp-text:76, 79, 105;--ctp-red:210, 15, 57;--ctp-green:64, 160, 43;--ctp-blue:30, 102, 245;--ctp-yellow:223, 142, 29;--ctp-teal:23, 146, 153;--accent:#8839ef}
+html[data-theme=ctp] .card.card.night_mode,html[data-theme=ctp] .card.card.nightMode{background-color:#181825;--card-bg:#1e1e2e;--text-fg:#cdd6f4;--text-fg-faint:#a6adc8;--text-bg-selected:#45475a;--press-bg:#313244;--card-border:#313244;--card-box-shadow:#0000001f;--divider:#313244;--tag-fg:#bac2de;--tag-bg:#313244;--tag-fg-active:#cdd6f4;--tag-bg-active:#45475a;--hover-bg:#45475a;--hover-fg:#cdd6f4;--tag-border:transparent;--cloze-fg:#f9e2af;--cloze-bg:#1e1e2e;--link-fg:#89b4fa;--link-fg-active:#89dceb;--bold-fg:#f9e2af;--bold-italic-fg:#f9e2af;--italic-fg:#a6e3a1;--h1-fg:#a6e3a1;--h2-fg:#94e2d5;--h3-fg:#cba6f7;--h4-fg:#f38ba8;--h5-fg:#89dceb;--h6-fg:#a6adc8;--mark-color:color-mix(in srgb,#f9e2af 22%,transparent);--scheme-red:#f38ba8;--scheme-green:#a6e3a1;--scheme-blue:#89b4fa;--ctp-text:205, 214, 244;--ctp-red:243, 139, 168;--ctp-green:166, 227, 161;--ctp-blue:137, 180, 250;--ctp-yellow:249, 226, 175;--ctp-teal:148, 226, 213;--accent:#cba6f7}
+html[data-theme=tokyo] .card.card.night_mode,html[data-theme=tokyo] .card.card.nightMode{background-color:#16161e;--card-bg:#1a1b26;--text-fg:#c0caf5;--text-fg-faint:#a9b1d6;--text-bg-selected:#283457;--press-bg:#292e42;--card-border:#292e42;--card-box-shadow:#0000001f;--divider:#292e42;--tag-fg:#a9b1d6;--tag-bg:#292e42;--tag-fg-active:#c0caf5;--tag-bg-active:#414868;--hover-bg:#414868;--hover-fg:#c0caf5;--tag-border:transparent;--cloze-fg:#e0af68;--cloze-bg:#1a1b26;--link-fg:#7aa2f7;--link-fg-active:#7dcfff;--bold-fg:#e0af68;--bold-italic-fg:#e0af68;--italic-fg:#9ece6a;--h1-fg:#9ece6a;--h2-fg:#73daca;--h3-fg:#bb9af7;--h4-fg:#f7768e;--h5-fg:#7dcfff;--h6-fg:#a9b1d6;--mark-color:color-mix(in srgb,#e0af68 22%,transparent);--scheme-red:#f7768e;--scheme-green:#9ece6a;--scheme-blue:#7aa2f7;--ctp-text:192, 202, 245;--ctp-red:247, 118, 142;--ctp-green:158, 206, 106;--ctp-blue:122, 162, 247;--ctp-yellow:224, 175, 104;--ctp-teal:26, 188, 156;--accent:#7aa2f7}
+html[data-theme=nord] .card:not(.night_mode){background-color:#e5e9f0;--card-bg:#eceff4;--text-fg:#2e3440;--text-fg-faint:#4c566a;--text-bg-selected:#d8dee9;--press-bg:#e5e9f0;--card-border:#d8dee9;--card-box-shadow:#00000017;--divider:#d8dee9;--tag-fg:#3b4252;--tag-bg:#e5e9f0;--tag-fg-active:#2e3440;--tag-bg-active:#d8dee9;--hover-bg:color-mix(in srgb,#eceff4 55%,#e5e9f0);--hover-fg:#2e3440;--tag-border:transparent;--cloze-fg:#5e81ac;--cloze-bg:#eceff4;--link-fg:#5e81ac;--link-fg-active:#81a1c1;--bold-fg:#d08770;--bold-italic-fg:#d08770;--italic-fg:#a3be8c;--h1-fg:#a3be8c;--h2-fg:#8fbcbb;--h3-fg:#b48ead;--h4-fg:#bf616a;--h5-fg:#5e81ac;--h6-fg:#4c566a;--mark-color:color-mix(in srgb,#ebcb8b 22%,transparent);--scheme-red:#bf616a;--scheme-green:#a3be8c;--scheme-blue:#5e81ac;--ctp-text:46, 52, 64;--ctp-red:191, 97, 106;--ctp-green:163, 190, 140;--ctp-blue:94, 129, 172;--ctp-yellow:235, 203, 139;--ctp-teal:143, 188, 187;--accent:#5e81ac}
+html[data-theme=nord] .card.card.night_mode,html[data-theme=nord] .card.card.nightMode{background-color:#2e3440;--card-bg:#3b4252;--text-fg:#eceff4;--text-fg-faint:#d8dee9;--text-bg-selected:#4c566a;--press-bg:#434c5e;--card-border:#434c5e;--card-box-shadow:#0000001f;--divider:#434c5e;--tag-fg:#e5e9f0;--tag-bg:#434c5e;--tag-fg-active:#eceff4;--tag-bg-active:#4c566a;--hover-bg:#4c566a;--hover-fg:#eceff4;--tag-border:transparent;--cloze-fg:#ebcb8b;--cloze-bg:#3b4252;--link-fg:#88c0d0;--link-fg-active:#8fbcbb;--bold-fg:#ebcb8b;--bold-italic-fg:#ebcb8b;--italic-fg:#a3be8c;--h1-fg:#a3be8c;--h2-fg:#8fbcbb;--h3-fg:#b48ead;--h4-fg:#bf616a;--h5-fg:#88c0d0;--h6-fg:#d8dee9;--mark-color:color-mix(in srgb,#ebcb8b 22%,transparent);--scheme-red:#bf616a;--scheme-green:#a3be8c;--scheme-blue:#81a1c1;--ctp-text:236, 239, 244;--ctp-red:191, 97, 106;--ctp-green:163, 190, 140;--ctp-blue:129, 161, 193;--ctp-yellow:235, 203, 139;--ctp-teal:143, 188, 187;--accent:#88c0d0}
+html[data-theme=dracula] .card:not(.night_mode){background-color:color-mix(in srgb,#fffbeb 92%,#6c664b);--card-bg:#fffbeb;--text-fg:#1f1f1f;--text-fg-faint:#6c664b;--text-bg-selected:#cfcfde;--press-bg:color-mix(in srgb,#fffbeb 95%,#6c664b);--card-border:#cfcfde;--card-box-shadow:#00000017;--divider:#cfcfde;--tag-fg:#1f1f1f;--tag-bg:color-mix(in srgb,#fffbeb 93%,#6c664b);--tag-fg-active:#1f1f1f;--tag-bg-active:color-mix(in srgb,#fffbeb 88%,#6c664b);--hover-bg:color-mix(in srgb,#fffbeb 55%,color-mix(in srgb,#fffbeb 95%,#6c664b));--hover-fg:#1f1f1f;--tag-border:transparent;--cloze-fg:#644ac9;--cloze-bg:#fffbeb;--link-fg:#036a96;--link-fg-active:#644ac9;--bold-fg:#a34d14;--bold-italic-fg:#a34d14;--italic-fg:#14710a;--h1-fg:#14710a;--h2-fg:#036a96;--h3-fg:#644ac9;--h4-fg:#a3144d;--h5-fg:#846e15;--h6-fg:#6c664b;--mark-color:color-mix(in srgb,#846e15 22%,transparent);--scheme-red:#cb3a2a;--scheme-green:#14710a;--scheme-blue:#036a96;--ctp-text:31, 31, 31;--ctp-red:203, 58, 42;--ctp-green:20, 113, 10;--ctp-blue:3, 106, 150;--ctp-yellow:132, 110, 21;--ctp-teal:3, 106, 150;--accent:#644ac9}
+html[data-theme=dracula] .card.card.night_mode,html[data-theme=dracula] .card.card.nightMode{background-color:#21222c;--card-bg:#282a36;--text-fg:#f8f8f2;--text-fg-faint:#f8f8f2b3;--text-bg-selected:#44475a;--press-bg:#343746;--card-border:#44475a;--card-box-shadow:#0000001f;--divider:#44475a;--tag-fg:#f8f8f2;--tag-bg:#343746;--tag-fg-active:#f8f8f2;--tag-bg-active:#424450;--hover-bg:#424450;--hover-fg:#f8f8f2;--tag-border:transparent;--cloze-fg:#f1fa8c;--cloze-bg:#282a36;--link-fg:#8be9fd;--link-fg-active:#bd93f9;--bold-fg:#ffb86c;--bold-italic-fg:#ffb86c;--italic-fg:#50fa7b;--h1-fg:#50fa7b;--h2-fg:#8be9fd;--h3-fg:#bd93f9;--h4-fg:#ff79c6;--h5-fg:#ff5555;--h6-fg:#f8f8f2b3;--mark-color:color-mix(in srgb,#f1fa8c 22%,transparent);--scheme-red:#ff5555;--scheme-green:#50fa7b;--scheme-blue:#8be9fd;--ctp-text:248, 248, 242;--ctp-red:255, 85, 85;--ctp-green:80, 250, 123;--ctp-blue:139, 233, 253;--ctp-yellow:241, 250, 140;--ctp-teal:139, 233, 253;--accent:#bd93f9}
+html[data-theme] #hm{--hm:var(--accent,var(--text-fg))}
+/* theme picker: one row that scrolls sideways. each box is split, light preview on the left and dark on the right (--lb/--lc/--la, --db/--dc/--da) */
+.rv5{display:flex;gap:.5em;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scrollbar-width:none;margin:0 -1em;padding:2px 1em .6em;scroll-padding:0 1em}.rv5::-webkit-scrollbar{display:none}
+.rv5 .rvo{flex:none;width:6.6em;scroll-snap-align:start}.rv5 .rvo>span{font-size:.75rem;padding:.4em .2em;white-space:nowrap}
+.tpv{display:flex;height:3.6em}.tpv i{flex:1;display:flex;align-items:center;justify-content:center;background:var(--lb)}.tpv i+i{background:var(--db)}
+.tpv b{width:62%;height:58%;border-radius:.3em;background:var(--lc);display:flex;flex-direction:column;justify-content:center;gap:.22em;padding:0 .3em;box-sizing:border-box}
+.tpv i+i b{background:var(--dc)}.tpv b::before,.tpv b::after{content:"";display:block;height:.22em;border-radius:.1em;background:var(--la)}.tpv b::after{width:60%;opacity:.55}
+.tpv i+i b::before,.tpv i+i b::after{background:var(--da)}
+
+/* ---- Reels Mode (Gram): overlay on the review screen + bottom sheet ---- */
+#reel{position:absolute;inset:0;z-index:3;overflow:hidden;pointer-events:none}   /* fills .stw, the card area: ends exactly at the footer, and clips overlays moving in and out */
+#reel .rl-in{position:absolute;left:0;right:0;bottom:.9em;max-width:calc(var(--card-max-width) + 4.6em);margin:0 auto;padding:0 .6em;display:flex;align-items:flex-end;justify-content:space-between}
+#study.reels #stage{padding-bottom:0}
+#stage.long{overscroll-behavior:contain}#stage.long>.wrap:not(.ghost){padding-bottom:.9em}   /* see capReel() */
+.rl-who{display:flex;align-items:center;gap:.55em;color:var(--text-fg);pointer-events:auto;filter:drop-shadow(0 0 4px var(--card-bg))}
+.rl-av{width:2.3em;height:2.3em;border-radius:50%;display:grid;place-items:center;color:#1e1e2e;flex:none}.rl-av svg{width:1.25em;height:1.25em}
+.rl-who b{font-size:.95rem}
+.rl-act{display:flex;flex-direction:column;gap:.9em;pointer-events:auto}
+.rl-act button{display:flex;flex-direction:column;align-items:center;gap:.15em;border:0;background:none;padding:0;color:var(--text-fg);font-size:.75rem;font-weight:700;filter:drop-shadow(0 0 4px var(--card-bg))}
+.rl-act button:hover,.rl-act button:active{background:none}
+.rl-act svg{width:2.1em;height:2.1em}
+.rl-act button.on{color:#ff3040}.rl-act button.on svg{fill:currentColor}.rl-act button.on span{color:var(--text-fg)}
+#rlike.pop svg{animation:rlPop .35s cubic-bezier(.2,.8,.3,1.4)}@keyframes rlPop{0%{transform:scale(.6)}60%{transform:scale(1.25)}100%{transform:none}}
+#rs{position:fixed;inset:0;z-index:30;pointer-events:none;background:rgba(0,0,0,0);transition:background .25s}
+#rs.on{pointer-events:auto;background:rgba(0,0,0,.45)}
+#rs .sh-p.pp.card{position:absolute;left:0;right:0;bottom:0;margin:0 auto;width:100%;max-width:34em;height:72%;max-height:none;border-radius:16px 16px 0 0;border-bottom:0;background:var(--card-bg);padding:0 0 env(safe-area-inset-bottom,0px);transform:translateY(100%);transition:transform .3s cubic-bezier(.2,.8,.3,1);display:flex;flex-direction:column;overflow:hidden}
+#rs.on .sh-p.pp.card{transform:none}
+#rs.sm .sh-p.pp.card{height:auto;max-height:72%}
+.sh-h{flex:none;display:flex;flex-direction:column;align-items:center;gap:.5em;padding:.55em 1em .7em;color:var(--text-fg);border-bottom:1px solid var(--divider);touch-action:none;cursor:grab}
+.sh-g{width:2.6em;height:.28em;border-radius:1em;background:var(--text-fg-faint);opacity:.5}
+.sh-h b{font-size:.95rem}
+.sh-b{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:.4em 1em}
+.sh-ld{display:grid;place-items:center;padding:2.5em 0}.sh-ld .lg{width:2rem;height:2rem;animation:lgs 1s linear infinite}
+.rcm{display:flex;gap:.7em;padding:.55em 0;align-items:flex-start;animation:cmIn .25s ease-out}@keyframes cmIn{from{opacity:0;transform:translateY(.4em)}}
+.cm-av{flex:none;width:2.1em;height:2.1em;border-radius:50%;display:grid;place-items:center;color:#1e1e2e;font-weight:700;font-size:.85rem}
+.cm-t{flex:1;min-width:0;color:var(--text-fg);font-size:.85rem}.cm-t b{font-size:.8rem}.cm-t small{color:var(--text-fg-faint);font-size:.72rem}.cm-t p{margin:.15em 0 .25em;line-height:1.35;overflow-wrap:break-word}   /* break-word: wrap at spaces; split a word only if it can't fit a line on its own */
+.cm-r{font-weight:700}
+.cm-l{flex:none;display:flex;flex-direction:column;align-items:center;gap:.1em;border:0;background:none;padding:.2em;color:var(--text-fg-faint);font-size:.68rem}.cm-l:hover,.cm-l:active{background:none}.cm-l svg{width:1em;height:1em}
+.cm-l.on{color:#ff3040}.cm-l.on svg{fill:currentColor}
+.sh-f{flex:none;display:flex;gap:.6em;padding:.6em 1em;border-top:1px solid var(--divider)}
+.sh-f:empty{display:none}
+.sh-in,.sh-q{flex:1;min-width:0;font:inherit;font-size:.9rem;color:var(--text-fg);background:color-mix(in srgb,var(--text-fg) 7%,transparent);border:0;border-radius:2em;padding:.6em 1em;outline:none}
+.sh-q{width:100%;margin:.3em 0 .6em}
+.sh-post{border:0;background:none;color:var(--link-fg,#2a6ef5);font-weight:700}.sh-post:hover,.sh-post:active{background:none}
+.sh-ac{display:flex;flex-direction:column;gap:.3em;padding-bottom:.6em}
+.sh-a{display:flex;align-items:center;gap:.8em;padding:.35em 0}.sh-a .cm-av{width:2.6em;height:2.6em;font-size:1rem}
+.sh-an{flex:1;display:flex;flex-direction:column;color:var(--text-fg);font-size:.9rem}.sh-an small{color:var(--text-fg-faint);font-size:.75rem}
+.sh-s{height:2.2em;padding:0 1.2em;font-size:.85rem;background:#4f5bd5;color:#fff;border:0}.sh-s:disabled{background:color-mix(in srgb,var(--text-fg) 12%,transparent);color:var(--text-fg-faint)}
+@media(prefers-reduced-motion:reduce){#rs .sh-p,.rcm,#rlike.pop svg{transition:none;animation:none}}
+/* Reels Mode footer: no hint and no Next (swipes and keys still work); stats, home, corrections become a bottom nav bar */
+#study.reels #hint,#study.reels #nxt{display:none}
+#study.reels .ft{padding:0 0 env(safe-area-inset-bottom,0px);gap:0}
+#study.reels .fr{width:100%;justify-content:space-around;gap:0;padding:.35em 0;border-top:1px solid var(--divider)}
+#study.reels .fr .nx.cb{border:0;background:none;width:3.2em;height:2.6em}
+#study.reels .fr .nx.cb svg{width:24px;height:24px}
+#study.reels #info{order:1}#study.reels #back{order:2}#study.reels #cbtn{order:3}
+/* Reels music: song line under the account, and the sound box at the bottom of the right column (cover art behind a note; tap mutes) */
+.rl-tx{display:flex;flex-direction:column;min-width:0;max-width:60vw}.rl-tx small{font-size:.72rem;color:var(--text-fg);opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rl-act .rl-mu{position:relative;width:1.65em;height:1.65em;border:1.5px solid var(--text-fg);border-radius:.45em;display:grid;place-items:center;font-size:inherit}
+.rl-act .rl-mu::after{content:"";position:absolute;inset:-.6em}   /* bigger press area than the small box */
+.rl-art{position:absolute;inset:0;border-radius:.3em;background:var(--card-bg) center/cover no-repeat;opacity:.55}
+.rl-act .rl-mu svg{position:relative;width:.9em;height:.9em}
+.rl-mu .rl-x{display:none}.rl-mu.off .rl-x{display:inline}.rl-mu.off .rl-art{opacity:.25}
+/* Reels: a bigger press area for the like button (padding, pulled back with a negative margin so nothing moves), and the double-tap heart */
+.rl-act #rlike,.rl-act #rcom,.rl-act #rrep,.rl-act #rsh{padding:.5em .65em;margin:-.5em -.65em}   /* bigger press areas, pulled back so nothing moves */
+.rl-burst{position:absolute;width:6.5em;height:6.5em;margin:-3.25em 0 0 -3.25em;color:#ff3040;pointer-events:none;filter:drop-shadow(0 6px 14px rgba(0,0,0,.3));animation:rlB .85s ease-out forwards}
+.rl-burst svg{width:100%;height:100%;fill:currentColor}
+@keyframes rlB{0%{transform:rotate(var(--r)) scale(0);opacity:0}15%{transform:rotate(var(--r)) scale(1.18);opacity:1}30%{transform:rotate(var(--r)) scale(.94)}42%,68%{transform:rotate(var(--r)) scale(1);opacity:1}100%{transform:rotate(var(--r)) translateY(-3em) scale(.9);opacity:0}}
+@media(prefers-reduced-motion:reduce){.rl-burst{animation:rlBr .8s linear forwards}@keyframes rlBr{0%,70%{opacity:1}100%{opacity:0}}}
+/* phones: Settings is a floating round button in the top right of the home screen (desktop keeps it beside the title) */
+@media (max-width:600px){
+#home #sbtn{position:fixed;z-index:10;top:calc(env(safe-area-inset-top,0px) + .75rem);right:calc(env(safe-area-inset-right,0px) + .75rem);width:2.6rem;height:2.6rem;border-radius:50%;
+ background:var(--card-bg);border:1px solid var(--card-border);box-shadow:none;color:var(--text-fg)}
+#home #sbtn svg{width:1.2rem;height:1.2rem}
+#home #sbtn:active{background:var(--press-bg)}
+}
+/* Reels share: icon avatars (QR Code), and the QR pop-up */
+.sh-ic{color:#1e1e2e}.sh-ic svg{width:1.3em;height:1.3em}
+#rq{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.45)}#rq.on{display:flex}
+#rq .rq-p.pp.card{width:auto;max-width:none;padding:0;border-radius:16px;background:var(--card-bg);overflow:hidden}
+#rq .rq-b{padding:1.2em 1.4em 1em;display:flex;flex-direction:column;align-items:center;gap:.7em}
+#rqc{width:13.5em;height:13.5em;padding:.5em;border-radius:10px;background:#fff}#rqc svg{display:block;width:100%;height:100%}
+#rqu{color:var(--text-fg-faint);font-size:.8rem}
+#rqx{display:grid;place-items:center;padding:0;border:0;background:none;line-height:1}
+
+/* right / wrong: the card's underglow tints green (knew it) or red (missed it), .gl-ok/.gl-no with --glow-opacity (review.js glow()).
+   Tinder: grows with the drag on the answer side. Flip: grows with the swipe up/down on the answer side. not in Reels Mode */
+.tinder-swipe.gl-ok .prettify-flashcard,.tinder-swipe.gl-no .prettify-flashcard{transition:box-shadow .05s linear}
+.tinder-swipe.gl-ok .prettify-flashcard{box-shadow:var(--card-box-shadow) 0 7px 14px 0,var(--card-box-shadow) 0 3px 6px 0,0 0 2.5em .3em rgba(var(--ctp-green),var(--glow-opacity,0))}
+.tinder-swipe.gl-no .prettify-flashcard{box-shadow:var(--card-box-shadow) 0 7px 14px 0,var(--card-box-shadow) 0 3px 6px 0,0 0 2.5em .3em rgba(var(--ctp-red),var(--glow-opacity,0))}
+/* Image Occlusion Enhanced cards: the mask image sits over the picture */
+.ioe{position:relative;display:inline-block;max-width:100%}.ioe img{display:block;max-width:100%;height:auto}.ioe img+img{position:absolute;inset:0;width:100%;height:100%}.ioe-f{margin-top:.5em}
+
+/* import window (#imp): one section per note type, its card type and which field fills each slot */
+#imp{position:fixed;inset:0;z-index:22;display:none;align-items:center;justify-content:center;padding:1em;background:rgba(0,0,0,.55)}#imp.on{display:flex}
+#imp .pp.card{max-width:34em;max-height:88%}
+.imb{flex:1;min-height:0}.imb>p{margin:.5em 0 .2em;color:var(--text-fg-faint);font-size:.9rem}
+.imt{padding:.8em 0;border-bottom:1px dashed var(--divider);color:var(--text-fg)}.imt:last-child{border-bottom:0}
+.imh{display:flex;align-items:baseline;justify-content:space-between;gap:1em;margin-bottom:.5em}.imh b{overflow-wrap:anywhere}.imh small{flex:none;color:var(--text-fg-faint)}
+.ims{display:grid;grid-template-columns:minmax(6.5em,8.5em) 1fr;align-items:start;gap:.6em;margin:.35em 0;font-size:.92rem}.ims>span:first-child{color:var(--text-fg-faint);line-height:2.3em}.imc{display:flex;flex-direction:column;gap:.2em;min-width:0}.imp{color:var(--text-fg-faint);font-size:.8rem;line-height:1.3;padding:0 .6em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.imp:empty{display:none}.imp.e{font-style:italic;opacity:.7}.ims>span i{color:#e5534b;font-style:normal}
+.ims.ty>span:first-child{color:var(--text-fg);font-weight:700}
+.ims select{min-width:0;width:100%;height:2.3em;padding:0 .5em;font:inherit;font-size:.9rem;color:var(--text-fg);background:var(--card-bg);border:1px solid var(--card-border);border-radius:8px}
+.imm[hidden],.imr[hidden]{display:none}.imr{display:flex;align-items:center;gap:.5em;margin-top:.5em;font-size:.88rem;color:var(--text-fg-faint)}
+.imt.bad .ims select.req:has(option[value="-1"]:checked){border-color:#e5534b}
+.imf{display:flex;align-items:center;justify-content:space-between;gap:1em;padding:.6em 1em .8em;border-top:1px dashed var(--divider)}.imf small{color:var(--text-fg-faint);font-size:.85rem}.imf .nx{flex:none;height:2.4em;padding:0 1.4em}
+
+/* Settings › Data: deck row (Import or Delete, never both) and storage row; their buttons keep their size, hidden ones are gone */
+.dkr .nx,#dkpb{flex:none}#sv-da .nx[hidden]{display:none}.dkr b{overflow-wrap:anywhere}
+
+/* Repost (#rrep): .rp while it fires: red, the arrows turn half a turn, a small cross pops into the middle */
+.rp-i{position:relative;display:block;width:2.1em;height:2.1em}.rl-act .rp-i svg{display:block;width:100%;height:100%}
+.rp-x{position:absolute;inset:0;opacity:0;transform:scale(0)}
+button.rp{color:#ff3040}button.rp span:last-child{color:var(--text-fg)}
+button.rp .rp-i svg:first-child{animation:rpTurn .42s cubic-bezier(.4,0,.2,1) forwards}
+button.rp .rp-x{animation:rpX .26s .14s cubic-bezier(.3,1.7,.5,1) both}
+@keyframes rpTurn{from{transform:rotate(0)}to{transform:rotate(180deg)}}
+@keyframes rpX{from{opacity:0;transform:scale(0)}to{opacity:1;transform:scale(1)}}
+/* the overlay copy riding up with the old card (.rdone) holds the end state instead of replaying */
+.rdone button.rp .rp-i svg:first-child{animation:none;transform:rotate(180deg)}.rdone button.rp .rp-x{animation:none;opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){button.rp .rp-i svg:first-child,button.rp .rp-x{animation:none}button.rp .rp-x{opacity:1;transform:none}}
+
+/* MathJax output on cards: inherits the text colour; wide display math scrolls sideways instead of widening the card */
+#stage mjx-container{color:inherit}#stage mjx-container[display=true]{overflow-x:auto;overflow-y:hidden;max-width:100%;padding:.15em 0 .35em}
+
+/* Reels music genre sheet (long press on the music box): switch rows in the bottom sheet */
+.gn-t{margin:.4em 0 .2em;color:var(--text-fg-faint);font-size:.85rem}.so.gn{padding:.55em 0}.gn-m{min-height:1.2em;margin:.2em 0 .6em;color:#e5534b;font-size:.85rem}
+#reel,#reel *{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}#rmus{touch-action:none}   /* no long-press menus or text selection on the Reels overlay */
