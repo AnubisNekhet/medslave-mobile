@@ -4,7 +4,8 @@
 :root{padding:0}
 /* the page stays put; #feed is the scroller (style.css pins html and body to the screen) */
 html,body{height:100%;overflow:hidden}
-#feed{height:100%;overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
+#feed{height:100%;overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain;scrollbar-width:none}
+#feed::-webkit-scrollbar{display:none}
 /* style.css makes body text transparent (cards set their own colour); everything in the feed outside a card needs the text colour */
 #feed,#sv{color:var(--text-fg)}
 body{margin:0;padding:0;font-family:"Carlito",Calibri,system-ui,sans-serif;color:var(--text-fg)}

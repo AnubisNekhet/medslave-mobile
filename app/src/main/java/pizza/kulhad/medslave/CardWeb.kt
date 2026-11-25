@@ -42,6 +42,9 @@ open class Page(protected val ctx: Context, file: String, transparent: Boolean, 
     private val loader = WebViewAssetLoader.Builder().addPathHandler("/", WebViewAssetLoader.PathHandler { path -> serve(path) }).build()
 
     val view: WebView = WebView(ctx).apply {
+        /* fill the space Compose gives it. without this AndroidView sets WRAP_CONTENT, and a WebView in wrap-content mode sizes its viewport
+           to the page: a page pinned to height:100% (card.html, feed.html) then comes out 0px tall and nothing shows */
+        layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         if (transparent) setBackgroundColor(Color.TRANSPARENT)
         settings.javaScriptEnabled = true
         settings.allowFileAccess = false
