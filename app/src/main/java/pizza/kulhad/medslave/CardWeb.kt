@@ -33,25 +33,16 @@ class CardBridge(private val w: CardWeb) {
     @JavascriptInterface fun sc(top: Boolean, bot: Boolean) = h.post { w.top = top; w.bot = bot }
 }
 
-@SuppressLint("SetJavaScriptEnabled")
-class CardWeb(private val ctx: Context) {
-    var seqLeft by mutableIntStateOf(0)
-    var seqN by mutableIntStateOf(1)
-    var contentH by mutableFloatStateOf(0f)   // the card's height in CSS px (= dp)
-    var onTap: () -> Unit = {}
-    /** the card's own scroll (a card taller than the view scrolls inside itself, the page never does) */
-    internal var top = true
-    internal var bot = true
-
+/** one of the app's pages (an html file in assets/web) in a WebView, served from https://appassets.androidplatform.net/ so it behaves like a
+    website; /media/<name> serves the deck's images from the app's files. Calls made before the page has loaded wait for it */
+@SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
+open class Page(protected val ctx: Context, file: String, transparent: Boolean, bridge: (Page) -> Any) {
     private var loaded = false
     private val queue = ArrayList<String>()
-    private var seq = 0
-    private val waits = HashMap<Int, () -> Unit>()
-
     private val loader = WebViewAssetLoader.Builder().addPathHandler("/", WebViewAssetLoader.PathHandler { path -> serve(path) }).build()
 
     val view: WebView = WebView(ctx).apply {
-        setBackgroundColor(Color.TRANSPARENT)
+        if (transparent) setBackgroundColor(Color.TRANSPARENT)
         settings.javaScriptEnabled = true
         settings.allowFileAccess = false
         settings.allowContentAccess = false
@@ -60,13 +51,13 @@ class CardWeb(private val ctx: Context) {
         isVerticalScrollBarEnabled = false
         isHorizontalScrollBarEnabled = false
         overScrollMode = WebView.OVER_SCROLL_NEVER
-        addJavascriptInterface(CardBridge(this@CardWeb), "App")
+        addJavascriptInterface(bridge(this@Page), "App")   // the bridge only calls back once the page runs, after construction
         webViewClient = object : WebViewClient() {
             override fun shouldInterceptRequest(v: WebView, r: WebResourceRequest): WebResourceResponse? = loader.shouldInterceptRequest(r.url)
             override fun shouldOverrideUrlLoading(v: WebView, r: WebResourceRequest) = true   // links on cards go nowhere
             override fun onPageFinished(v: WebView, url: String) { loaded = true; queue.forEach { evaluateJavascript(it, null) }; queue.clear() }
         }
-        loadUrl("https://appassets.androidplatform.net/card.html")
+        loadUrl("https://appassets.androidplatform.net/$file")
     }
 
     private fun serve(path: String): WebResourceResponse? {
@@ -84,12 +75,26 @@ class CardWeb(private val ctx: Context) {
         } catch (e: Exception) { null }
     }
 
-    private fun js(s: String) { if (loaded) view.evaluateJavascript(s, null) else queue.add(s) }
-    private fun q(s: String) = JSONObject.quote(s)
+    protected fun js(s: String) { if (loaded) view.evaluateJavascript(s, null) else queue.add(s) }
+    protected fun q(s: String) = JSONObject.quote(s)
+    fun theme(t: String, dark: Boolean) = js("R.theme(${q(t)},$dark)")
+    fun detach() { (view.parent as? ViewGroup)?.removeView(view) }
+}
+
+/** the reviewer's card */
+class CardWeb(ctx: Context) : Page(ctx, "card.html", true, { CardBridge(it as CardWeb) }) {
+    var seqLeft by mutableIntStateOf(0)
+    var seqN by mutableIntStateOf(1)
+    var contentH by mutableFloatStateOf(0f)   // the card's full height in CSS px (= dp)
+    var onTap: () -> Unit = {}
+    /** the card's own scroll (a card taller than the view scrolls inside itself, the page never does) */
+    internal var top = true
+    internal var bot = true
+    private var seq = 0
+    private val waits = HashMap<Int, () -> Unit>()
 
     fun init(paths: List<String>, source: Boolean) = js("R.init(${JSONArray(paths)},$source)")
     fun source(v: Boolean) = js("R.source($v)")
-    fun theme(t: String, dark: Boolean) = js("R.theme(${q(t)},$dark)")
     /** draws a card; onReady runs once it's on screen */
     fun show(noteJson: String, o: Int, stage: Int, flip: Boolean, onReady: () -> Unit = {}) {
         val s = ++seq; waits.clear(); waits[s] = onReady; top = true; bot = true
@@ -108,5 +113,4 @@ class CardWeb(private val ctx: Context) {
 
     fun atTop() = top
     fun atBottom() = bot
-    fun detach() { (view.parent as? ViewGroup)?.removeView(view) }
 }

@@ -37,10 +37,10 @@ class Reels(private val rs: Rs) {
     val handles by lazy { j.getJSONArray("handles").let { a -> List(a.length()) { a.getJSONArray(it).let { h -> h.getString(0) to ico.optString(h.getString(1)) } } } }
     val songs by lazy { j.getJSONArray("songs").let { a -> List(a.length()) { a.getJSONArray(it).let { s -> Song(s.getString(0), s.getString(1), s.getString(2), s.getString(3), s.getString(4)) } } } }
     val genres by lazy { j.getJSONArray("genres").let { a -> List(a.length()) { a.getJSONArray(it).let { g -> g.getString(0) to g.getString(1) } } } }
-    private val comments by lazy { strs("comments") }
-    private val names by lazy { strs("names") }
-    private val suffixes by lazy { strs("suffixes") }
-    private val times by lazy { strs("times") }
+    internal val comments by lazy { strs("comments") }
+    internal val names by lazy { strs("names") }
+    internal val suffixes by lazy { strs("suffixes") }
+    internal val times by lazy { strs("times") }
     val qrUrl by lazy { j.getString("qrUrl") }       // the share sheet's QR Code contact: the app's GitHub page
     val qrPath by lazy { j.getString("qrPath") }
     val qrSize by lazy { j.getInt("qrSize") }

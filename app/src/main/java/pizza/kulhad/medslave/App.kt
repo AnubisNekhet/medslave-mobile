@@ -52,6 +52,10 @@ class Rs(val ctx: Context) {
     val set = Settings(store)
     val web = CardWeb(ctx)
     val reels = Reels(this)
+    val feed = Feed(this)
+    var dark = true
+    /** Reels Mode's home views: feed | menu | settings */
+    var tab by mutableStateOf("feed")
     lateinit var scope: CoroutineScope
     var activity: Activity? = null
     private val main = Handler(Looper.getMainLooper())
@@ -64,6 +68,7 @@ class Rs(val ctx: Context) {
     var study by mutableStateOf(false)
     var picker by mutableStateOf<Node?>(null)
     var settingsOpen by mutableStateOf(false)
+    var settingsSec by mutableStateOf<String?>(null)   // the open settings section: ap | rv | da
     var progressOpen by mutableStateOf(false)
     var corrOpen by mutableStateOf(false)
     var creditsOpen by mutableStateOf(false)

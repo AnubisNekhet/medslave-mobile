@@ -76,17 +76,35 @@ import pizza.kulhad.medslave.THEMES
 /* ---------------------------------------------------------------- settings (#sp): a menu of Appearance, Reviewing, Data */
 @Composable
 fun SettingsPanel(rs: Rs) {
-    var sec by remember { mutableStateOf<String?>(null) }
     val names = mapOf("ap" to "Appearance", "rv" to "Reviewing", "da" to "Data")
-    androidx.activity.compose.BackHandler(sec != null) { sec = null }
-    Popup({
-        if (sec != null) Box(Modifier.size(30.dp).press { sec = null }, contentAlignment = Alignment.Center) { Txt("‹", size = 22.sp, color = P.faint) }
-        Txt(names[sec] ?: "Settings", bold = true, modifier = Modifier.padding(start = if (sec != null) 4.dp else 0.dp))
-    }, { rs.settingsOpen = false }) {
+    androidx.activity.compose.BackHandler(rs.settingsSec != null) { rs.settingsSec = null }
+    Popup({ SettingsTitle(rs, names) }, { rs.settingsOpen = false }) { SettingsBody(rs, names) }
+}
+
+/** Reels Mode: Settings is one of the home views, with the bottom bar under it */
+@Composable
+fun SettingsPage(rs: Rs) {
+    val names = mapOf("ap" to "Appearance", "rv" to "Reviewing", "da" to "Data")
+    androidx.activity.compose.BackHandler(rs.settingsSec != null) { rs.settingsSec = null }
+    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(Modifier.fillMaxWidth().dashedBottom(P.divider).padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) { SettingsTitle(rs, names, 20.sp) }
+        Column(Modifier.widthIn(max = 480.dp).fillMaxWidth()) { SettingsBody(rs, names) }
+    }
+}
+
+@Composable
+private fun SettingsTitle(rs: Rs, names: Map<String, String>, size: androidx.compose.ui.unit.TextUnit = 16.sp) {
+    val sec = rs.settingsSec
+    if (sec != null) Box(Modifier.size(30.dp).press { rs.settingsSec = null }, contentAlignment = Alignment.Center) { Txt("‹", size = 22.sp, color = P.faint) }
+    Txt(names[sec] ?: "Settings", size = size, bold = true, modifier = Modifier.padding(start = if (sec != null) 4.dp else 0.dp))
+}
+
+@Composable
+private fun SettingsBody(rs: Rs, names: Map<String, String>) {
         Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp)) {
-            when (sec) {
+            when (rs.settingsSec) {
                 null -> listOf("ap" to Ic.PALETTE, "rv" to Ic.CARDS, "da" to Ic.DB).forEachIndexed { i, (k, ic) ->
-                    Row(Modifier.fillMaxWidth().then(if (i > 0) Modifier.dashedBottom(P.divider, top = true) else Modifier).press(shape = RoundedCornerShape(10.dp)) { sec = k }
+                    Row(Modifier.fillMaxWidth().then(if (i > 0) Modifier.dashedBottom(P.divider, top = true) else Modifier).press(shape = RoundedCornerShape(10.dp)) { rs.settingsSec = k }
                         .padding(horizontal = 3.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                         Icon(ic, 24.dp, P.text, 1.8f)
                         Txt(names[k]!!, bold = true, modifier = Modifier.weight(1f))
@@ -101,7 +119,6 @@ fun SettingsPanel(rs: Rs) {
                 "da" -> DataSec(rs)
             }
         }
-    }
 }
 
 @Composable
@@ -174,7 +191,8 @@ private fun Appearance(rs: Rs) {
 
 /** tinder | flip | reels (Reels keeps the saved Tinder/Flip choice for when it's turned off) */
 private fun setStyle(rs: Rs, v: String) {
-    if (v == "reels") rs.set.reels = true else { rs.set.reels = false; rs.set.style = v }
+    /* leaving Reels from its Settings view: Settings stays open, as the popup of the plain home */
+    if (v == "reels") rs.set.reels = true else { if (rs.set.reels && rs.tab == "settings" && !rs.study) rs.settingsOpen = true; rs.set.reels = false; rs.set.style = v }
     rs.set.save(); redraw(rs); rs.reels.onCard()
 }
 /** the card on screen again, in the current style */

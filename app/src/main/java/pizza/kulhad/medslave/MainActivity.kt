@@ -64,7 +64,7 @@ class MainActivity : ComponentActivity() {
             rs.scope = rememberCoroutineScope()
             val dn = LocalDensity.current; val cf = LocalConfiguration.current
             SideEffect { rs.density = dn.density; rs.screenW = cf.screenWidthDp * dn.density; rs.screenH = cf.screenHeightDp * dn.density }
-            LaunchedEffect(rs.set.theme, dark) { rs.web.theme(rs.set.theme, dark) }
+            LaunchedEffect(rs.set.theme, dark) { rs.dark = dark; rs.web.theme(rs.set.theme, dark); rs.feed.theme(rs.set.theme, dark) }
             LaunchedEffect(rs.busy) { if (rs.busy) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
             CompositionLocalProvider(LocalPal provides p) {
                 Box(Modifier.fillMaxSize().background(p.bg)) {
@@ -82,6 +82,9 @@ class MainActivity : ComponentActivity() {
                 }
                 /* the back gesture closes the topmost popup, then leaves the deck (the site's pOn/pOff history entries) */
                 BackHandler(rs.study) { rs.home() }
+                /* Reels Mode's home: back leaves the Menu / Settings view for the feed, and closes an open story */
+                BackHandler(!rs.study && rs.set.reels && rs.tab != "feed") { rs.tab = "feed" }
+                BackHandler(!rs.study && rs.set.reels && rs.feed.storyOpen) { rs.feed.web.close() }
                 BackHandler(rs.picker != null || rs.heatOpen || rs.creditsOpen || rs.settingsOpen || rs.progressOpen || rs.corrOpen) {
                     rs.picker = null; rs.heatOpen = false; rs.creditsOpen = false; rs.settingsOpen = false; rs.progressOpen = false; rs.corrOpen = false
                 }

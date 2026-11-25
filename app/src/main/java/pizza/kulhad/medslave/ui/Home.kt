@@ -55,6 +55,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
@@ -84,10 +86,24 @@ fun Logo(size: Dp, modifier: Modifier = Modifier, color: Color = P.text) =
 
 @Composable
 fun Home(rs: Rs) {
-    val listW = remember { mutableStateOf(0) }
-    val d = LocalDensity.current.density
     Column(Modifier.fillMaxSize().background(P.bg).windowInsetsPadding(WindowInsets.systemBars)) {
-    Box(Modifier.weight(1f)) {
+        Box(Modifier.weight(1f)) {
+            if (!rs.set.reels) Menu(rs, gear = true)
+            else when (rs.tab) {
+                "menu" -> Menu(rs, gear = false)
+                "settings" -> SettingsPage(rs)
+                else -> FeedView(rs)
+            }
+        }
+        if (rs.loaded && rs.set.reels && !rs.feed.storyOpen) HomeBar(rs)
+    }
+}
+
+/** the deck list (Reels Mode: the Menu view) */
+@Composable
+private fun Menu(rs: Rs, gear: Boolean) {
+    val listW = remember { mutableStateOf(0) }
+    Box(Modifier.fillMaxSize()) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val vh = maxHeight; val vw = maxWidth
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -117,26 +133,42 @@ fun Home(rs: Rs) {
                             }
                         }
                     }
-                    /* Reels Mode moves the heatmap to the bottom bar */
-                    if (!rs.set.reels && listW.value > 0) Heatmap(rs, (listW.value / d).dp)
+                    /* the heatmap is hidden for now (Heatmap() is kept to be placed later) */
                 }
             }
         }
-        /* settings: a round button in the top right */
-        Box(Modifier.align(Alignment.TopEnd).padding(12.dp).size(42.dp).border(1.dp, P.border, CircleShape).press(bg = P.card, shape = CircleShape) { rs.settingsOpen = true },
+        /* settings: a round button in the top right (Reels Mode has Settings in the bottom bar) */
+        if (gear) Box(Modifier.align(Alignment.TopEnd).padding(12.dp).size(42.dp).border(1.dp, P.border, CircleShape).press(bg = P.card, shape = CircleShape) { rs.settingsSec = null; rs.settingsOpen = true },
             contentAlignment = Alignment.Center) { Icon(Ic.GEAR, 19.dp, P.text) }
     }
-    /* Reels Mode: a bottom bar in the same place as the reviewer's: heatmap, back to the last card reviewed, credits */
-    if (rs.loaded && rs.set.reels) {
-        val back = rs.recent()
-        Row(Modifier.fillMaxWidth().solidLine(P.divider, true).padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceAround) {
-            IconBtn(Ic.CAL, Modifier.size(51.dp, 42.dp), size = 24.dp, stroke = 2f, plain = true) { rs.heatOpen = true }
-            Box(Modifier.size(51.dp, 42.dp).alpha(if (back != null) 1f else .35f)) {
-                IconBtn(Ic.HISTORY, Modifier.fillMaxSize(), size = 24.dp, stroke = 2f, plain = true) { back?.let { rs.go(it) } }
+}
+
+/** Reels Mode's home: the feed (assets/web/feed.html) */
+@Composable
+private fun FeedView(rs: Rs) {
+    if (!rs.loaded) { Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Spinner(72.dp) }; return }
+    LaunchedEffect(rs.deck) { rs.feed.show() }
+    LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(30_000); rs.feed.show() } }   // new stories every 5 minutes
+    val bg = P.bg.toArgb()
+    AndroidView(factory = { rs.feed.web.detach(); rs.feed.web.view.apply { setBackgroundColor(bg) } }, update = { it.setBackgroundColor(bg) }, modifier = Modifier.fillMaxSize())
+}
+
+/* Reels Mode: a bottom bar where the reviewer's is. The views are Feed, Menu, Reels (back to the last card reviewed) and Settings;
+   each view's bar holds the other three, always in that order */
+@Composable
+private fun HomeBar(rs: Rs) {
+    val back = rs.recent()
+    Row(Modifier.fillMaxWidth().solidLine(P.divider, true).padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceAround) {
+        listOf("feed", "menu", "reels", "settings").filter { it != rs.tab }.forEach { k ->
+            when (k) {
+                "feed" -> IconBtn(Ic.HOME, Modifier.size(51.dp, 42.dp), size = 24.dp, plain = true) { rs.tab = "feed" }
+                "menu" -> IconBtn(Ic.LIST, Modifier.size(51.dp, 42.dp), size = 24.dp, stroke = 2f, plain = true) { rs.tab = "menu" }
+                "reels" -> Box(Modifier.size(51.dp, 42.dp).alpha(if (back != null) 1f else .35f)) {
+                    IconBtn(Ic.REELS, Modifier.fillMaxSize(), size = 24.dp, stroke = 2f, plain = true) { back?.let { rs.go(it) } }
+                }
+                "settings" -> IconBtn(Ic.GEAR, Modifier.size(51.dp, 42.dp), size = 24.dp, stroke = 2f, plain = true) { rs.settingsSec = null; rs.tab = "settings" }
             }
-            Box(Modifier.size(51.dp, 42.dp).press(shape = RoundedCornerShape(8.dp)) { rs.creditsOpen = true }, contentAlignment = Alignment.Center) { Logo(22.dp) }
         }
-    }
     }
 }
 
