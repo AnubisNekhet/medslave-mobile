@@ -1,7 +1,7 @@
 /* medslave · feed.js: Reels Mode's home feed. The app (Feed.kt) makes the accounts, posts and stories from the deck and hands
    them over through R.*; this draws them. Posts and stories show cards' answers (face.js).
    App.more(): near the end of the posts, the app sends more (R.posts). App.com(handle, n) / App.share(): the app's comment and
-   share sheets. App.story(open): the story viewer opened or closed (the app hides its bottom bar). App.seen(group). App.imp().
+   share sheets. App.story(open): the story viewer opened or closed (the app hides its bottom bar). App.seen(account): its story was watched. App.imp().
    App.settings() / App.credits(): the gear in the top right, and the logo (as on the Menu). App.refresh(): pulled to refresh (R.refreshed) */
 const A_=window.App||{more(){},com(){},share(){},story(){},seen(){},imp(){},settings(){},credits(){},refresh(){}};
 const F={acc:[],posts:[],groups:[],wait:false};
@@ -95,7 +95,8 @@ $('#eimp').onclick=()=>A_.imp();$('#wm').onclick=()=>A_.credits();$('#gear').onc
 
 /* ---- stories: the row of accounts, and the viewer (one page per account, swiped sideways; tap right / left for the next /
    previous story, hold to pause; each story runs DUR ms, then the next, then the next account) */
-function rings(){$('#stories').innerHTML=F.groups.map((g,i)=>{const a=F.acc[g.a];return `<button class="f-st" data-g="${i}"><span class="f-ring${g.seen?' seen':''}">${avatar(a)}</span><span class="f-stn">${ESC(a.h)}</span></button>`}).join('');
+function rings(){if(!SV.on)F.groups.sort((a,b)=>a.seen-b.seen);   /* unwatched first (a stable sort keeps the rest in order) */
+ $('#stories').innerHTML=F.groups.map((g,i)=>{const a=F.acc[g.a];return `<button class="f-st" data-g="${i}"><span class="f-ring${g.seen?' seen':''}">${avatar(a)}</span><span class="f-stn">${ESC(a.h)}</span></button>`}).join('');
  $('#stories').hidden=!F.groups.length}
 $('#stories').addEventListener('click',e=>{const b=e.target.closest('.f-st');if(b)svOpen(+b.dataset.g)});
 /* the circle of story g, as the point a story grows from / shrinks into */
@@ -108,7 +109,7 @@ function svShow(g,i){const G=F.groups[g];if(!G)return svClose();SV.g=g;SV.i=i;SV
  [...$('#svp').children].forEach((s,k)=>{if(k!=g)s.querySelector('.f-sc').innerHTML=''});
  const s=page(g);s.querySelectorAll('.f-bar i').forEach((b,k)=>b.style.width=k<i?'100%':'0');
  const c=s.querySelector('.f-sc');c.innerHTML='<div class="f-si">'+reviewHTML(G.items[i].n,G.items[i].o)+'</div>';c.scrollTop=0;imgs(c);mj(c);
- if(!G.seen){G.seen=true;A_.seen(g)}}
+ if(!G.seen){G.seen=true;A_.seen(G.a)}}
 function svTick(t){if(!SV.on)return;const dt=SV.last?t-SV.last:0;SV.last=t;if(!SV.hold)SV.el+=dt;
  const b=page(SV.g)?.querySelectorAll('.f-bar i')[SV.i];if(b)b.style.width=Math.min(100,SV.el/SV.DUR*100)+'%';
  if(SV.el>=SV.DUR)svNext();SV.raf=requestAnimationFrame(svTick)}

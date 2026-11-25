@@ -26,8 +26,9 @@ class Meta(val name: String, val notes: Int, val cards: Int, val media: Int, val
     }
 }
 /** a deck tree node (deck.js init): name, path segments, path string, kids, card count */
-class Node(val id: Int, val name: String, val segs: List<String>) {
-    val ps: String = segs.joinToString(" › ")
+class Node(val id: Int, val name: String, val segs: List<String>, all: Boolean = false) {
+    /** the deck's key for saved progress; "*" for All decks (no real path is "*") */
+    val ps: String = if (all) "*" else segs.joinToString(" › ")
     val kids = mutableListOf<Node>()
     var cnt = 0
 }
@@ -52,7 +53,11 @@ class Deck(val paths: List<String>, val pc: IntArray, val subjects: List<Subject
     }
 
     /** the notes under a node: its own path and every path below it */
+    /** All decks: the first row on the Menu, every card in the deck */
+    val all = Node(-1, "All decks", emptyList(), all = true)
+
     fun notesFor(n: Node): List<Note> {
+        if (n === all) return subjects.flatMap { it.notes }
         val s = subjects.find { it.name == n.segs[0] } ?: return emptyList()
         val ok = BooleanArray(paths.size) { paths[it] == n.ps || paths[it].startsWith(n.ps + " › ") }
         return s.notes.filter { ok[it.p] }

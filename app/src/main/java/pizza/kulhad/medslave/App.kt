@@ -81,7 +81,7 @@ class Rs(val ctx: Context) {
     var cur by mutableStateOf<Cur?>(null)
     var stage by mutableIntStateOf(0)
     var fin by mutableStateOf<Fin?>(null)
-    private var tut = store.firstVisit
+    private var tut = store.get(SEEN) == null   // the tutorial hasn't been shown (or was reset in Settings › Reviewing)
     private var last: Note? = null
     // import
     var busy by mutableStateOf(false)
@@ -131,7 +131,8 @@ class Rs(val ctx: Context) {
     /* ---------------------------------------------------------------- study (deck.js) */
     fun go(n: Node) { picker = null; study = true; store.set(RK, n.ps); begin(deck.notesFor(n), n.name, n.ps) }
     /** the home bar's middle button: back to the last card reviewed, in the deck it was in */
-    fun recent(): Node? = store.get(RK)?.let { k -> deck.nodes.find { it.ps == k } }
+    fun recent(): Node? = store.get(RK)?.let { k -> if (k == deck.all.ps) deck.all else deck.nodes.find { it.ps == k } }
+    fun resetTutorial() { store.set(SEEN, null); tut = true }
 
     fun begin(notes: List<Note>, name: String, key: String, resume: Boolean = true) {
         val sv = if (resume) lastOf(key) else null

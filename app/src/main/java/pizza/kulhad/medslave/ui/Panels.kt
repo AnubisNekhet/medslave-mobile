@@ -111,6 +111,11 @@ private fun SettingsBody(rs: Rs, names: Map<String, String>) {
                 "rv" -> {
                     Row2("Ordered mode") { Switch(rs.set.ordered) { rs.setOrdered(it) } }
                     Row2("Show source") { Switch(rs.set.source) { rs.set.source = it; rs.set.save(); rs.web.source(it); rs.cur?.let { c -> rs.web.show(c.json, c.o, rs.stage, rs.set.flip) } } }
+                    var tdone by remember { mutableStateOf(false) }
+                    LaunchedEffect(tdone) { if (tdone) { delay(1500); tdone = false } }
+                    Row2("Show the tutorial again", "On the next card you open") {
+                        Btn(if (tdone) "Done ✓" else "Reset", enabled = !tdone, h = 37.dp, size = 14.4.sp, pad = 18.dp) { rs.resetTutorial(); tdone = true }
+                    }
                 }
                 "da" -> DataSec(rs)
             }

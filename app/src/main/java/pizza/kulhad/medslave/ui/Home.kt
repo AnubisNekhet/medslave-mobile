@@ -122,6 +122,12 @@ private fun Menu(rs: Rs) {
                     /* phones: the list spans the screen (up to 30em); wider screens: at least 42% of the width */
                     Column(Modifier.width(IntrinsicSize.Max).widthIn(min = if (vw < 600.dp) minOf(vw - 20.dp, 480.dp) else vw * .42f, max = vw - 20.dp).onSizeChanged { listW.value = it.width }) {
                         if (rs.deck.empty) Empty(rs, vw)
+                        else Row(Modifier.fillMaxWidth().padding(bottom = 5.dp)) {   /* All decks: every card in the deck */
+                            val sh = RoundedCornerShape(6.dp)
+                            Box(Modifier.weight(1f).border(1.dp, P.border, sh).press(bg = P.card, shape = sh) { rs.go(rs.deck.all) }.padding(10.dp), contentAlignment = Alignment.Center) {
+                                Txt("All decks", bold = true, align = TextAlign.Center)
+                            }
+                        }
                         rs.deck.subjects.forEach { s ->
                             val n = rs.deck.top.find { it.name == s.name } ?: return@forEach
                             Row(Modifier.fillMaxWidth().padding(bottom = 5.dp), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -177,7 +183,8 @@ fun NavBar(rs: Rs, current: String) {
     Row(Modifier.fillMaxWidth().solidLine(P.divider, true).padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceAround) {
         item(Ic.LIST, current == "menu") { if (rs.study) rs.home(); rs.tab = "menu" }
         item(Ic.HOME, current == "feed") { if (rs.study) rs.home(); rs.tab = "feed"; if (current == "feed") rs.feed.web.top() }
-        item(Ic.REELS, current == "reels", enabled = current == "reels" || back != null) { if (current != "reels") back?.let { rs.go(it) } }
+        /* Reels: back to the last card reviewed; the first time, All decks */
+        item(Ic.REELS, current == "reels", enabled = current == "reels" || !rs.deck.empty) { if (current != "reels") rs.go(back ?: rs.deck.all) }
     }
 }
 

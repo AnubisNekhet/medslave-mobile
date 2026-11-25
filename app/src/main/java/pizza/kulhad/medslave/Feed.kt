@@ -24,7 +24,7 @@ class FeedBridge(private val f: Feed) {
     @JavascriptInterface fun com(handle: String, n: Int) = h.post { f.comments(handle) }
     @JavascriptInterface fun share() = h.post { f.rs.reels.open("share") }
     @JavascriptInterface fun story(open: Boolean) = h.post { f.storyOpen = open }
-    @JavascriptInterface fun seen(g: Int) = h.post { f.seen(g) }
+    @JavascriptInterface fun seen(ai: Int) = h.post { f.seen(ai) }
     @JavascriptInterface fun imp() = h.post { f.rs.deckPick() }
     @JavascriptInterface fun settings() = h.post { f.rs.settingsSec = null; f.rs.settingsOpen = true }
     @JavascriptInterface fun credits() = h.post { f.rs.creditsOpen = true }
@@ -99,7 +99,8 @@ class Feed(val rs: Rs) {
     fun opened() { made?.top(true) }
 
     fun comments(handle: String) { rs.reels.name = handle; rs.reels.open("com") }
-    fun seen(g: Int) { groups.getOrNull(g)?.let { seen.add("$bucket:${acc[it].h}") } }
+    /** a story was watched (by account: the page re-sorts the row, unwatched first) */
+    fun seen(ai: Int) { acc.getOrNull(ai)?.let { seen.add("$bucket:${it.h}") } }
 
     private fun hex(c: Int) = "#%06X".format(c and 0xFFFFFF)
     private val CAPS = listOf("high yield 🔥", "save this for exam day", "you WILL see this again", "tag someone who got this wrong", "remember this one",

@@ -59,8 +59,8 @@ svg{display:block}
 .f-tag{color:var(--text-fg-faint)}
 /* pull to refresh: the logo under the top bar */
 #ptr{position:fixed;left:50%;top:calc(66px + var(--st,0px));z-index:4;width:26px;height:26px;opacity:0;transform:translate(-50%,0);pointer-events:none;color:var(--text-fg)}
-#ptr .lg{display:block;width:26px;height:26px}
-#ptr.spin .lg{animation:lgs .8s linear infinite}
+#ptr svg{display:block;width:26px;height:26px}
+#ptr.spin svg{animation:lgs .8s linear infinite}   /* a circular arrow, spinning while new posts load */
 /* the action buttons' animations. like: the heart pops and a ring bursts out of it (unlike: a small squash). comment: a wiggle.
    share: the plane flies off up-right and comes back. save: the bookmark drops in */
 .f-pa button{position:relative}.f-pa svg{transform-origin:50% 50%}
