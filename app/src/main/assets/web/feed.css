@@ -12,7 +12,8 @@ html,body{height:100%;overflow:hidden}
 body{margin:0;padding:0;font-family:"Carlito",Calibri,system-ui,sans-serif;color:var(--text-fg)}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
 button:active,button:hover{background:none;color:inherit}
-svg{display:block}
+/* the feed's own icons only: a blanket svg rule also caught MathJax (its formulas are SVG) and pushed them to the left */
+.f-top svg,.f-pa svg,.f-av svg,#ptr svg{display:block}
 
 .f-top{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:center;height:calc(62px + var(--st,0px));padding:var(--st,0px) 14px 0;background-color:var(--bgc)}   /* --st: the status bar (the page runs behind it) */
 .f-wm{display:flex;align-items:center;gap:8px;font-size:26px;font-weight:700;letter-spacing:-.02em}
