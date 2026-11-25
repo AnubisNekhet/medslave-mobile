@@ -41,6 +41,14 @@ Both files are gitignored. Keep a backup: Android installs an update over the ol
 
 `.github/workflows/build.yml` builds every push and pull request and attaches the APK to the run as an artifact. To get signed release APKs, add these repository secrets: `KEYSTORE_BASE64` (`base64 -i release.keystore`), `KEYSTORE_PASSWORD`, `KEY_ALIAS` and `KEY_PASSWORD`. Without them, CI builds a debug APK.
 
+### Releases
+
+`.github/workflows/release.yml` publishes a GitHub Release with the signed APK whenever a version tag is pushed. The tag must match `versionName` in `app/build.gradle.kts`, and it needs the signing secrets above.
+
+```sh
+git tag v1.3 && git push origin v1.3
+```
+
 ## Code
 
 - `app/src/main/java/pizza/kulhad/medslave/`
