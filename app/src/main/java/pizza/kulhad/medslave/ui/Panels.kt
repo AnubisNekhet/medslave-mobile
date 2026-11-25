@@ -46,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -156,9 +157,12 @@ private fun Appearance(rs: Rs) {
     }
     val lock = rs.set.reels
     Head("Review style")
-    Row(Modifier.fillMaxWidth().padding(bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(11.dp)) {
-        Tile("Tinder", !rs.set.flip, !lock, Modifier.weight(1f), onClick = { setStyle(rs, "tinder") }) { TinderDemo() }
-        Tile("Flip", rs.set.flip, !lock, Modifier.weight(1f), onClick = { setStyle(rs, "flip") }) { FlipDemo() }
+    /* Reels is a review style of its own: Flip + Scroll up with the Reels overlay */
+    val flipStyle = rs.set.style == "flip" || rs.set.style == "doom"
+    Row(Modifier.fillMaxWidth().padding(bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+        Tile("Tinder", !lock && !flipStyle, modifier = Modifier.weight(1f), small = true, onClick = { setStyle(rs, "tinder") }) { TinderDemo() }
+        Tile("Flip", !lock && flipStyle, modifier = Modifier.weight(1f), small = true, onClick = { setStyle(rs, "flip") }) { FlipDemo() }
+        Tile("Reels", lock, modifier = Modifier.weight(1f), small = true, onClick = { setStyle(rs, "reels") }) { ReelsDemo() }
     }
     Head("New Card Reveal")
     Row(Modifier.fillMaxWidth().padding(bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
@@ -166,10 +170,13 @@ private fun Appearance(rs: Rs) {
             Tile(l, rs.set.rev == k, !lock, Modifier.weight(1f), small = true, onClick = { rs.set.reveal = k; rs.set.save() }) { RevealDemo(k) }
         }
     }
-    Row2("Reels Mode") { Switch(rs.set.reels) { rs.set.reels = it; rs.set.save(); redraw(rs); rs.reels.onCard() } }
 }
 
-private fun setStyle(rs: Rs, v: String) { rs.set.style = v; rs.set.save(); redraw(rs) }
+/** tinder | flip | reels (Reels keeps the saved Tinder/Flip choice for when it's turned off) */
+private fun setStyle(rs: Rs, v: String) {
+    if (v == "reels") rs.set.reels = true else { rs.set.reels = false; rs.set.style = v }
+    rs.set.save(); redraw(rs); rs.reels.onCard()
+}
 /** the card on screen again, in the current style */
 private fun redraw(rs: Rs) { rs.cur?.let { c -> rs.web.show(c.json, c.o, rs.stage, rs.set.flip) } }
 
@@ -192,6 +199,34 @@ private fun FlipDemo() {
         Mini(Modifier.graphicsLayer { rotationX = deg; cameraDistance = 8 * density }, answer = deg % 360f in 90f..270f)
     }
 }
+/** Reels: Repost is pressed (red, the arrows turn, a cross pops in), then the card and its buttons scroll up and the next one rises in */
+@Composable
+private fun ReelsDemo() {
+    val t by rememberInfiniteTransition(label = "rl").animateFloat(0f, 1f, infiniteRepeatable(tween(3600, easing = LinearEasing)), label = "rl")
+    val turn = seg(t, 0f to 0f, .22f to 0f, .34f to 1f, 1f to 1f)
+    val x = seg(t, 0f to 0f, .27f to 0f, .35f to 1f, 1f to 1f)
+    val s = androidx.compose.animation.core.FastOutSlowInEasing.transform(seg(t, 0f to 0f, .42f to 0f, .70f to 1f, 1f to 1f))
+    Box(Modifier.height(104.dp).fillMaxWidth().clipToBounds()) {
+        ReelSlide(Modifier.graphicsLayer { translationY = -s * size.height }, turn, x)
+        ReelSlide(Modifier.graphicsLayer { translationY = (1 - s) * size.height }, 0f, 0f)
+    }
+}
+@Composable
+private fun ReelSlide(m: Modifier, turn: Float, x: Float) {
+    Box(m.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            Mini()
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Icon(Ic.HEART, 13.dp, P.text)
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Ic.REPOST, 15.dp, if (turn > 0f) HEART else P.text, modifier = Modifier.graphicsLayer { rotationZ = turn * 180f })
+                    if (x > 0f) Icon(Ic.CROSS, 15.dp, HEART, 2.6f, modifier = Modifier.graphicsLayer { scaleX = x; scaleY = x })
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun RevealDemo(k: String) {
     val t by rememberInfiniteTransition(label = "r").animateFloat(0f, 1f, infiniteRepeatable(tween(2400, easing = LinearEasing), RepeatMode.Restart), label = "r")

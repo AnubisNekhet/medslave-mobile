@@ -84,7 +84,7 @@ class MainActivity : ComponentActivity() {
                 BackHandler(rs.picker != null || rs.creditsOpen || rs.settingsOpen || rs.progressOpen || rs.corrOpen) {
                     rs.picker = null; rs.creditsOpen = false; rs.settingsOpen = false; rs.progressOpen = false; rs.corrOpen = false
                 }
-                BackHandler(rs.reels.sheet != null) { rs.reels.close() }
+                BackHandler(rs.reels.sheet != null) { if (rs.reels.qr) rs.reels.qr = false else rs.reels.close() }
                 BackHandler(rs.tutorial) { rs.tutorial = false }
                 BackHandler(rs.importTypes != null) { rs.importCancel() }
                 BackHandler(rs.dialog != null) { if (rs.dialog?.cancel == true) rs.dialog = null }

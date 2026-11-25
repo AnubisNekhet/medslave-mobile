@@ -41,6 +41,9 @@ class Reels(private val rs: Rs) {
     private val names by lazy { strs("names") }
     private val suffixes by lazy { strs("suffixes") }
     private val times by lazy { strs("times") }
+    val qrUrl by lazy { j.getString("qrUrl") }       // the share sheet's QR Code contact: the app's GitHub page
+    val qrPath by lazy { j.getString("qrPath") }
+    val qrSize by lazy { j.getInt("qrSize") }
     val share by lazy { j.getJSONArray("share").let { a -> List(a.length()) { a.getJSONArray(it).let { s -> Triple(s.getString(0), s.getString(1), s.getString(2)) } } } }
 
     private val h = Handler(Looper.getMainLooper())
@@ -65,6 +68,7 @@ class Reels(private val rs: Rs) {
     fun setExcl(i: Int, r: Rect) { excl[i] = r }
     // sheets
     var sheet by mutableStateOf<String?>(null)  // com | share | music
+    var qr by mutableStateOf(false)
     val list = mutableStateListOf<Comment>()
     var loading by mutableStateOf(false)
     private var gen = 0
@@ -149,7 +153,7 @@ class Reels(private val rs: Rs) {
         }
     }
     fun post(text: String) { loading = false; list.add(0, Comment("you", "now", text, 0, pick(DCOL).second)) }
-    fun close() { sheet = null; gen++ }
+    fun close() { sheet = null; qr = false; gen++ }
 
     fun release() { runCatching { mp.release() } }
 

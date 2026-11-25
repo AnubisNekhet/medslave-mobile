@@ -229,6 +229,7 @@ fun Sheets(rs: Rs) {
             when (k) { "share" -> ShareSheet(rs); "music" -> MusicSheet(rs); else -> CommentSheet(rs, Modifier.weight(1f)) }
         }
     }
+    if (r.qr) QrPopup(rs)
 }
 
 @Composable
@@ -285,7 +286,7 @@ private fun ShareSheet(rs: Rs) {
                 Column(Modifier.weight(1f)) { Txt(n, size = 14.4.sp); if (h.isNotEmpty()) Txt(h, size = 12.sp, color = P.faint) }
                 val done = sent[n] == true
                 Box(Modifier.height(35.dp).clip(RoundedCornerShape(3.dp)).background(if (done) P.text.copy(alpha = .12f) else Color(0xFF4F5BD5))
-                    .clickable(enabled = !done) { sent[n] = true }.padding(horizontal = 19.dp), contentAlignment = Alignment.Center) {
+                    .clickable(enabled = !done) { if (ic.isNotEmpty()) r.qr = true else sent[n] = true }.padding(horizontal = 19.dp), contentAlignment = Alignment.Center) {
                     Txt(if (done) "Sent" else "Send", size = 13.6.sp, color = if (done) P.faint else Color.White)
                 }
             }
@@ -311,6 +312,27 @@ private fun MusicSheet(rs: Rs) {
         }
         if (msg.isNotEmpty()) Txt(msg, size = 13.sp, color = RED, modifier = Modifier.padding(bottom = 6.dp))
         Gap(10.dp)
+    }
+}
+
+/** the QR pop-up over the share sheet: the app's GitHub page, dark on white so it scans in any theme */
+@Composable
+private fun QrPopup(rs: Rs) {
+    val r = rs.reels
+    val path = remember { PathParser().parsePathString(r.qrPath).toPath() }
+    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = .45f)).clickable(remember { MutableInteractionSource() }, null) { r.qr = false }, contentAlignment = Alignment.Center) {
+        Column(Modifier.clip(RoundedCornerShape(16.dp)).background(P.card).clickable(remember { MutableInteractionSource() }, null) {}) {
+            Row(Modifier.dashedBottom(P.divider).padding(start = 16.dp, end = 6.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Txt("Scan to get medslave", bold = true, modifier = Modifier.padding(end = 24.dp))
+                Box(Modifier.size(36.dp).clickable { r.qr = false }, contentAlignment = Alignment.Center) { Txt("×", size = 22.sp, color = P.faint) }
+            }
+            Column(Modifier.padding(start = 22.dp, end = 22.dp, top = 19.dp, bottom = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(11.dp)) {
+                Box(Modifier.size(216.dp).clip(RoundedCornerShape(10.dp)).background(Color.White)) {
+                    Canvas(Modifier.fillMaxSize()) { val k = size.width / r.qrSize; scale(k, k, Offset.Zero) { drawPath(path, Color.Black, style = Stroke(1f, cap = StrokeCap.Butt)) } }
+                }
+                Txt(r.qrUrl.removePrefix("https://"), size = 12.8.sp, color = P.faint)
+            }
+        }
     }
 }
 
