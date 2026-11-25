@@ -36,6 +36,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -90,8 +91,14 @@ private fun SettingsTitle(rs: Rs, names: Map<String, String>, size: androidx.com
 
 @Composable
 private fun SettingsBody(rs: Rs, names: Map<String, String>) {
-        Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp)) {
-            when (rs.settingsSec) {
+    /* the site's svIn / svBk: a section slides in from the right (1.5em) and fades in over .22s; going back, the menu comes in from the left */
+    val sec = rs.settingsSec
+    key(sec) {
+        val a = remember { Animatable(0f) }
+        LaunchedEffect(Unit) { a.animateTo(1f, tween(220, easing = androidx.compose.animation.core.LinearOutSlowInEasing)) }
+        val dir = if (sec != null) 1f else -1f
+        Column(Modifier.graphicsLayer { translationX = (1 - a.value) * dir * 24 * density; alpha = a.value }.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp)) {
+            when (sec) {
                 null -> listOf("ap" to Ic.PALETTE, "rv" to Ic.CARDS, "da" to Ic.DB).forEachIndexed { i, (k, ic) ->
                     Row(Modifier.fillMaxWidth().then(if (i > 0) Modifier.dashedBottom(P.divider, top = true) else Modifier).press(shape = RoundedCornerShape(10.dp)) { rs.settingsSec = k }
                         .padding(horizontal = 3.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -108,6 +115,7 @@ private fun SettingsBody(rs: Rs, names: Map<String, String>) {
                 "da" -> DataSec(rs)
             }
         }
+    }
 }
 
 @Composable
@@ -117,11 +125,14 @@ private fun Head(t: String) = Txt(t, bold = true, modifier = Modifier.padding(to
 @Composable
 private fun Tile(label: String, on: Boolean, enabled: Boolean = true, modifier: Modifier = Modifier, small: Boolean = false, onClick: () -> Unit, preview: @Composable () -> Unit) {
     val s = RoundedCornerShape(8.dp)
-    Column(modifier.alpha(if (enabled) 1f else .45f).border(if (on) 2.dp else 1.dp, if (on) P.text else P.divider, s).clip(s)
+    val ring by androidx.compose.animation.animateColorAsState(if (on) P.text else P.divider, tween(200), label = "ring")
+    val w by androidx.compose.animation.core.animateDpAsState(if (on) 2.dp else 1.dp, tween(200), label = "ringW")
+    val fg by androidx.compose.animation.animateColorAsState(if (on) P.text else P.faint, tween(200), label = "lbl")
+    Column(modifier.alpha(if (enabled) 1f else .45f).border(w, ring, s).clip(s)
         .clickable(enabled = enabled, onClick = onClick)) {
         Box(Modifier.fillMaxWidth().background(P.text.copy(alpha = .05f)), contentAlignment = Alignment.Center) { preview() }
         Box(Modifier.fillMaxWidth().solidLine(P.divider, true).padding(vertical = if (small) 6.dp else 8.dp), contentAlignment = Alignment.Center) {
-            Txt(label, size = if (small) 12.sp else 14.4.sp, bold = true, color = if (on) P.text else P.faint, lines = 1)
+            Txt(label, size = if (small) 12.sp else 14.4.sp, bold = true, color = fg, lines = 1)
         }
     }
 }
@@ -140,7 +151,9 @@ private fun Mini(modifier: Modifier = Modifier, answer: Boolean = false) {
 @Composable
 private fun Appearance(rs: Rs) {
     Head("Theme")
-    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    val ts = rememberScrollState(); val dn = androidx.compose.ui.platform.LocalDensity.current.density
+    LaunchedEffect(Unit) { val i = THEMES.indexOf(rs.set.theme).coerceAtLeast(0); ts.scrollTo(((i + 1) * 114 + 16) * dn.toInt() - ts.viewportSize) }
+    Row(Modifier.fillMaxWidth().horizontalScroll(ts).padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         val tp = mapOf("default" to "Default", "ctp" to "Catppuccin", "tokyo" to "Tokyo Night", "nord" to "Nord", "dracula" to "Dracula")
         THEMES.forEach { t ->
             val l = pal(t, false); val d = pal(t, true)

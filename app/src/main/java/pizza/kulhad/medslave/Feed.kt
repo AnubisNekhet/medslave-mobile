@@ -37,6 +37,8 @@ class FeedWeb(ctx: Context, f: Feed) : Page(ctx, "feed.html", false, { FeedBridg
     fun close() = js("R.close()")
     fun top(instant: Boolean = false) = js("R.top($instant)")
     fun heat(j: String) = js("R.heat($j)")
+    /** the status and navigation bar heights (CSS px): the page runs behind the status bar and pads itself */
+    fun insets(top: Float, bottom: Float) = js("R.insets($top,$bottom)")
 }
 
 class Feed(val rs: Rs) {

@@ -65,6 +65,12 @@ class MainActivity : ComponentActivity() {
             val dn = LocalDensity.current; val cf = LocalConfiguration.current
             SideEffect { rs.density = dn.density; rs.screenW = cf.screenWidthDp * dn.density; rs.screenH = cf.screenHeightDp * dn.density }
             LaunchedEffect(rs.set.theme, dark) { rs.dark = dark; rs.web.theme(rs.set.theme, dark); rs.feed.theme(rs.set.theme, dark) }
+            /* an open story fills the screen: the status and navigation bars hide (a swipe from the edge shows them for a moment) */
+            LaunchedEffect(rs.feed.storyOpen) {
+                val c = androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
+                c.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                if (rs.feed.storyOpen) c.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars()) else c.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            }
             LaunchedEffect(rs.busy) { if (rs.busy) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
             CompositionLocalProvider(LocalPal provides p) {
                 Box(Modifier.fillMaxSize().background(p.bg)) {

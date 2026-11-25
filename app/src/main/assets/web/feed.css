@@ -13,10 +13,10 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 button:active,button:hover{background:none;color:inherit}
 svg{display:block}
 
-.f-top{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:center;height:62px;padding:0 14px;background-color:var(--bgc)}
+.f-top{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:center;height:calc(62px + var(--st,0px));padding:var(--st,0px) 14px 0;background-color:var(--bgc)}   /* --st: the status bar (the page runs behind it) */
 .f-wm{display:flex;align-items:center;gap:8px;font-size:26px;font-weight:700;letter-spacing:-.02em}
 /* settings: the Menu's round button, in the top right */
-.f-gear{position:absolute;right:12px;top:10px;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--card-border);background:var(--card-bg)}
+.f-gear{position:absolute;right:12px;top:calc(10px + var(--st,0px));width:42px;height:42px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--card-border);background:var(--card-bg)}
 .f-gear:active{background:var(--press-bg)}.f-gear svg{width:19px;height:19px}
 .f-wm .lg{width:21px;height:21px;align-self:center}
 #stories,#posts,.f-emp2{max-width:var(--card-max-width);margin:0 auto}
@@ -53,6 +53,24 @@ svg{display:block}
 .f-pa svg{width:25px;height:25px}
 .f-pa button{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700}
 .f-tag{color:var(--text-fg-faint)}
+/* the action buttons' animations. like: the heart pops and a ring bursts out of it (unlike: a small squash). comment: a wiggle.
+   share: the plane flies off up-right and comes back. save: the bookmark drops in */
+.f-pa button{position:relative}.f-pa svg{transform-origin:50% 50%}
+.f-lk.pop::before{content:"";position:absolute;left:0;top:50%;width:25px;height:25px;margin-top:-12.5px;border-radius:50%;border:2px solid #ff3040;pointer-events:none;animation:fRing .45s ease-out forwards}
+@keyframes fRing{from{transform:scale(.4);opacity:1}to{transform:scale(1.7);opacity:0;border-width:0}}
+.f-lk.unpop svg{animation:fUnpop .25s ease-out}@keyframes fUnpop{40%{transform:scale(.8)}}
+.f-cm.go svg{animation:fWig .45s ease-in-out}@keyframes fWig{20%{transform:rotate(-14deg) scale(1.1)}45%{transform:rotate(11deg) scale(1.1)}70%{transform:rotate(-6deg)}}
+.f-sh.go svg{animation:fFly .6s cubic-bezier(.4,0,.2,1)}@keyframes fFly{40%{transform:translate(16px,-16px) scale(.7);opacity:0}41%{transform:translate(-12px,12px) scale(.7);opacity:0}100%{transform:none;opacity:1}}
+.f-sv.go svg{animation:fDrop .4s cubic-bezier(.3,1.6,.5,1)}@keyframes fDrop{from{transform:translateY(-8px) scale(.85)}}
+@media(prefers-reduced-motion:reduce){.f-pa svg,.f-lk::before{animation:none!important}}
+/* loading placeholder: grey bars with a light sweeping across them, then the card fades in */
+.f-sk{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:22px 18px}
+.f-sk i{display:block;height:14px;border-radius:7px;position:relative;overflow:hidden;background:color-mix(in srgb,var(--text-fg) 9%,var(--card-bg))}
+.f-sk i:first-child{height:18px}
+.f-sk i::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--text-fg) 12%,transparent),transparent);animation:fShine 1.25s ease-in-out infinite}
+@keyframes fShine{to{transform:translateX(100%)}}
+.f-in{animation:fIn .3s ease-out}@keyframes fIn{from{opacity:0}}
+@media(prefers-reduced-motion:reduce){.f-sk i::after,.f-in{animation:none}}
 /* the heatmap post (the app's heatmap look: cells in the theme accent, five steps) */
 .f-hmb{border-bottom:1px dashed var(--divider);padding:14px 0 10px;--hm:var(--accent,var(--text-fg))}
 .f-hm{display:flex;gap:10px;overflow-x:auto;padding:0 12px;scrollbar-width:none}.f-hm::-webkit-scrollbar{display:none}
@@ -62,7 +80,7 @@ svg{display:block}
 .f-hg i.l1{background:color-mix(in srgb,var(--hm) 22%,transparent)}.f-hg i.l2{background:color-mix(in srgb,var(--hm) 42%,transparent)}
 .f-hg i.l3{background:color-mix(in srgb,var(--hm) 66%,transparent)}.f-hg i.l4{background:color-mix(in srgb,var(--hm) 92%,transparent)}
 .f-hg i.t{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--hm) 70%,transparent)}
-.f-hmt{padding:8px 12px 0;font-size:12px;color:var(--text-fg-faint)}
+.f-hmt{padding:8px 12px 0;font-size:12px;color:var(--text-fg-faint)}.f-hmt:empty{display:none}
 .f-pa .f-sv{margin-left:auto}
 .f-lk.on{color:#ff3040}.f-lk.on svg{fill:currentColor}
 .f-lk.pop svg{animation:lkPop .35s cubic-bezier(.2,.8,.3,1.4)}@keyframes lkPop{0%{transform:scale(.6)}60%{transform:scale(1.25)}100%{transform:none}}
@@ -87,7 +105,7 @@ svg{display:block}
 #svp{display:flex;height:100%;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior:none}
 #svp::-webkit-scrollbar{display:none}
 .f-sg{flex:none;width:100%;height:100%;scroll-snap-align:start;scroll-snap-stop:always;display:flex;flex-direction:column;position:relative}
-.f-bars{display:flex;gap:3px;padding:10px 8px 0}
+.f-bars{display:flex;gap:3px;padding:calc(10px + var(--st,0px)) 8px 0}
 .f-bar{flex:1;height:2.5px;border-radius:2px;overflow:hidden;background:color-mix(in srgb,var(--text-fg) 30%,transparent)}
 .f-bar i{display:block;height:100%;width:0;background:var(--text-fg)}
 .f-sh{display:flex;align-items:center;gap:9px;padding:10px 12px}
@@ -95,7 +113,7 @@ svg{display:block}
 .f-sh .f-av{width:32px;height:32px}
 .f-sx{width:36px;height:36px;font-size:28px;line-height:1;color:var(--text-fg)}
 /* a story's card sits as it does in the reviewer: at the top, in a .wrap */
-.f-sc{flex:1;min-height:0;overflow-y:auto;padding:.5em .2em 1em}
+.f-sc{flex:1;min-height:0;overflow-y:auto;padding:.5em .2em calc(1em + var(--sb,0px))}
 .f-sc>.f-si{width:100%}
 .f-sc .prettify-flashcard{margin:0}
 .f-sc #allClozeBtn{display:none}

@@ -24,6 +24,10 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.navigationBarsIgnoringVisibility
+import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -86,11 +90,14 @@ fun Logo(size: Dp, modifier: Modifier = Modifier, color: Color = P.text) =
 
 @Composable
 fun Home(rs: Rs) {
-    Column(Modifier.fillMaxSize().background(P.bg).windowInsetsPadding(WindowInsets.systemBars)) {
+    /* the feed runs behind the status bar (its page pads itself), so a story can fill the whole screen without the feed jumping;
+       everything else keeps clear of the system bars */
+    val story = rs.feed.storyOpen
+    Column(Modifier.fillMaxSize().background(P.bg).then(if (story) Modifier else Modifier.windowInsetsPadding(WindowInsets.navigationBars))) {
         Box(Modifier.weight(1f)) {
-            if (!rs.set.reels || rs.tab == "menu") Menu(rs) else FeedView(rs)
+            if (!rs.set.reels || rs.tab == "menu") Box(Modifier.windowInsetsPadding(WindowInsets.statusBars)) { Menu(rs) } else FeedView(rs)
         }
-        if (rs.loaded && rs.set.reels && !rs.feed.storyOpen) NavBar(rs, if (rs.tab == "menu") "menu" else "feed")
+        if (rs.loaded && rs.set.reels && !story) NavBar(rs, if (rs.tab == "menu") "menu" else "feed")
     }
 }
 
@@ -145,21 +152,31 @@ private fun FeedView(rs: Rs) {
     LaunchedEffect(rs.deck) { rs.feed.show() }
     LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(30_000); rs.feed.show() } }   // new stories every 5 minutes
     val bg = P.bg.toArgb()
+    val dn = LocalDensity.current
+    /* the bars' sizes even while a story hides them, so the story's top row stays clear of the camera cutout */
+    @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+    val top = WindowInsets.statusBarsIgnoringVisibility.getTop(dn) / dn.density
+    @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+    val bot = WindowInsets.navigationBarsIgnoringVisibility.getBottom(dn) / dn.density
+    LaunchedEffect(top, bot) { rs.feed.web.insets(top, bot) }
     AndroidView(factory = { rs.feed.web.detach(); rs.feed.web.view.apply { setBackgroundColor(bg) } }, update = { it.setBackgroundColor(bg) }, modifier = Modifier.fillMaxSize())
 }
 
-/* Reels Mode's home bar: Feed, Reels (the last card reviewed), Menu, all in the text colour; the current one is drawn bolder. Three buttons, like the
+/* Reels Mode's home bar: Reels (the last card reviewed), Home (the feed), Menu, the current one in the text colour and bolder, the
+   others in a solid mid-tone. Three buttons, like the
    reviewer's (stats, home, corrections) */
 @Composable
 fun NavBar(rs: Rs, current: String) {
     val back = rs.recent()
+    /* the other views: a solid mid-tone (the text colour mixed into the background), never transparency */
+    val off = androidx.compose.ui.graphics.lerp(P.bg, P.text.copy(alpha = 1f), .45f)
     @Composable fun item(svg: String, on: Boolean, enabled: Boolean = true, stroke: Float = 2f, go: () -> Unit) =
         Box(Modifier.size(51.dp, 42.dp).press(enabled, shape = RoundedCornerShape(8.dp), onClick = go), contentAlignment = Alignment.Center) {
-            Icon(svg, 24.dp, P.text, if (on) stroke + .4f else stroke)
+            Icon(svg, 24.dp, if (on) P.text else off, if (on) stroke + .4f else stroke)
         }
     Row(Modifier.fillMaxWidth().solidLine(P.divider, true).padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceAround) {
-        item(Ic.HOME, current == "feed") { if (rs.study) rs.home(); rs.tab = "feed"; if (current == "feed") rs.feed.web.top() }
         item(Ic.REELS, current == "reels", enabled = current == "reels" || back != null) { if (current != "reels") back?.let { rs.go(it) } }
+        item(Ic.HOME, current == "feed") { if (rs.study) rs.home(); rs.tab = "feed"; if (current == "feed") rs.feed.web.top() }
         item(Ic.LIST, current == "menu") { if (rs.study) rs.home(); rs.tab = "menu" }
     }
 }
