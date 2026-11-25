@@ -13,7 +13,7 @@ body{margin:0;padding:0;font-family:"Carlito",Calibri,system-ui,sans-serif;color
 button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
 button:active,button:hover{background:none;color:inherit}
 /* the feed's own icons only: a blanket svg rule also caught MathJax (its formulas are SVG) and pushed them to the left */
-.f-top svg,.f-pa svg,.f-av svg,#ptr svg{display:block}
+.f-top svg,.f-pa svg,.f-av svg,#ptr svg,.f-prof svg{display:block}
 
 .f-top{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:center;height:calc(62px + var(--st,0px));padding:var(--st,0px) 14px 0;background-color:var(--bgc)}   /* --st: the status bar (the page runs behind it) */
 .f-wm{display:flex;align-items:center;gap:8px;font-size:26px;font-weight:700;letter-spacing:-.02em}
@@ -125,3 +125,44 @@ button:active,button:hover{background:none;color:inherit}
 .f-sc>.f-si{width:100%}
 .f-sc .prettify-flashcard{margin:0}
 .f-sc #allClozeBtn{display:none}
+
+/* the archive (saved cards): the round button top left, mirroring the gear */
+.f-gear.f-arch{right:auto;left:12px}
+/* the line under an account name: the song and the card's directory take turns (sliding over each other); a long one scrolls with faded edges */
+.f-pn .f-sub{position:relative;display:block;height:16px;overflow:hidden;font-size:12px;color:var(--text-fg-faint);font-weight:400;margin-top:1px}
+.f-si2{position:absolute;inset:0;white-space:nowrap;overflow:hidden;opacity:0;transform:translateY(70%);transition:opacity .35s ease,transform .35s ease}
+.f-si2.on{opacity:1;transform:none}
+.f-sub.two .f-si2:not(.on){transform:translateY(-70%)}
+.f-si2.mq{-webkit-mask-image:linear-gradient(90deg,transparent,#000 10px,#000 calc(100% - 14px),transparent);mask-image:linear-gradient(90deg,transparent,#000 10px,#000 calc(100% - 14px),transparent)}
+.f-mq{display:inline-block;padding-left:0}
+.f-si2.mq .f-mq{padding-left:10px;animation:fMq 9s linear infinite}
+@keyframes fMq{0%,15%{transform:translateX(0)}85%,100%{transform:translateX(var(--mq))}}
+@media(prefers-reduced-motion:reduce){.f-si2.mq .f-mq{animation:none}}
+/* Settings › Appearance › Hide comments */
+body.nocom .f-cm,body.nocom .f-cmt{display:none!important}
+/* profiles: slide in over the feed (the bottom bar stays) */
+#pf{position:fixed;inset:0;z-index:12;display:none;overflow-y:auto;overflow-x:hidden;background-color:var(--bgc);color:var(--text-fg);scrollbar-width:none;--pdiv:color-mix(in srgb,var(--card-border),color-mix(in srgb,var(--text-fg) 28%,transparent))}
+#pf::-webkit-scrollbar{display:none}#pf.on{display:block}
+#pf{transform:translateX(100%);transition:transform .26s cubic-bezier(.2,.8,.2,1)}#pf.in{transform:none}   /* slides in from the right */
+@media(prefers-reduced-motion:reduce){#pf{transition:none}}
+.f-pft{justify-content:center}.f-pft b{font-size:17px}
+.f-back{position:absolute;left:8px;top:calc(8px + var(--st,0px));width:44px;height:44px;font-size:34px;line-height:1;color:var(--text-fg)}
+.f-prof{max-width:var(--card-max-width);margin:0 auto;padding:4px 16px 14px;border-bottom:1px dashed var(--pdiv)}
+.f-pr1{display:flex;align-items:center;gap:22px}
+.f-big{width:84px;height:84px}
+.f-stats{flex:1;display:flex;justify-content:space-around;text-align:center}
+.f-stats div{display:flex;flex-direction:column}.f-stats b{font-size:17px}.f-stats small{font-size:13px;color:var(--text-fg-faint)}
+.f-bio{margin-top:10px;font-size:14px;line-height:1.4}.f-bio p{margin:2px 0 0}
+.f-follow{display:block;width:100%;height:34px;margin-top:12px;font-size:14px;font-weight:700;border-radius:8px;border:1px solid var(--card-border);background:var(--text-fg);color:var(--card-bg)}
+.f-follow.on{background:var(--card-bg);color:var(--text-fg)}
+.f-hl{display:flex;gap:14px;overflow-x:auto;margin-top:16px;scrollbar-width:none}.f-hl::-webkit-scrollbar{display:none}
+.f-hl .f-ring{background:var(--card-border)}
+.f-hlc{background:var(--card-bg)!important;color:var(--text-fg)}
+#pfl{max-width:var(--card-max-width);margin:0 auto;padding:12px 10px calc(16px + var(--sb,0px))}
+.f-none{text-align:center;color:var(--text-fg-faint);font-size:14px;padding:40px 20px}
+/* daily.heatmap's posts: the day's count, and its month with the day ringed */
+.f-day{display:flex;flex-direction:column;align-items:center;padding:18px 12px 16px}
+.f-day>b{font-size:40px;line-height:1.1}.f-day>small{font-size:13px;color:var(--text-fg-faint);margin-bottom:12px}
+.f-dayhm{padding:0;--hm:var(--accent,var(--text-fg))}
+/* a story's account (taps open its profile) and its song under the name */
+.f-sa{display:flex;align-items:center;gap:9px;min-width:0}.f-sh .f-pn{min-width:0;max-width:52vw}

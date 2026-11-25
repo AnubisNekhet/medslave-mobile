@@ -1481,3 +1481,8 @@ button.rp .rp-x{animation:rpX .26s .14s cubic-bezier(.3,1.7,.5,1) both}
 /* Reels music genre sheet (long press on the music box): switch rows in the bottom sheet */
 .gn-t{margin:.4em 0 .2em;color:var(--text-fg-faint);font-size:.85rem}.so.gn{padding:.55em 0}.gn-m{min-height:1.2em;margin:.2em 0 .6em;color:#e5534b;font-size:.85rem}
 #reel,#reel *{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}#rmus{touch-action:none}   /* no long-press menus or text selection on the Reels overlay */
+/* MCQs (imported MCQ note types, e.g. AkiraRemix MCQs): the options as a lettered list; on the answer side the right one is marked */
+ol.mcq{display:inline-block;text-align:left;margin:.6em auto 0;padding-left:1.6em}
+ol.mcq .mcq-o{margin:.3em 0;padding-left:.2em}
+ol.mcq .mcq-ok{color:var(--cloze-fg);font-weight:700}
+ol.mcq .mcq-ok::marker{color:var(--cloze-fg);font-weight:700}

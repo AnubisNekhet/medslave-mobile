@@ -29,6 +29,13 @@ class FeedBridge(private val f: Feed) {
     @JavascriptInterface fun settings() = h.post { f.rs.settingsSec = null; f.rs.settingsOpen = true }
     @JavascriptInterface fun credits() = h.post { f.rs.creditsOpen = true }
     @JavascriptInterface fun refresh() = h.post { f.refresh() }
+    @JavascriptInterface fun profile(ai: Int) = h.post { f.profile(ai) }
+    @JavascriptInterface fun pmore() = h.post { f.profileMore() }
+    @JavascriptInterface fun pfOpen(open: Boolean) = h.post { f.profileOpen = open; if (!open) f.stopSong() }
+    @JavascriptInterface fun saved() = h.post { f.savedProfile() }
+    @JavascriptInterface fun save(id: String, o: Int, on: Boolean) = h.post { f.save(id.toLong(), o, on) }
+    @JavascriptInterface fun play(i: Int) = h.post { f.playSong(i) }
+    @JavascriptInterface fun mute() = h.post { f.rs.reels.tapMusic() }
 }
 
 class FeedWeb(ctx: Context, f: Feed) : Page(ctx, "feed.html", false, { FeedBridge(f) }) {
@@ -39,6 +46,11 @@ class FeedWeb(ctx: Context, f: Feed) : Page(ctx, "feed.html", false, { FeedBridg
     fun top(instant: Boolean = false) = js("R.top($instant)")
     fun heat(j: String) = js("R.heat($j)")
     fun refreshed(j: String) = js("R.refreshed($j)")
+    fun nocom(v: Boolean) = js("R.nocom($v)")
+    fun replay() = js("R.replay()")
+    fun profile(j: String) = js("R.profile($j)")
+    fun profilePosts(j: String) = js("R.pposts($j)")
+    fun closeProfile() = js("R.closeProfile()")
     /** the status and navigation bar heights (CSS px): the page runs behind the status bar and pads itself */
     fun insets(top: Float, bottom: Float) = js("R.insets($top,$bottom)")
 }
@@ -82,8 +94,8 @@ class Feed(val rs: Rs) {
         io.execute {
             val j = JSONObject().put("paths", JSONArray(d.paths)).put("source", rs.set.source)
                 .put("acc", JSONArray(acc.map { a -> JSONObject().put("h", a.h).put("ic", a.ic).put("c", a.c) }))
-                .put("posts", posts(0)).put("groups", stories(b)).put("act", JSONObject(act()))
-            main.post { if (deck === d) { bucket = b; web.feed(j.toString()) } }
+                .put("posts", posts(0)).put("groups", stories(b)).put("act", JSONObject(act())).put("saved", saved())
+            main.post { if (deck === d) { bucket = b; web.feed(j.toString()); web.nocom(rs.set.nocom) } }
         }
     }
 
@@ -97,6 +109,10 @@ class Feed(val rs: Rs) {
     private fun act(): String = rs.store.get(AK) ?: "{}"
     /** the app was opened: the feed starts at the top, on the heatmap post */
     fun opened() { made?.top(true) }
+
+    /** the song of the post or story on screen (-1: none) */
+    fun playSong(i: Int) { if (i < 0) stopSong() else rs.reels.songs.getOrNull(i)?.let { rs.reels.playSong(it) } }
+    fun stopSong() { if (!rs.study) rs.reels.stop() }
 
     fun comments(handle: String) { rs.reels.name = handle; rs.reels.open("com") }
     /** a story was watched (by account: the page re-sorts the row, unwatched first) */
@@ -114,20 +130,95 @@ class Feed(val rs: Rs) {
         return Triple(JSONArray(DeckStore.noteJson(rs.ctx, n)), n.ords[r.nextInt(n.ords.size)], s)
     }
 
+    /** one post: a random card from account ai's niche, with counts, a caption from the card's tags and two comments */
+    private fun post(r: Random, ai: Int): JSONObject? {
+        val (n, o, _) = card(r, acc[ai]) ?: return null; val reels = rs.reels
+        val tags = n.optJSONArray(5)?.let { t -> (0 until t.length()).map { t.getString(it).split("::").last().replace(Regex("[^\\p{L}\\p{N}_]"), "") } }.orEmpty().filter { it.isNotEmpty() }
+        val hash = tags.take(3).joinToString(" ") { "#" + it.lowercase() }   // the card's own tags; no deck paths in the feed
+        return JSONObject().put("a", ai).put("n", n).put("o", o).put("likes", r.nextInt(120, 98000)).put("coms", r.nextInt(4, 2400))
+            .put("cap", (CAPS[r.nextInt(CAPS.size)] + " " + hash).trim())
+            .put("cm", JSONArray(List(2) { JSONArray().put(reels.names[r.nextInt(reels.names.size)] + reels.suffixes[r.nextInt(reels.suffixes.size)]).put(reels.comments[r.nextInt(reels.comments.size)]) }))
+            .put("t", listOf("2 minutes ago", "18 minutes ago", "1 hour ago", "3 hours ago", "7 hours ago", "yesterday", "2 days ago")[r.nextInt(7)])
+            .also { song(r, it) }
+    }
+
     private fun posts(p: Int): JSONArray {
         val out = JSONArray(); if (acc.isEmpty()) return out
-        val d = deck ?: return out; val r = Random(seed * 31 + salt + p * 7919L); val reels = rs.reels
-        repeat(8) {
-            val ai = r.nextInt(acc.size); val (n, o, _) = card(r, acc[ai]) ?: return@repeat
-            val tags = n.optJSONArray(5)?.let { t -> (0 until t.length()).map { t.getString(it).split("::").last().replace(Regex("[^\\p{L}\\p{N}_]"), "") } }.orEmpty().filter { it.isNotEmpty() }
-            val hash = tags.take(3).joinToString(" ") { "#" + it.lowercase() }   // the card's own tags; no deck paths in the feed
-            out.put(JSONObject().put("a", ai).put("n", n).put("o", o).put("likes", r.nextInt(120, 98000)).put("coms", r.nextInt(4, 2400))
-                .put("cap", (CAPS[r.nextInt(CAPS.size)] + " " + hash).trim())
-                .put("cm", JSONArray(List(2) { JSONArray().put(reels.names[r.nextInt(reels.names.size)] + reels.suffixes[r.nextInt(reels.suffixes.size)]).put(reels.comments[r.nextInt(reels.comments.size)]) }))
-                .put("t", listOf("2 minutes ago", "18 minutes ago", "1 hour ago", "3 hours ago", "7 hours ago", "yesterday", "2 days ago")[r.nextInt(7)]))
-        }
+        val r = Random(seed * 31 + salt + p * 7919L)
+        repeat(8) { post(r, r.nextInt(acc.size))?.let { out.put(it) } }
         return out
     }
+
+    /* ---- an account's profile (tapping an account in a post or a story; a facsimile, not a real account).
+       the same every time for an account: its name (the id, properly capitalised), the id, followers, following and a post count,
+       which is also how many posts the profile has. new each time: the highlights (named after subdecks of the niche, each a few
+       random cards played like stories) and the posts (the card it was opened from first, then random ones from the niche) */
+    private var pfAi = -1
+    private var pfLeft = 0
+    private val BIOS = listOf("your daily dose of %s", "%s, one card at a time 📚", "high yield %s only", "posting %s till boards",
+        "%s notes you'll thank me for", "%s · no fluff", "%s for the night before")
+    private fun title(h: String) = h.split('.', '_').filter { it.isNotEmpty() }.joinToString(" ") { it.replaceFirstChar(Char::uppercase) }
+
+    fun profile(ai: Int) {
+        if (ai !in acc.indices) return
+        val d = deck ?: return; pfAi = ai
+        io.execute {
+            val a = acc[ai]; val st = Random(seed * 977 + ai); val r = Random(System.nanoTime())
+            val subs = a.subs.map { d.subjects[it] }
+            val kids = subs.flatMap { s -> d.top.find { it.name == s.name }?.let { n -> if (n.kids.isEmpty()) listOf(n) else n.kids } ?: emptyList() }.shuffled(r)
+            val icons = rs.reels.handles.map { it.second }.distinct()
+            val hl = JSONArray()
+            kids.take(3 + r.nextInt(4)).forEach { k ->
+                val notes = d.notesFor(k); if (notes.isEmpty()) return@forEach
+                val items = JSONArray()
+                repeat(2 + r.nextInt(4)) { val n = notes[r.nextInt(notes.size)]; items.put(JSONObject().put("n", JSONArray(DeckStore.noteJson(rs.ctx, n))).put("o", n.ords[r.nextInt(n.ords.size)]).also { song(r, it) }) }
+                hl.put(JSONObject().put("t", k.name).put("ic", icons[r.nextInt(icons.size)]).put("items", items))
+            }
+            val count = st.nextInt(9, 240); pfLeft = count - 1   // the card it was opened from is the first post
+            val niche = subs.joinToString(" & ") { it.name }
+            val j = JSONObject().put("a", ai).put("name", title(a.h)).put("bio", BIOS[st.nextInt(BIOS.size)].format(niche))
+                .put("posts", count).put("followers", st.nextInt(2_400, 980_000)).put("following", st.nextInt(60, 1_200))
+                .put("hl", hl).put("list", postsFor(ai))
+            main.post { if (pfAi == ai) web.profile(j.toString()) }
+        }
+    }
+    fun profileMore() { val ai = pfAi; if (ai < 0) return; io.execute { val l = if (ai >= 0) postsFor(ai) else JSONArray(); main.post { if (pfAi == ai) web.profilePosts(l.toString()) } } }
+    private fun postsFor(ai: Int): JSONArray {
+        val out = JSONArray(); val r = Random(System.nanoTime())
+        repeat(minOf(8, pfLeft)) { post(r, ai)?.let { out.put(it); pfLeft-- } }
+        return out
+    }
+
+    /* ---- saved cards (the save button on a post): kept on the device as [[note id, ordinal], …] under medslave:saved, shown as the
+       saved.cards profile (the archive button, top left of the feed) */
+    private fun savedList(): JSONArray = runCatching { JSONArray(rs.store.get(SAVED) ?: "[]") }.getOrDefault(JSONArray())
+    fun saved(): JSONArray = JSONArray(List(savedList().length()) { savedList().getJSONArray(it).let { "${it.getLong(0)}:${it.getInt(1)}" } })
+    fun save(id: Long, o: Int, on: Boolean) {
+        val a = savedList(); val l = (0 until a.length()).map { a.getJSONArray(it) }.filter { !(it.getLong(0) == id && it.getInt(1) == o) }.toMutableList()
+        if (on) l.add(0, JSONArray().put(id).put(o))
+        rs.store.set(SAVED, JSONArray(l).toString())
+    }
+    fun savedProfile() {
+        val d = deck ?: return; pfAi = -2; pfLeft = 0
+        io.execute {
+            val by = HashMap<Long, Note>(); d.subjects.forEach { s -> s.notes.forEach { by[it.id] = it } }
+            val r = Random(System.nanoTime()); val list = JSONArray(); val a = savedList()
+            for (i in 0 until a.length()) { val e = a.getJSONArray(i); val n = by[e.getLong(0)] ?: continue
+                list.put(JSONObject().put("a", -2).put("n", JSONArray(DeckStore.noteJson(rs.ctx, n))).put("o", e.getInt(1)).put("likes", r.nextInt(120, 98000))
+                    .put("coms", r.nextInt(4, 2400)).put("cap", "").put("cm", JSONArray()).put("t", "saved")) }
+            val j = JSONObject().put("a", -2).put("name", "Saved Cards").put("bio", "").put("posts", list.length()).put("followers", -1).put("following", -1)
+                .put("hl", JSONArray()).put("list", list)
+            main.post { if (pfAi == -2) web.profile(j.toString()) }
+        }
+    }
+
+    /** a song on about 80% of posts and stories: its index and "title · artist" (from the genres that are on) */
+    private fun song(r: Random, o: JSONObject) {
+        if (r.nextFloat() >= .8f) return
+        val ok = rs.reels.songs.withIndex().filter { (_, s) -> !s.dead && s.genre !in rs.set.goff }; if (ok.isEmpty()) return
+        val (i, s) = ok[r.nextInt(ok.size)]; o.put("s", i).put("st", "${s.title} · ${s.artist}")
+    }
+    var profileOpen by mutableStateOf(false)
 
     private fun stories(b: Long): JSONArray {
         val out = JSONArray(); if (acc.isEmpty()) { groups = emptyList(); return out }
@@ -136,7 +227,7 @@ class Feed(val rs: Rs) {
         val times = listOf("1m", "4m", "12m", "38m", "1h", "2h", "3h", "5h", "9h", "14h", "20h")
         val g = ArrayList<Int>()
         pick.forEach { ai ->
-            val items = JSONArray(); repeat(1 + r.nextInt(3)) { card(r, acc[ai])?.let { (n, o, _) -> items.put(JSONObject().put("n", n).put("o", o)) } }
+            val items = JSONArray(); repeat(1 + r.nextInt(3)) { card(r, acc[ai])?.let { (n, o, _) -> items.put(JSONObject().put("n", n).put("o", o).also { song(r, it) }) } }
             if (items.length() == 0) return@forEach
             g.add(ai)
             out.put(JSONObject().put("a", ai).put("t", times[r.nextInt(times.size)]).put("items", items).put("seen", "$b:${acc[ai].h}" in seen))

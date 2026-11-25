@@ -156,6 +156,9 @@ private fun Menu(rs: Rs) {
 private fun FeedView(rs: Rs) {
     if (!rs.loaded) { Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Spinner(72.dp) }; return }
     LaunchedEffect(rs.deck) { rs.feed.show() }
+    LaunchedEffect(rs.set.nocom) { rs.feed.web.nocom(rs.set.nocom) }
+    /* the feed's song plays while the feed is on screen */
+    androidx.compose.runtime.DisposableEffect(Unit) { rs.feed.web.replay(); onDispose { rs.feed.stopSong() } }
     LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(30_000); rs.feed.show() } }   // new stories every 5 minutes
     val bg = P.bg.toArgb()
     val dn = LocalDensity.current

@@ -117,8 +117,41 @@ class Reels(private val rs: Rs) {
     }
     private fun set(s: Song) {
         song = s; prepared = false
-        try { mp.reset(); mp.setDataSource(s.url); mp.prepareAsync() } catch (e: Exception) { onError() }
+        val f = cached(s)
+        try { mp.reset(); if (f.exists()) { f.setLastModified(System.currentTimeMillis()); mp.setDataSource(f.path) } else { mp.setDataSource(s.url); fetch(s) }; mp.prepareAsync() } catch (e: Exception) { onError() }
         want = true
+    }
+    /** the feed's and stories' song: keeps playing if it's already the one */
+    fun playSong(s: Song) { if (song === s && want) return play(); set(s) }
+
+    /* ---- the song cache (cache/songs): a preview is saved the first time it plays and played from the phone after that.
+       prune(), when the app opens: songs not played for a week go, the cache stays under 40 MB (oldest first), and an import that
+       didn't finish leaves nothing behind */
+    private val songDir by lazy { java.io.File(rs.ctx.cacheDir, "songs").apply { mkdirs() } }
+    private fun cached(s: Song) = java.io.File(songDir, Integer.toHexString(s.url.hashCode()) + "-" + Integer.toHexString((s.title + s.artist).hashCode()) + ".m4a")
+    private val fetching = HashSet<String>()
+    private fun fetch(s: Song) {
+        val f = cached(s); val url = s.url
+        synchronized(fetching) { if (!fetching.add(url)) return }
+        thread {
+            runCatching {
+                val tmp = java.io.File(songDir, f.name + ".part")
+                (URL(url).openConnection() as HttpURLConnection).apply { connectTimeout = 8000; readTimeout = 15000 }.inputStream.use { i -> tmp.outputStream().use { i.copyTo(it) } }
+                if (tmp.length() > 10_000) tmp.renameTo(f) else tmp.delete()
+            }
+            synchronized(fetching) { fetching.remove(url) }
+        }
+    }
+    fun prune() = thread {
+        runCatching {
+            val week = System.currentTimeMillis() - 7L * 24 * 3600 * 1000
+            songDir.listFiles()?.forEach { if (it.name.endsWith(".part") || it.lastModified() < week) it.delete() }
+            var total = songDir.listFiles()?.sumOf { it.length() } ?: 0L
+            songDir.listFiles()?.sortedBy { it.lastModified() }?.forEach { if (total > 40L shl 20) { total -= it.length(); it.delete() } }
+            val c = rs.ctx.cacheDir; val f = rs.ctx.filesDir
+            if (!rs.busy) listOf(java.io.File(c, "import.apkg"), java.io.File(c, "import-col.db"), java.io.File(c, "import-col.db-journal"), java.io.File(f, "deck.db.tmp")).forEach { it.delete() }
+            if (!rs.busy) java.io.File(f, "media.tmp").deleteRecursively()
+        }
     }
     private fun vol() { val v = if (muted) 0f else 1f; runCatching { mp.setVolume(v, v) } }
     fun play() { want = true; vol(); if (prepared && !paused) runCatching { if (!mp.isPlaying) mp.start() } }

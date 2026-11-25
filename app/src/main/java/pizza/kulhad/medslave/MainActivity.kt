@@ -55,6 +55,7 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= 29) window.isNavigationBarContrastEnforced = false
         rs = (lastNonConfigurationInstance as? Rs) ?: Rs(applicationContext).also { it.loadDeck() }
         rs.activity = this
+        if (b == null) rs.reels.prune()   // tidy the cache when the app opens
         rs.openFile = { mimes, then -> openThen = then; runCatching { opener.launch(mimes) } }
         rs.saveFile = { name, _, data -> saveData = data; runCatching { saver.launch(name) } }
         handle(intent)
@@ -91,6 +92,7 @@ class MainActivity : ComponentActivity() {
                 BackHandler(rs.study) { rs.home() }
                 /* Reels Mode's home: back leaves the Menu view for the feed, and closes an open story */
                 BackHandler(!rs.study && rs.set.reels && rs.tab != "feed") { rs.tab = "feed" }
+                BackHandler(!rs.study && rs.set.reels && rs.feed.profileOpen && !rs.feed.storyOpen) { rs.feed.web.closeProfile() }
                 BackHandler(!rs.study && rs.set.reels && rs.feed.storyOpen) { rs.feed.web.close() }
                 BackHandler(rs.picker != null || rs.heatOpen || rs.creditsOpen || rs.settingsOpen || rs.progressOpen || rs.corrOpen) {
                     rs.picker = null; rs.heatOpen = false; rs.creditsOpen = false; rs.settingsOpen = false; rs.progressOpen = false; rs.corrOpen = false

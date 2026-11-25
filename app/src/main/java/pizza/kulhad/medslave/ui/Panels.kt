@@ -188,6 +188,7 @@ private fun Appearance(rs: Rs) {
         Tile("Flip", !lock && flipStyle, modifier = Modifier.weight(1f), small = true, onClick = { setStyle(rs, "flip") }) { FlipDemo() }
         Tile("Reels", lock, modifier = Modifier.weight(1f), small = true, onClick = { setStyle(rs, "reels") }) { ReelsDemo() }
     }
+    if (rs.set.reels) Row2("Hide comments", "No comment buttons or comments in the feed and on reels") { Switch(rs.set.nocom) { rs.set.nocom = it; rs.set.save() } }
     Head("New Card Reveal")
     Row(Modifier.fillMaxWidth().padding(bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
         listOf("none" to "No animation", "pop" to "Pop in", "up" to "Scroll up").forEach { (k, l) ->

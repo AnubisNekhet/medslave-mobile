@@ -126,7 +126,7 @@ fun ReelOverlay(rs: Rs) {
                     Icon(Ic.HEART, 25.dp, if (r.liked) HEART else P.text, fill = r.liked, modifier = Modifier.scale(pop.value))
                     ActLabel(kfmt(r.likes + if (r.liked) 1 else 0))
                 }
-                Act(onClick = { r.open("com") }) { Icon(Ic.COMMENT, 25.dp, P.text); ActLabel(kfmt(r.coms)) }
+                if (!rs.set.nocom) Act(onClick = { r.open("com") }) { Icon(Ic.COMMENT, 25.dp, P.text); ActLabel(kfmt(r.coms)) }
                 /* Repost = missed it: red, the arrows turn half a turn, a cross pops in, then the card is requeued and scrolls up */
                 val turn = remember { Animatable(0f) }; val x = remember { Animatable(0f) }
                 LaunchedEffect(r.repostAt) {
@@ -285,7 +285,7 @@ private fun ShareSheet(rs: Rs) {
                 }
                 Column(Modifier.weight(1f)) { Txt(n, size = 14.4.sp); if (h.isNotEmpty()) Txt(h, size = 12.sp, color = P.faint) }
                 val done = sent[n] == true
-                Box(Modifier.height(35.dp).clip(RoundedCornerShape(3.dp)).background(if (done) P.text.copy(alpha = .12f) else Color(0xFF4F5BD5))
+                Box(Modifier.height(35.dp).clip(RoundedCornerShape(8.dp)).background(if (done) P.text.copy(alpha = .12f) else Color(0xFF4F5BD5))
                     .clickable(enabled = !done) { if (ic.isNotEmpty()) r.qr = true else sent[n] = true }.padding(horizontal = 19.dp), contentAlignment = Alignment.Center) {
                     Txt(if (done) "Sent" else "Send", size = 13.6.sp, color = if (done) P.faint else Color.White)
                 }
@@ -302,12 +302,17 @@ private fun MusicSheet(rs: Rs) {
         Txt("Songs only play from the genres that are on.", size = 14.sp, color = P.faint, modifier = Modifier.padding(vertical = 6.dp))
         r.genres.forEach { (g, label) ->
             val n = r.songs.count { it.genre == g && !it.dead }; if (n == 0) return@forEach
-            Row2(label, "$n songs") {
+            /* each genre's icon on the left; a switched-off genre's icon in the solid mid-tone */
+            val on = g !in rs.set.goff
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Icon(GENRE_IC[g] ?: Ic.NOTE, 22.dp, if (on) P.text else androidx.compose.ui.graphics.lerp(P.card, P.text.copy(alpha = 1f), .45f), 2f)
+            Row2(label, "$n songs", Modifier.weight(1f)) {
                 Switch(g !in rs.set.goff) { on ->
                     val off = if (on) rs.set.goff - g else rs.set.goff + g
                     if (off.size >= r.genres.count { (k, _) -> r.songs.any { it.genre == k && !it.dead } }) { msg = "Keep at least one genre on"; return@Switch }
                     msg = ""; rs.set.goff = off; rs.set.save(); r.genreChanged()
                 }
+            }
             }
         }
         if (msg.isNotEmpty()) Txt(msg, size = 13.sp, color = RED, modifier = Modifier.padding(bottom = 6.dp))
@@ -343,3 +348,15 @@ fun Spinner(size: androidx.compose.ui.unit.Dp) {
     LaunchedEffect(Unit) { while (true) { t.snapTo(0f); t.animateTo(360f, tween(1000, easing = LinearEasing)) } }
     Logo(size, Modifier.rotate(t.value))
 }
+
+/* the music sheet's genre icons */
+private val GENRE_IC = mapOf(
+    "trend" to "<polyline points=\"22 7 13.5 15.5 8.5 10.5 2 17\"/><polyline points=\"16 7 22 7 22 13\"/>",
+    "pop" to "<path d=\"M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2Z\"/>",
+    "rap" to "<rect x=\"9\" y=\"2\" width=\"6\" height=\"12\" rx=\"3\"/><path d=\"M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8\"/>",
+    "edm" to "<path d=\"M13 2 3 14h9l-1 8 10-12h-9l1-8z\"/>",
+    "bolly" to "<rect x=\"2\" y=\"3\" width=\"20\" height=\"18\" rx=\"2\"/><path d=\"M7 3v18M17 3v18M2 9h5M2 15h5M17 9h5M17 15h5\"/>",
+    "indie" to "<path d=\"M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3\"/>",
+    "punjabi" to "<path d=\"m2 2 8 8M22 2l-8 8\"/><ellipse cx=\"12\" cy=\"9\" rx=\"10\" ry=\"5\"/><path d=\"M7 13.4v7.9M12 14v8M17 13.4v7.9M2 9v8a10 5 0 0 0 20 0V9\"/>",
+    "lofi" to "<path d=\"M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z\"/>",
+    "rock" to "<path d=\"M4.9 19.1C1 15.2 1 8.8 4.9 4.9M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5M19.1 4.9C23 8.8 23 15.1 19.1 19\"/><circle cx=\"12\" cy=\"12\" r=\"2\"/>")
