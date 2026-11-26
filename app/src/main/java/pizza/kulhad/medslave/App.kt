@@ -207,10 +207,11 @@ class Rs(val ctx: Context) {
         val c = cur ?: return; if (leaving) return
         /* an MCQ: the picked option decides (a wrong pick comes back later; swiping down or Repost still means missed). a swipe on the
            question reveals the answer like any card */
-        val ok = if (stage == 1 && ok0 && c.n.mcq && mcqOk != null) mcqOk!! else ok0
+        val reelMcq = stage == 1 && c.n.mcq && set.reels   // Reels Mode: an MCQ's verdict is already decided (the pick, or right without one)
+        val ok = if (reelMcq) mcqOk ?: true else if (stage == 1 && ok0 && c.n.mcq && mcqOk != null) mcqOk!! else ok0
         if (stage == 1) {
             if (!ok) { requeue(c); S?.let { it.wr++ } }
-            return if (set.flip) leave(if (ok || set.reels) -1 else 1, ok) else next()   // Reels Mode: an answer always scrolls up, missed or not
+            return if (set.flip) leave(if (ok || reelMcq) -1 else 1, ok) else next()   // Reels Mode: an MCQ's answer always scrolls up
         }
         if (!sw && web.seqLeft > web.seqN) { web.step(); return }
         stage = 1; store.actBump(); heatTick++
