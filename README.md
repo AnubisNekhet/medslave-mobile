@@ -7,7 +7,7 @@ You're going to doomscroll anyway, so make it your flashcards. medslave turns yo
 ### Feed and Reels
 - **A home feed made from your deck.** Each subject has its own accounts. They post card answers and share stories, and new stories turn up every five minutes. Pull down to refresh the feed with new posts.
 - **Profiles, stories and saved cards.** Tap an account to open its profile, with highlights and more posts. Bookmark any post or reel, and the archive keeps it as saved.cards. Your study heatmap is a post too, from daily.heatmap.
-- **Reels review.** Cards scroll like reels and follow your finger. Swipe up if you knew it and down if you didn't. The volume keys work too: down if you knew it, up if you didn't. The like, comments, save and music buttons make it feel like the real thing.
+- **Reels review.** Cards scroll like reels and follow your finger. Swipe up if you knew it and down if you didn't. The volume keys work too: down if you knew it, up if you didn't. The like, comment, Repost (missed it), share, save and music buttons make it feel like the real thing.
 
 ### Deck import and review
 - **Import any Anki deck (`.apkg`).** The old and new collection formats both work, as do zstd compression and big decks. You choose what each note type becomes and which field fills each slot. Known note types map themselves: AnKing, Anki's Cloze and Image Occlusion, Image Occlusion Enhanced, and MCQs. "Open with medslave" works from a file manager or a chat app.
