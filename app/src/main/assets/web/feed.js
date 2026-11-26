@@ -7,7 +7,7 @@
    App.play(song) / App.mute(): the song of whatever post or story is on screen, by "title · artist" ('' for none) */
 const A_=window.App||{more(){},com(){},share(){},story(){},seen(){},imp(){},settings(){},credits(){},refresh(){},profile(){},pmore(){},pfOpen(){},saved(){},save(){},play(){},mute(){}};
 const F={acc:[],posts:[],groups:[],wait:false,saved:new Set()};
-function fitX(){}   /* face.js calls it after MathJax; the feed has nothing to refit */
+function fitX(){document.querySelectorAll('.f-pb').forEach(clip)}   /* face.js calls it after MathJax and after an MCQ's explanation opens: posts re-check their 'more' */
 const ESC=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
 const SVG=(p,a='')=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"${a}>${p}</svg>`;
 const ICN={heart:'<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
