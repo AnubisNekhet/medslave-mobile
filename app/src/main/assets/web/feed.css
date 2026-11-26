@@ -185,6 +185,8 @@ body.nocom .f-cm,body.nocom .f-cmt{display:none!important}
 /* carousels: cards side by side, snapping; each as tall as the tallest, its content centred; dots in a row under them */
 .f-car{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
 .f-car::-webkit-scrollbar{display:none}
+/* a table in a carousel card lets the swipe through: one that fits never takes it, and one at its edge passes the next swipe that way to the carousel */
+.f-car table{overscroll-behavior-x:auto}
 .f-sl{flex:0 0 100%;scroll-snap-align:start;scroll-snap-stop:always;display:flex;min-width:0}
 .f-sl>.prettify-flashcard{flex:1;display:flex;flex-direction:column;justify-content:center;min-width:0}
 .f-dots{display:flex;justify-content:center;gap:4px;padding-top:10px;margin-bottom:-6px;pointer-events:none}   /* their own row under the cards */
