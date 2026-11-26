@@ -440,17 +440,19 @@ private fun AddPlaylist(rs: Rs, edit: pizza.kulhad.medslave.Reels.Playlist?, clo
             if (kept.isNotEmpty()) Box(Modifier.fillMaxWidth().heightIn(max = 300.dp).verticalScroll(rememberScrollState())) {
                 androidx.compose.foundation.layout.FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     kept.toList().forEach { s ->
-                        /* the album cover fills the pill; over it one of the theme's accents (picked by the song, so it stays put), 20% at the left
-                           to full at the right. the title in the text colour with the overlay's glow (it sits on the cover); the × on the full colour */
+                        /* the album cover at its true size (a square as tall as the pill) at the left end, under the song's accent (picked by the
+                           song, so it stays put) fading in from 5% to full across the cover; the rest of the pill is the full colour. the title and
+                           × in the opposite of the text colour (black in dark mode, white in light) */
                         val bg = if (acc.isEmpty()) P.hi else acc[((s.title + s.artist).hashCode().toUInt() % acc.size.toUInt()).toInt()]
                         var cov by remember(s.art) { mutableStateOf<ImageBitmap?>(null) }
                         LaunchedEffect(s.art) { rs.reels.art(s.art) { cov = it } }
-                        Box(Modifier.height(28.dp).clip(RoundedCornerShape(30.dp)).background(P.card)) {
-                            cov?.let { Image(it, null, Modifier.matchParentSize(), contentScale = ContentScale.Crop) }
-                            Box(Modifier.matchParentSize().background(androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(bg.copy(alpha = .2f), bg))))
-                            Row(Modifier.fillMaxHeight().padding(start = 12.dp, end = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                                androidx.compose.foundation.text.BasicText(s.title, style = TextStyle(color = P.text, fontSize = 13.6.sp, fontFamily = Carlito, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, shadow = glowStyle()),
-                                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 200.dp))
+                        Box(Modifier.fillMaxWidth().height(28.dp).clip(RoundedCornerShape(30.dp)).background(bg)) {   // full width: one song per row
+                            Box(Modifier.size(28.dp).align(Alignment.CenterStart)) {
+                                cov?.let { Image(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
+                                Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(bg.copy(alpha = .05f), bg))))
+                            }
+                            Row(Modifier.fillMaxSize().padding(start = 34.dp, end = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Txt(s.title, size = 13.6.sp, bold = true, color = P.bg, lines = 1, modifier = Modifier.weight(1f))
                                 Box(Modifier.size(28.dp).clip(CircleShape).clickable { kept.remove(s) }, contentAlignment = Alignment.Center) { Txt("×", size = 17.sp, bold = true, color = P.bg) }
                             }
                         }

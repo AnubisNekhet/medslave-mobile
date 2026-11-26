@@ -82,8 +82,8 @@ class Reels(private val rs: Rs) {
         fun add(s: Song) { if (have.add(key(s).lowercase())) p.songs.add(s) }
         thread {
             val link = Regex("https?://").containsMatchIn(t)
-            val al = if (link) runCatching { albumSongs(t, p.key) }.getOrNull() else null
-            if (al != null && al.songs.isNotEmpty()) { h.post { p.cover(al); al.songs.forEach(::add); p.status = ""; saveLists(); changed() }; return@thread }
+            val al = if (link) runCatching { linkSongs(t, p.key) }.getOrNull() else null
+            if (al != null && al.any { it.songs.isNotEmpty() }) { h.post { al.forEach { a -> p.cover(a); a.songs.forEach(::add) }; p.status = ""; saveLists(); changed() }; return@thread }
             val tracks = runCatching { tracksOf(t) }.getOrDefault(emptyList())
             if (tracks.isEmpty()) { h.post { p.status = if (p.songs.isEmpty()) "Couldn't read any songs from that" else "" }; return@thread }
             tracks.forEachIndexed { i, (ti, ar) ->
@@ -100,12 +100,12 @@ class Reels(private val rs: Rs) {
         val p = Playlist(name); p.status = "Reading the list…"; lists.add(p)
         thread {
             /* an album link: its songs straight from Apple, all at once */
-            val al = runCatching { albumSongs(text.trim(), p.key) }.getOrNull()
-            val albumName = al?.name.orEmpty()
-            if (al != null && al.songs.isNotEmpty()) { h.post { p.cover(al)
+            val al = runCatching { linkSongs(text.trim(), p.key) }.getOrNull()
+            val albumName = al?.firstOrNull { it.songs.isNotEmpty() }?.name.orEmpty()
+            if (al != null && al.any { it.songs.isNotEmpty() }) { h.post { al.forEach { p.cover(it) }
                 /* no name typed: the playlist takes the album's name */
                 if (name0.isBlank() && albumName.isNotBlank()) p.name = albumName.trim().let { n -> var x = n; var k = 2; while (lists.any { it !== p && it.name == x }) x = "$n ${k++}"; x }
-                p.songs.addAll(al.songs.map { Song(it.title, it.artist, it.url, it.art, p.key) }); p.status = ""; saveLists(); changed() }; return@thread }
+                p.songs.addAll(al.flatMap { it.songs }.distinctBy { key(it).lowercase() }.map { Song(it.title, it.artist, it.url, it.art, p.key) }); p.status = ""; saveLists(); changed() }; return@thread }
             val tracks = runCatching { tracksOf(text.trim()) }.getOrDefault(emptyList())
             if (tracks.isEmpty()) { h.post { p.status = "Couldn't read any songs from that" }; return@thread }
             tracks.forEachIndexed { i, (t, ar) ->
@@ -133,6 +133,32 @@ class Reels(private val rs: Rs) {
         val html = get("https://open.spotify.com/embed/$kind/$id")
         val js = Regex("<script id=\"__NEXT_DATA__\" type=\"application/json\">(.*?)</script>", RegexOption.DOT_MATCHES_ALL).find(html)?.groupValues?.get(1) ?: return null
         return JSONObject(js).getJSONObject("props").getJSONObject("pageProps").getJSONObject("state").getJSONObject("data").getJSONObject("entity")
+    }
+    /** every album and song link in the text, each straight from Apple (as albumSongs / songOf): null when there are none, so the text is
+        read as a playlist or lines instead. a song link brings that one song, and its album's cover for the playlist like an album does */
+    private fun linkSongs(t: String, key: String): List<Album>? {
+        val links = Regex("https?://\\S+").findAll(t).map { it.value }.filter { Regex("music\\.apple\\.com/\\w\\w/(album|song)/|open\\.spotify\\.com/(?:intl-\\w+/)?(album|track)/").containsMatchIn(it) }.toList()
+        if (links.isEmpty()) return null
+        return links.mapNotNull { u -> runCatching { songOf(u, key) ?: albumSongs(u, key) }.getOrNull() }
+    }
+    /** a song link: an Apple Music song (…/song/…/id, or an album link with ?i=id) looked up by its id, a Spotify track matched to Apple by
+        its title and artist. an Album of that one song (its album's id and cover). null: not a song link, or nothing on Apple matches */
+    private fun songOf(u: String, key: String): Album? {
+        fun json(q: String) = JSONObject(get(q)).getJSONArray("results").let { r -> (0 until r.length()).map { r.getJSONObject(it) } }
+        fun album(x: JSONObject) = Album(x.optString("trackName"), x.optLong("collectionId").toString(), x.optString("artworkUrl100").replace("100x100bb", "300x300bb"),
+            listOf(Song(x.optString("trackName"), x.optString("artistName"), x.getString("previewUrl"), x.optString("artworkUrl100"), key)))
+        val am = Regex("music\\.apple\\.com/(\\w\\w)/(?:song/(?:[^/?\\s]+/)?(\\d+)|album/[^?\\s]*\\?(?:[^\\s]*&)?i=(\\d+))").find(u)
+        if (am != null) { val id = am.groupValues[2].ifEmpty { am.groupValues[3] }
+            return json("https://itunes.apple.com/lookup?id=$id&country=${am.groupValues[1]}").firstOrNull { it.optString("wrapperType") == "track" && it.has("previewUrl") }?.let(::album) }
+        val sp = Regex("open\\.spotify\\.com/(?:intl-\\w+/)?track/(\\w+)").find(u) ?: return null
+        val e = spotifyEntity("track", sp.groupValues[1]) ?: return null
+        val name = e.optString("name").ifEmpty { e.optString("title") }
+        val artist = e.optString("subtitle").ifEmpty { e.optJSONArray("artists")?.optJSONObject(0)?.optString("name").orEmpty() }
+        fun norm(s: String) = s.lowercase().replace(Regex("\\s*[\\(\\[].*?[\\)\\]]"), "").replace(Regex(" - .*$"), "").replace(Regex("[^\\p{L}\\p{N}]"), "")
+        val nn = norm(name); val na = norm(artist.split(",").first())
+        val hits = json("https://itunes.apple.com/search?entity=song&limit=15&term=" + URLEncoder.encode("$artist $name".take(120), "UTF-8")).filter { it.has("previewUrl") }
+        return (hits.firstOrNull { norm(it.optString("trackName")) == nn && norm(it.optString("artistName")).let { a -> a.isNotEmpty() && (a == na || a in na || na in a) } }
+            ?: hits.firstOrNull { norm(it.optString("trackName")) == nn })?.let(::album)
     }
     /** an album link's songs, straight from Apple in one request: an Apple Music album as it is, a Spotify album matched to Apple by its
         name, artist and track count. null: not an album link, or no Apple album clearly matches (the songs are then searched one by one) */
