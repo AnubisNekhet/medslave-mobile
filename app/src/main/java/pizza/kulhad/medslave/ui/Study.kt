@@ -121,10 +121,10 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.cardGest
     if (rdrag) {
         /* let go far or fast enough: it carries on (from where it is) and the next card comes in behind it; otherwise it springs back */
         val v = abs(dy) / (tUp - t0 + 1)
-        if (!multi && (abs(dy) > 90 || v > .5f)) { rs.dragOff = rs.ty.value; if (dy < 0) rs.advance(true) else rs.advance(true, false) }
+        if (!multi && (abs(dy) > 90 || v > .5f) && (if (dy < 0) rs.web.atBottom() else rs.web.atTop()) && !rs.web.moved) { rs.dragOff = rs.ty.value; if (dy < 0) rs.advance(true) else rs.advance(true, false) }   // still at its end as it's let go
         else rs.scope.launch { val t = tween<Float>(260, easing = pizza.kulhad.medslave.EASE_OUTISH); launch { rs.oy.animateTo(0f, t) }; rs.ty.animateTo(0f, t) }
     } else if (flip) {
-        if (!multi && abs(dy) > 50 && abs(dy) > abs(dx) * 1.2f) { if (dy < 0 && canBot()) rs.advance(true) else if (dy > 0 && canTop() && rs.stage == 1) rs.advance(true, false) }
+        if (!multi && abs(dy) > 50 && abs(dy) > abs(dx) * 1.2f) { if (dy < 0 && canBot() && rs.web.atBottom()) rs.advance(true) else if (dy > 0 && canTop() && rs.web.atTop() && rs.stage == 1) rs.advance(true, false) }   // at its end as the finger landed and as it lifted
         else if (!multi && rs.stage == 1 && abs(dx) > 50 && abs(dx) > abs(dy) * 1.2f) rs.web.turn("y", if (dx > 0) 1 else -1)   // sideways: an MCQ answer turns over (Hide explanation)
         if (!rs.leaving && lastGlow != 0f) rs.web.glow(0f)
     } else if (!flip && !drag && !multi && rs.stage == 1 && abs(dy) > 50 && abs(dy) > abs(dx) * 1.2f && (dy < 0 && bot || dy > 0 && top)) {

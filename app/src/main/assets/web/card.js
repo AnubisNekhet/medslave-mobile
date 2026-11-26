@@ -7,14 +7,14 @@ const A_=window.App||{st(){},tap(){},h(){},sc(){},ready(){},pick(){},ex(){},mv()
 /* an MCQ's option tapped on the question side: that's the answer. the answer side is redrawn with it marked, and the app is told
    whether it was right (App.pick), which it uses as the verdict when the card moves on */
 document.addEventListener('click',e=>{const l=e.target.closest('#stage .option-group label[data-o]');if(!l||stage||!cur)return;e.preventDefault();
- MQ.picked=+l.dataset.o;const m=mcqOf(cur.n[4].map(trimF));if(!m)return;const b=document.querySelector('#stage .flip-back,#stage .fade-back');if(b){b.innerHTML=face(1);imgs(b);mj(b)}   /* the redrawn answer side's images and maths */
+ MQ.picked=+l.dataset.o;const m=mcqOf(cur.n[4].map(trimF));if(!m)return;const b=document.querySelector('#stage .flip-back,#stage .fade-back');if(b){b.innerHTML=face(1);imgs(b);mj(b);fitX();watchSz()}   /* the redrawn answer side's images and maths */
  l.classList.add(MQ.picked==m.right?'highlight-correct':'highlight-wrong');A_.pick(MQ.picked==m.right)},true);
 function render(){if(!FL){const A=stage==1;return `<div class="tinder-swipe${A?' tinder-swipe--answer':''}" id="swipe">${face(A)}</div>`}
 const m=cur.n[1]=='b'?'flip':'fade';   /* basic cards flip; cloze + image-occlusion fade in place */
 return `<div class="tinder-swipe" id="swipe"><div class="${m}-wrap${stage?' flipped half':''}"><div class="${m}-front">${face(0)}</div><div class="${m}-back">${face(1)}</div></div></div>`}
 function draw(){const st=$('#stage');st.innerHTML='<div class="wrap">'+render()+'</div>';
  imgs(st);
- mj(st);st.querySelectorAll('.prettify-deck').forEach(d=>d.scrollLeft=d.scrollWidth);fitX();RSZ.disconnect();RSZ.observe(st.firstElementChild);
+ mj(st);st.querySelectorAll('.prettify-deck').forEach(d=>d.scrollLeft=d.scrollWidth);fitX();watchSz();
  {const b=$('#allClozeBtn');if(b)b.onclick=()=>revealAll(b)}syncNxt()}
 /* the card on screen: in Flip, the face showing */
 TURN=true;
@@ -27,6 +27,9 @@ function scRep(){const c=card();A_.sc(!c||c.scrollTop<=1,!c||c.scrollTop+c.clien
 function fitX(){document.querySelectorAll('#stage table,#stage .prettify-deck,#stage [style*="overflow"]').forEach(e=>e.classList.toggle('nsx',e.scrollWidth<=e.clientWidth+1));document.querySelectorAll('#stage .prettify-deck').forEach(deckFade);
  const c=card(),x=c&&c.parentNode.querySelector(':scope>.mcq-exc');A_.h((c?c.scrollHeight+c.offsetHeight-c.clientHeight:0)+(x?x.offsetHeight+10:0));scRep()}   /* the card's full height, and an MCQ's explanation card under it */
 const RSZ=new ResizeObserver(()=>fitX());
+/* re-measure whenever the card or anything in it changes size: a card at its height cap stops growing, but images and MathJax can still
+   make its content taller, and the app must know it can scroll again (a swipe only moves on from a card that can't) */
+function watchSz(){const st=$('#stage');RSZ.disconnect();if(st.firstElementChild)RSZ.observe(st.firstElementChild);st.querySelectorAll('.prettify-flashcard>*,.prettify-flashcard .f-mid>*').forEach(e=>RSZ.observe(e))}
 function deckFade(d){d.classList.toggle('sl',d.scrollLeft>1);d.classList.toggle('sr',d.scrollLeft+d.clientWidth<d.scrollWidth-1)}
 $('#stage').addEventListener('scroll',e=>{const d=e.target;if(!d.classList)return;if(d.classList.contains('prettify-deck'))deckFade(d);else if(d.classList.contains('prettify-flashcard')){scRep();A_.mv()}},true);   /* mv: it scrolled during this touch */
 addEventListener('resize',fitX);$('#stage').addEventListener('load',e=>{if(e.target.tagName=='IMG')ioBox(e.target);fitX()},true);
