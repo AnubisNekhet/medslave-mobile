@@ -404,7 +404,8 @@ fun Spinner(size: androidx.compose.ui.unit.Dp) {
     var ms by remember { mutableStateOf(0L) }
     LaunchedEffect(Unit) { val t0 = withFrameMillis { it }; while (true) withFrameMillis { ms = it - t0 } }
     val hold = 380f; val spin = 760f; val turn = 720f
-    fun angle(t: Float): Float { val c = t % (hold + spin); return if (c < hold) 0f else turn * FastOutSlowInEasing.transform((c - hold) / spin) }
+    /* it starts with the turn (most loads are short; a pause first would never show it moving), then rests upright, and so on */
+    fun angle(t: Float): Float { val c = (t + hold) % (hold + spin); return if (c < hold) 0f else turn * FastOutSlowInEasing.transform((c - hold) / spin) }
     val t = ms.toFloat(); val a = angle(t)
     val v = (a - angle(t - 16f)).let { if (it < 0f) 0f else it }   // degrees a frame: how fast it's going
     Box(contentAlignment = Alignment.Center) {
