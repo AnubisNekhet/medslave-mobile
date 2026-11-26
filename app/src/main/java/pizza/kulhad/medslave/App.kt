@@ -38,7 +38,8 @@ class Session(val notes: List<Note>, val name: String, val key: String, val q: M
 class Cur(val n: Note, val o: Int, val again: Boolean, val json: String)
 class Fin(val name: String, val count: Int, val wr: Int)
 class Dlg(val text: String, val ok: String = "OK", val cancel: Boolean = false, val danger: Boolean = false, val onOk: () -> Unit = {})
-class Ghost(val img: ImageBitmap, val d: Int) { val y = Animatable(0f) }
+/** the leaving card's picture. top: where its first row sits in the stage (px) — after a Reels drag only the card part is kept, from there */
+class Ghost(val img: ImageBitmap, val d: Int, val top: Float = 0f) { val y = Animatable(0f) }
 
 val EASE_OUTISH: Easing = CubicBezierEasing(.2f, .7f, .3f, 1f)
 val EASE_IN_OUT: Easing = CubicBezierEasing(.42f, 0f, .58f, 1f)
@@ -239,7 +240,13 @@ class Rs(val ctx: Context) {
         leaving = true
         if (set.rev == "up") {
             capture { bmp ->
-                if (bmp != null) ghost = Ghost(bmp.asImageBitmap(), d)
+                /* dragged first (Reels): the picture is the card shifted by the drag, with empty stage where it moved from. that strip
+                   would cover the next card coming in, so only the card's part is kept */
+                val off = dragOff.roundToInt().coerceIn(-(bmp?.height ?: 1) + 1, (bmp?.height ?: 1) - 1)
+                val pic = if (bmp == null || off == 0) bmp
+                    else if (off < 0) Bitmap.createBitmap(bmp, 0, 0, bmp.width, bmp.height + off)
+                    else Bitmap.createBitmap(bmp, 0, off, bmp.width, bmp.height - off)
+                if (pic != null) ghost = Ghost(pic.asImageBitmap(), d, if (off > 0) off.toFloat() else 0f)
                 next(-d)
                 scope.launch { delay(450); leaving = false }
             }
@@ -287,7 +294,7 @@ class Rs(val ctx: Context) {
         val tr = travel
         enterJob = scope.launch {
             tx.snapTo(0f); rot.snapTo(0f)
-            if (m == "up") { ty.snapTo(d * tr); oy.snapTo(d * tr); alpha.snapTo(1f); scale.snapTo(1f) }
+            if (m == "up") { ty.snapTo(d * tr); oy.snapTo(d * tr); alpha.snapTo(0f); scale.snapTo(1f) }   // unseen until the new card is drawn (it still shows the last one)
             else { ty.snapTo(0f); oy.snapTo(0f); scale.snapTo(.8f); alpha.snapTo(0f) }
         }
     }
@@ -302,6 +309,7 @@ class Rs(val ctx: Context) {
                 if (ghost === g) ghost = null
             }
             if (m == "up") {
+                alpha.snapTo(1f)
                 val h = travel; val k = 4 * density
                 val kf = keyframes<Float> { durationMillis = 450; d * h at 0 using EASE_OUTISH; -d * k at 315 using EASE_IN_OUT; 0f at 450 }
                 launch { oy.animateTo(0f, kf) }

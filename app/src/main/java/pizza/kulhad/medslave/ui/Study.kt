@@ -72,7 +72,7 @@ fun Study(rs: Rs) {
                 AndroidView(factory = { rs.web.detach(); rs.web.view }, modifier = Modifier.fillMaxSize())
             }
             if (reelsOn) ReelOverlay(rs)
-            rs.ghost?.let { g -> Image(g.img, null, Modifier.fillMaxSize().graphicsLayer { translationY = g.y.value }, contentScale = ContentScale.FillBounds) }
+            rs.ghost?.let { g -> Image(g.img, null, Modifier.fillMaxWidth().height((g.img.height / d).dp).graphicsLayer { translationY = g.top + g.y.value }, contentScale = ContentScale.FillBounds) }
             if (reelsOn) Bursts(rs)
             rs.fin?.let { FinCard(rs, it) }
         }
@@ -104,7 +104,8 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.cardGest
         if (!c.pressed) { tUp = c.uptimeMillis; break }
         if (follow && !multi) {
             if (!rdrag && abs(dy) > 10 && abs(dy) > abs(dx) * 1.2f && (dy < 0 && canBot() || dy > 0 && canTop())) rdrag = true
-            if (rdrag) { val py = (if (dy < 0 && !bot || dy > 0 && !top) 0f else dy) * d; rs.scope.launch { rs.ty.snapTo(py); rs.oy.snapTo(py) } }
+            if (rdrag) { c.consume()   /* the reel moves, not the card's page under it */
+                val py = (if (dy < 0 && !bot || dy > 0 && !top) 0f else dy) * d; rs.scope.launch { rs.ty.snapTo(py); rs.oy.snapTo(py) } }
         }
         if (flip) {
             if (rs.stage == 1 && (bot || top)) glow(if (abs(dy) > 10 && abs(dy) > abs(dx)) (if (dy < 0 && bot) minOf(1f, -dy / 160) else if (dy > 0 && top) -minOf(1f, dy / 160) else 0f) else 0f)
