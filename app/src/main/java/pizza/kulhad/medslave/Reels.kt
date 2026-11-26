@@ -90,8 +90,13 @@ class Reels(private val rs: Rs) {
         val p = Playlist(name); p.status = "Reading the list…"; lists.add(p)
         thread {
             /* an album link: its songs straight from Apple, all at once */
+            lastAlbum = ""
             val al = runCatching { albumSongs(text.trim(), p.key) }.getOrNull()
-            if (!al.isNullOrEmpty()) { h.post { p.songs.addAll(al); p.status = ""; saveLists(); changed() }; return@thread }
+            val albumName = lastAlbum
+            if (!al.isNullOrEmpty()) { h.post {
+                /* no name typed: the playlist takes the album's name */
+                if (name0.isBlank() && albumName.isNotBlank()) p.name = albumName.trim().let { n -> var x = n; var k = 2; while (lists.any { it !== p && it.name == x }) x = "$n ${k++}"; x }
+                p.songs.addAll(al.map { Song(it.title, it.artist, it.url, it.art, p.key) }); p.status = ""; saveLists(); changed() }; return@thread }
             val tracks = runCatching { tracksOf(text.trim()) }.getOrDefault(emptyList())
             if (tracks.isEmpty()) { h.post { p.status = "Couldn't read any songs from that" }; return@thread }
             tracks.forEachIndexed { i, (t, ar) ->
@@ -142,8 +147,10 @@ class Reels(private val rs: Rs) {
         return appleAlbum(best.optLong("collectionId").toString(), "us", key)
     }
     /** an Apple album's songs with previews, in album order */
+    @Volatile private var lastAlbum = ""   // the album appleAlbum last read (a new playlist with no name takes it)
     private fun appleAlbum(id: String, cc: String, key: String): List<Song> {
         val r = JSONObject(get("https://itunes.apple.com/lookup?entity=song&id=$id&country=$cc")).getJSONArray("results")
+        lastAlbum = (0 until r.length()).map { r.getJSONObject(it) }.firstOrNull { it.optString("wrapperType") == "collection" }?.optString("collectionName").orEmpty()
         return (0 until r.length()).map { r.getJSONObject(it) }.filter { it.optString("wrapperType") == "track" && it.has("previewUrl") }
             .sortedWith(compareBy({ it.optInt("discNumber") }, { it.optInt("trackNumber") }))
             .map { Song(it.optString("trackName"), it.optString("artistName"), it.getString("previewUrl"), it.optString("artworkUrl100"), key) }
