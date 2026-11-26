@@ -328,12 +328,27 @@ private fun MusicSheet(rs: Rs) {
     Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 6.dp)) {
         Txt("Songs only play from the genres and playlists that are on.", size = 14.sp, color = P.faint, modifier = Modifier.padding(vertical = 6.dp))
         /* your playlists first (a long press edits one), then the genres */
-        Txt("Your playlists", bold = true, modifier = Modifier.padding(top = 4.dp, bottom = 2.dp))
-        if (r.lists.isNotEmpty()) Txt("Press and hold a playlist to edit it", size = 12.8.sp, color = P.faint)
-        r.lists.toList().forEach { p ->
-            val n = p.songs.size
-            row(Ic.NOTE, p.name, p.status.ifEmpty { "$n song${if (n == 1) "" else "s"}" }, p.key, n > 0, long = { r.buzz(); editing = p }) {   // a long press edits it, with a small buzz
-                Box(Modifier.size(32.dp).clip(CircleShape).clickable { r.removePlaylist(p) }, contentAlignment = Alignment.Center) { Txt("×", size = 20.sp, color = P.faint) }
+        /* your playlists all at once, like the genres below: only while a genre is on, so something can still play */
+        val pk = r.lists.filter { it.songs.isNotEmpty() }.map { it.key }
+        val genreOn = r.genres.any { (g, _) -> g !in rs.set.goff && r.songs.any { it.genre == g && !it.dead } }
+        Row(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+            Txt("Your playlists", bold = true, modifier = Modifier.weight(1f))
+            if (genreOn && pk.isNotEmpty()) Switch(pk.any { it !in rs.set.goff }) { on ->
+                msg = ""; r.markLists(); rs.set.goff = if (on) rs.set.goff - pk.toSet() else rs.set.goff + pk; rs.set.save(); r.genreChanged()
+            }
+        }
+        /* with every playlist off (the switch above), the list folds away; one still being found keeps it open */
+        androidx.compose.animation.AnimatedVisibility(!(genreOn && pk.isNotEmpty()) || pk.any { it !in rs.set.goff } || r.lists.any { it.songs.isEmpty() },
+            enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
+            exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()) {
+            Column {
+                if (r.lists.isNotEmpty()) Txt("Press and hold a playlist to edit it", size = 12.8.sp, color = P.faint)
+                r.lists.toList().forEach { p ->
+                    val n = p.songs.size
+                    row(Ic.NOTE, p.name, p.status.ifEmpty { "$n song${if (n == 1) "" else "s"}" }, p.key, n > 0, long = { r.buzz(); editing = p }) {   // a long press edits it, with a small buzz
+                        Box(Modifier.size(32.dp).clip(CircleShape).clickable { r.removePlaylist(p) }, contentAlignment = Alignment.Center) { Txt("×", size = 20.sp, color = P.faint) }
+                    }
+                }
             }
         }
         Btn("Add a playlist", Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 12.dp), p = true, h = 38.dp, size = 14.4.sp) { adding = true }
