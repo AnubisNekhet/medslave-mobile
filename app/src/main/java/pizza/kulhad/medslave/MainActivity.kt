@@ -62,6 +62,19 @@ class MainActivity : ComponentActivity() {
         rs.openFile = { mimes, then -> openThen = then; runCatching { opener.launch(mimes) } }
         rs.saveFile = { name, _, data -> saveData = data; runCatching { saver.launch(name) } }
         handle(intent)
+        /* the system splash (the big icon) stays until the deck is loaded, so the app's smaller spinner never takes over from it on launch
+           (it looked like the icon shrank as it started spinning). a cap of 3 s in case loading stalls */
+        if (!rs.loaded) {
+            val t0 = android.os.SystemClock.uptimeMillis()
+            val content = findViewById<android.view.View>(android.R.id.content)
+            content.viewTreeObserver.addOnPreDrawListener(object : android.view.ViewTreeObserver.OnPreDrawListener {
+                override fun onPreDraw(): Boolean {
+                    val ready = rs.loaded || android.os.SystemClock.uptimeMillis() - t0 > 3000
+                    if (ready) content.viewTreeObserver.removeOnPreDrawListener(this)
+                    return ready
+                }
+            })
+        }
         setContent {
             val sys = isSystemInDarkTheme()
             val dark = when (rs.set.mode) { "light" -> false; "dark" -> true; else -> sys }   // Settings › Appearance › Mode
