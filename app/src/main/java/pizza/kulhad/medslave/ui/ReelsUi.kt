@@ -115,7 +115,8 @@ fun ReelOverlay(rs: Rs) {
                 Box(Modifier.size(37.dp).clip(CircleShape).background(r.color), contentAlignment = Alignment.Center) { Icon(r.icon, 20.dp, DARKINK) }
                 Column(Modifier.widthIn(max = (LocalConfiguration.current.screenWidthDp * .6f).dp)) {
                     androidx.compose.foundation.text.BasicText(r.name, style = TextStyle(color = P.text, fontSize = 15.sp, fontFamily = Carlito, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, shadow = glowStyle()), maxLines = 1)
-                    r.song?.let { s -> androidx.compose.foundation.text.BasicText("♪ ${s.title} · ${s.artist}", style = TextStyle(color = P.text.copy(alpha = .85f), fontSize = 11.5.sp, fontFamily = Carlito, shadow = glowStyle()), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
+                    r.song?.let { s -> androidx.compose.foundation.text.BasicText("♪ ${s.title} · ${s.artist}", style = TextStyle(color = P.text.copy(alpha = .85f), fontSize = 11.5.sp, fontFamily = Carlito, shadow = glowStyle()), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        modifier = Modifier.clickable(remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, null) { r.open("music") }) }   // the song opens the music sheet
                 }
             }
             Column(Modifier.onGloballyPositioned { r.setExcl(1, it.boundsInWindow()) }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(15.dp)) {
