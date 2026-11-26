@@ -137,18 +137,20 @@ class Feed(val rs: Rs) {
         "this one's a classic", "pin this 📌", "read it twice", "no way you forgot this", "daily reminder")
 
     /** a random card from one of the account's niches: [note json, ordinal, subject] */
-    private fun card(r: Random, a: Acc): Triple<JSONArray, Int, Int>? {
+    private var lastMcq = false   // whether card() just picked an MCQ (carousels never have one)
+    private fun card(r: Random, a: Acc, noMcq: Boolean = false): Triple<JSONArray, Int, Int>? {
         val d = deck ?: return null; val s = a.subs[r.nextInt(a.subs.size)]; val notes = d.subjects[s].notes
         if (notes.isEmpty()) return null
         var n: Note; var o: Int; var k = 0
-        do { n = notes[r.nextInt(notes.size)]; o = n.ords[r.nextInt(n.ords.size)] } while (isHidden(n.id, o) && ++k < 12)   // never a hidden card
-        if (isHidden(n.id, o)) return null
+        do { n = notes[r.nextInt(notes.size)]; o = n.ords[r.nextInt(n.ords.size)] } while ((isHidden(n.id, o) || noMcq && n.mcq) && ++k < 12)   // never a hidden card
+        if (isHidden(n.id, o) || noMcq && n.mcq) return null
+        lastMcq = n.mcq
         return Triple(JSONArray(DeckStore.noteJson(rs.ctx, n)), o, s)
     }
 
     /** one post: a random card from account ai's niche, with counts, a caption from the card's tags and two comments */
     private fun post(r: Random, ai: Int): JSONObject? {
-        val (n, o, _) = card(r, acc[ai]) ?: return null; val reels = rs.reels
+        val (n, o, _) = card(r, acc[ai]) ?: return null; val reels = rs.reels; val mcq = lastMcq
         val tags = n.optJSONArray(5)?.let { t -> (0 until t.length()).map { t.getString(it).split("::").last().replace(Regex("[^\\p{L}\\p{N}_]"), "") } }.orEmpty().filter { it.isNotEmpty() }
         val hash = tags.take(3).joinToString(" ") { "#" + it.lowercase() }   // the card's own tags; no deck paths in the feed
         return JSONObject().put("a", ai).put("n", n).put("o", o).put("likes", r.nextInt(120, 98000)).put("coms", r.nextInt(4, 2400))
@@ -156,6 +158,10 @@ class Feed(val rs: Rs) {
             .put("cm", JSONArray(List(2) { JSONArray().put(reels.names[r.nextInt(reels.names.size)] + reels.suffixes[r.nextInt(reels.suffixes.size)]).put(reels.comments[r.nextInt(reels.comments.size)]) }))
             .put("t", listOf("2 minutes ago", "18 minutes ago", "1 hour ago", "3 hours ago", "7 hours ago", "yesterday", "2 days ago")[r.nextInt(7)])
             .also { song(r, it) }
+            .also { o ->   /* a carousel: 10% of posts have 3 cards, another 23% have 2 (the page drops it if a card would need 'more'); never with MCQs */
+                val roll = r.nextFloat(); val extra = if (roll < .10f) 2 else if (roll < .33f) 1 else 0
+                if (extra > 0 && !mcq) { val m = JSONArray(); repeat(extra) { card(r, acc[ai], noMcq = true)?.let { (n2, o2, _) -> m.put(JSONObject().put("n", n2).put("o", o2)) } }; if (m.length() > 0) o.put("more", m) }
+            }
     }
 
     private fun posts(p: Int): JSONArray {

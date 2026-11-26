@@ -24,7 +24,21 @@ function reviewHTML(n,o){cur={n,o};stage=1;FL=false;return `<div class="wrap"><d
 function answerHTML(n,o){cur={n,o};stage=1;FL=false;EXIN=true;const tg=SET.tags;SET.tags=false;const h=face(true);SET.tags=tg;EXIN=false;   /* no tags on a post: its caption has them as hashtags */
  return h.replace(/^(<div class="prettify-flashcard[^"]*">)<div class="prettify-deck">[\s\S]*?<\/div>(?:<hr[^>]*>|<div class="prettify-divider[^"]*"><\/div>)/,'$1')}   /* a post: no deck path on the card */
 function settle(el){imgs(el);mj(el);el.querySelectorAll('.f-pb').forEach(clip);subs(el)}
-function clip(b){if(b.classList.contains('open'))return;const c=b.querySelector('.prettify-flashcard');b.classList.toggle('clip',!!c&&c.scrollHeight>c.clientHeight+2)}
+function clip(b){if(b.classList.contains('open'))return;
+ /* a carousel whose cards don't all fit drops to its first card (with 'more' if that needs it) */
+ if(b.querySelector('.f-car')){const el=b.closest('.f-post'),p=el&&postOf(el);if([...b.querySelectorAll('.f-sl>.prettify-flashcard')].some(c=>c.scrollHeight>c.clientHeight+2)&&p){p.single=true;el.__s=0;el.querySelector('.f-dots')?.remove();b.innerHTML=bodyHTML(p);imgs(b);mj(b)}else return}
+ const c=b.querySelector('.prettify-flashcard');b.classList.toggle('clip',!!c&&c.scrollHeight>c.clientHeight+2)}
+/* ---- carousels: the post's cards side by side, swiped with snapping, dots under it; all as tall as the tallest, a shorter card's
+   question and answer centred in it (the extra room split above and below) */
+const CHEV='<div class="f-pmore"><button class="mcq-chev" aria-label="Show more"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>';
+const slides=p=>p.single||!p.more||!p.more.length?[{n:p.n,o:p.o}]:[{n:p.n,o:p.o}].concat(p.more);
+const mid=h=>h.replace(/^(<div class="prettify-flashcard[^"]*">)([\s\S]*)(<\/div>)$/,'$1<div class="f-mid">$2</div>$3');
+function bodyHTML(p){if(p.day)return dayHTML(p);const s=slides(p);if(s.length<2)return answerHTML(p.n,p.o)+CHEV;
+ return `<div class="f-car">${s.map(c=>`<div class="f-sl">${mid(answerHTML(c.n,c.o))}</div>`).join('')}</div>`}
+const cardAt=(el,p)=>slides(p)[Math.min(el.__s||0,slides(p).length-1)];   /* the card on show (hide and save act on it) */
+document.addEventListener('scroll',e=>{const c=e.target;if(!c.classList||!c.classList.contains('f-car'))return;const el=c.closest('.f-post'),p=el&&postOf(el);if(!p)return;
+ const i=Math.round(c.scrollLeft/Math.max(1,c.clientWidth));if(i===el.__s)return;el.__s=i;
+ el.querySelectorAll('.f-dots i').forEach((d,k)=>d.classList.toggle('on',k===i));const sv=el.querySelector('.f-sv'),k=cardAt(el,p);if(sv&&k.n)sv.classList.toggle('on',F.saved.has(k.n[0]+':'+k.o))},true);
 document.addEventListener('load',e=>{if(e.target.tagName!='IMG')return;ioBox(e.target);const b=e.target.closest('.f-pb');if(b)clip(b)},true);
 const FD=$('#feed'),PFE=$('#pf');
 
@@ -39,8 +53,9 @@ setInterval(()=>{if(RM())return;document.querySelectorAll('.f-sub.two').forEach(
 /* ---- posts (the feed's, a profile's): data-i is the post's place: a number (the feed), p<i> (the open profile), h (the heatmap post) */
 const postOf=el=>{const i=el.dataset.i;return i=='h'?F.hp:i[0]=='p'?PF.list[+i.slice(1)]:F.posts[+i]};
 const isSaved=p=>p.n&&F.saved.has(p.n[0]+':'+p.o);
+const dotsHTML=p=>slides(p).length>1?`<div class="f-dots">${slides(p).map((_,k)=>`<i${k?'':' class="on"'}></i>`).join('')}</div>`:'';
 const hashtags=c=>ESC(c).replace(/#[^\s#]+/g,'<span class="f-tag">$&</span>');
-const actions=p=>`<div class="f-pa"><button class="f-lk${p.liked?' on':''}" aria-label="Like">${SVG(ICN.heart)}<span class="f-lkn">${fmt(p.likes+(p.liked?1:0))}</span></button><button class="f-cm" aria-label="Comments">${SVG(ICN.com)}<span>${fmt(p.coms)}</span></button><button class="f-sh" aria-label="Share">${SVG(ICN.send)}</button><button class="f-sv${isSaved(p)?' on':''}" aria-label="Save">${SVG(ICN.save)}</button></div>`;
+const actions=p=>`${dotsHTML(p)}<div class="f-pa"><button class="f-lk${p.liked?' on':''}" aria-label="Like">${SVG(ICN.heart)}<span class="f-lkn">${fmt(p.likes+(p.liked?1:0))}</span></button><button class="f-cm" aria-label="Comments">${SVG(ICN.com)}<span>${fmt(p.coms)}</span></button><button class="f-sh" aria-label="Share">${SVG(ICN.send)}</button><button class="f-sv${isSaved(p)?' on':''}" aria-label="Save">${SVG(ICN.save)}</button></div>`;
 function postHTML(p,i){const a=accOf(p.a);return `<article class="f-post" data-i="${i}">
 <header class="f-ph">${avatar(a)}<span class="f-pn"><b>${ESC(a.h)}</b>${subHTML([p.st&&'♪ '+p.st,p.n&&dir(p.n)])}</span>${p.n?`<button class="f-more" aria-label="More">${SVG(ICN.dots)}</button>`:''}</header>
 <div class="f-pb f-load">${skel()}</div>
@@ -78,7 +93,7 @@ const LAG=()=>Math.random()<.15?900+Math.random()*1300:200+Math.random()*700;
 function skel(){const w=[[86,64,72],[78,92,58,66],[70,88],[90,60,80,50]][Math.random()*4|0];
  return `<div class="f-sk" style="min-height:${120+Math.random()*110|0}px">${w.map(x=>`<i style="width:${x}%"></i>`).join('')}</div>`}
 function arrive(b){if(b.dataset.t)return;b.dataset.t=1;const el0=b.closest('.f-post');setTimeout(()=>{const el=b.closest('.f-post');if(!el)return;const p=postOf(el);if(!p)return;
- b.classList.remove('f-load');b.innerHTML=p.day?dayHTML(p):answerHTML(p.n,p.o)+'<div class="f-pmore"><button class="mcq-chev" aria-label="Show more"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>';b.classList.add('f-in');settle(el)},el0&&el0.dataset.i=='p0'?0:LAG())}   /* the card a profile was opened from is there at once */
+ b.classList.remove('f-load');b.innerHTML=bodyHTML(p);b.classList.add('f-in');settle(el)},el0&&el0.dataset.i=='p0'?0:LAG())}   /* the card a profile was opened from is there at once */
 const near=root=>new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.__o.unobserve(e.target);arrive(e.target)}}),{root,rootMargin:'300px 0px'});
 const NEAR=near(FD);
 function watch(e){if(!e.querySelector)return;const b=e.querySelector('.f-pb.f-load');if(b){if(e.closest('#pf'))arrive(b);else{b.__o=NEAR;NEAR.observe(b)}}if(e.classList.contains('f-post'))SEEN.observe(e)}   /* a profile's few posts load straight away (each after its delay) */
@@ -94,12 +109,12 @@ let LT=0,LX=null;
 function menuClose(){document.querySelectorAll('.f-menu').forEach(m=>m.remove())}
 const plain=n=>{const d=document.createElement('div');d.innerHTML=String(n[4][0]||'').replace(/<ol class="mcq"[\s\S]*?<\/ol>/,'').replace(/\{\{c\d+::([\s\S]*?)(::[\s\S]*?)?\}\}/g,'$1').replace(/<br\s*\/?>/gi,' ');return d.textContent.replace(/\s+/g,' ').trim().slice(0,160)};
 function hidePost(p){const k=p.n[0]+':'+p.o;A_.hide(String(p.n[0]),p.o,plain(p.n),dir(p.n));
- document.querySelectorAll('.f-post').forEach(x=>{const q=postOf(x);if(!q||!q.n||q.n[0]+':'+q.o!=k)return;
+ document.querySelectorAll('.f-post').forEach(x=>{const q=postOf(x);if(!q||!q.n||!slides(q).some(c=>c.n[0]+':'+c.o==k))return;   /* any post with that card, a carousel's too */
   if(RM()){x.remove();return}x.style.height=x.offsetHeight+'px';x.style.overflow='hidden';void x.offsetHeight;x.classList.add('f-gone');x.style.height='0px';setTimeout(()=>x.remove(),380)})}
 document.addEventListener('scroll',menuClose,true);
 function postClick(e){if(!e.target.closest('.f-menu,.f-more'))menuClose();const el=e.target.closest('.f-post');if(!el)return;const p=postOf(el);if(!p)return;const a=accOf(p.a);
  const mo=e.target.closest('.f-more');if(mo){const open=el.querySelector('.f-menu');menuClose();if(!open){el.insertAdjacentHTML('beforeend',`<div class="f-menu"><button class="f-hide">${SVG(ICN.stop)}<span>Hide</span></button></div>`)}return}
- if(e.target.closest('.f-hide')){menuClose();return hidePost(p)}
+ if(e.target.closest('.f-hide')){menuClose();return hidePost(cardAt(el,p))}
  if(e.target.closest('.f-ph .f-av,.f-ph .f-pn b'))return openAccount(p);
  if(e.target.closest('.f-sub'))return A_.mute();
  if(e.target.closest('.f-lk'))return like(el,p,!p.liked);
@@ -107,8 +122,8 @@ function postClick(e){if(!e.target.closest('.f-menu,.f-more'))menuClose();const 
  if(cm){kick(cm);return setTimeout(()=>A_.com(a.h,p.coms),RM()?0:160)}
  if(e.target.closest('.f-pv.f-cm'))return A_.com(a.h,p.coms);
  if(sh){kick(sh);return setTimeout(()=>A_.share(),RM()?0:260)}
- if(sv){kick(sv);if(!p.n)return sv.classList.toggle('on');const k=p.n[0]+':'+p.o,on=!F.saved.has(k);on?F.saved.add(k):F.saved.delete(k);A_.save(String(p.n[0]),p.o,on);
-  document.querySelectorAll('.f-post').forEach(x=>{const q=postOf(x);if(q&&q.n&&q.n[0]+':'+q.o==k)x.querySelector('.f-sv').classList.toggle('on',on)});return}
+ if(sv){kick(sv);if(!p.n)return sv.classList.toggle('on');const cc=cardAt(el,p),k=cc.n[0]+':'+cc.o,on=!F.saved.has(k);on?F.saved.add(k):F.saved.delete(k);A_.save(String(cc.n[0]),cc.o,on);
+  document.querySelectorAll('.f-post').forEach(x=>{const q=postOf(x);if(q&&q.n){const c2=cardAt(x,q);if(c2.n[0]+':'+c2.o==k)x.querySelector('.f-sv').classList.toggle('on',on)}});return}
  const b=e.target.closest('.f-pb');if(!b)return;
  if(e.target.closest('.f-pmore')){b.classList.toggle('open');return}   /* the chevron opens a long post and folds it again */
  const now=Date.now();if(now-LT<320&&LX===el){LT=0;const h=document.createElement('i');h.className='f-burst';h.innerHTML=SVG(ICN.heart);b.appendChild(h);setTimeout(()=>h.remove(),900);if(!p.liked)like(el,p,true)}else{LT=now;LX=el}}

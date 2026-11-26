@@ -410,8 +410,7 @@ private fun QrPopup(rs: Rs) {
 /** a like's colour: the accent, or Instagram red (Settings › Reviewing › Red likes) */
 @Composable fun likeC(rs: Rs) = if (rs.set.redlike) HEART else P.hi
 
-/** the logo spinning, the loading mark: upright for a moment, then two quick turns (eased in and out). while it's fast, a few fading
-    copies trail behind it: motion blur */
+/** the logo spinning, the loading mark: two quick turns (eased in and out), then a moment upright, and again */
 @Composable
 fun Spinner(size: androidx.compose.ui.unit.Dp) {
     var ms by remember { mutableStateOf(0L) }
@@ -419,15 +418,7 @@ fun Spinner(size: androidx.compose.ui.unit.Dp) {
     val hold = 380f; val spin = 760f; val turn = 720f
     /* it starts with the turn (most loads are short; a pause first would never show it moving), then rests upright, and so on */
     fun angle(t: Float): Float { val c = (t + hold) % (hold + spin); return if (c < hold) 0f else turn * FastOutSlowInEasing.transform((c - hold) / spin) }
-    val t = ms.toFloat(); val a = angle(t)
-    val v = (a - angle(t - 16f)).let { if (it < 0f) 0f else it }   // degrees a frame: how fast it's going
-    Box(contentAlignment = Alignment.Center) {
-        if (v > 6f) for (i in 4 downTo 1) {
-            val k = (v / 40f).coerceAtMost(1f)
-            Logo(size, Modifier.rotate(a - i * v * .45f).graphicsLayer { alpha = k * (.34f - i * .07f) })
-        }
-        Logo(size, Modifier.rotate(a))
-    }
+    Logo(size, Modifier.rotate(angle(ms.toFloat())))
 }
 
 /* the music sheet's genre icons */

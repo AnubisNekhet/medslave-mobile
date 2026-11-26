@@ -181,3 +181,11 @@ body.nocom .f-cm,body.nocom .f-cmt{display:none!important}
 /* the story header: the account takes the room: its name with the time right after it, and its song under them; then the × */
 .f-pnl{display:flex;align-items:baseline;gap:7px;min-width:0}.f-pnl small{flex:none;font-size:13px;color:var(--text-fg-faint)}
 .f-sa{flex:1;display:flex;align-items:center;gap:9px;min-width:0}.f-sh .f-pn{min-width:0;flex:1}.f-sh .f-pn b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* carousels: cards side by side, snapping; each as tall as the tallest, its content centred; dots in a row under them */
+.f-car{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
+.f-car::-webkit-scrollbar{display:none}
+.f-sl{flex:0 0 100%;scroll-snap-align:start;scroll-snap-stop:always;display:flex;min-width:0}
+.f-sl>.prettify-flashcard{flex:1;display:flex;flex-direction:column;justify-content:center;min-width:0}
+.f-dots{display:flex;justify-content:center;gap:4px;padding-top:10px;margin-bottom:-6px;pointer-events:none}   /* their own row under the cards */
+.f-dots i{width:6px;height:6px;border-radius:50%;background:var(--pdiv)}.f-dots i.on{background:var(--text-fg)}
