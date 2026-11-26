@@ -54,13 +54,13 @@ setInterval(()=>{if(RM())return;document.querySelectorAll('.f-sub.two').forEach(
 const postOf=el=>{const i=el.dataset.i;return i=='h'?F.hp:i[0]=='p'?PF.list[+i.slice(1)]:F.posts[+i]};
 const isSaved=p=>p.n&&F.saved.has(p.n[0]+':'+p.o);
 const dotsHTML=p=>slides(p).length>1?`<div class="f-dots">${slides(p).map((_,k)=>`<i${k?'':' class="on"'}></i>`).join('')}</div>`:'';
-const hashtags=c=>ESC(c).replace(/#[^\s#]+/g,'<span class="f-tag">$&</span>');
+const hashtags=(c,ex)=>ESC(c).replace(/#[^\s#]+/g,m=>`<span class="f-tag${ex&&ex.includes(m)?' f-ex':''}">${m}</span>`);   /* ex: exam hashtags (a slight accent tint) */
 const actions=p=>`${dotsHTML(p)}<div class="f-pa"><button class="f-lk${p.liked?' on':''}" aria-label="Like">${SVG(ICN.heart)}<span class="f-lkn">${fmt(p.likes+(p.liked?1:0))}</span></button><button class="f-cm" aria-label="Comments">${SVG(ICN.com)}<span>${fmt(p.coms)}</span></button><button class="f-sh" aria-label="Share">${SVG(ICN.send)}</button><button class="f-sv${isSaved(p)?' on':''}" aria-label="Save">${SVG(ICN.save)}</button></div>`;
 function postHTML(p,i){const a=accOf(p.a);return `<article class="f-post" data-i="${i}">
 <header class="f-ph">${avatar(a)}<span class="f-pn"><b>${ESC(a.h)}</b>${subHTML([p.st&&'♪ '+p.st,p.n&&dir(p.n)])}</span>${p.n?`<button class="f-more" aria-label="More">${SVG(ICN.dots)}</button>`:''}</header>
 <div class="f-pb f-load">${skel()}</div>
 ${actions(p)}
-${p.cap?`<div class="f-pc"><b>${ESC(a.h)}</b> ${hashtags(p.cap)}</div>`:''}
+${p.cap?`<div class="f-pc"><b>${ESC(a.h)}</b> ${hashtags(p.cap,p.ex)}</div>`:''}
 ${p.cm.length?`<div class="f-pv f-cm">View all ${fmt(p.coms)} comments</div>`:''}
 ${p.cm.map(([u,t])=>`<div class="f-pc f-cmt"><b>${ESC(u)}</b> ${ESC(t)}</div>`).join('')}
 ${p.t?`<div class="f-pt">${ESC(cap1(p.t))}</div>`:''}</article>`}

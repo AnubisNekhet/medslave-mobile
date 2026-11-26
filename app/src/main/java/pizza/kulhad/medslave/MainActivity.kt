@@ -69,6 +69,7 @@ class MainActivity : ComponentActivity() {
                 enableEdgeToEdge(if (dark) SystemBarStyle.dark(t) else SystemBarStyle.light(t, t), if (dark) SystemBarStyle.dark(t) else SystemBarStyle.light(t, t)) }
             val p = remember(rs.set.theme, dark, rs.set.accent) { pal(rs.set.theme, dark).accented(pizza.kulhad.medslave.ui.accentOf(rs.set.theme, rs.set.accent, dark)) }
             rs.scope = rememberCoroutineScope()
+            LaunchedEffect(p.hi) { val h = String.format("#%06x", p.hi.toArgb() and 0xffffff); rs.web.accent(h); rs.feed.accHex = h }   // the pages' accent (exam tags)
             LaunchedEffect(p.hi, rs.set.redlike) { rs.feed.likeHex = if (rs.set.redlike) "#ff3040" else String.format("#%06x", p.hi.toArgb() and 0xffffff) }   // the feed's likes
             val dn = LocalDensity.current; val cf = LocalConfiguration.current
             SideEffect { rs.density = dn.density; rs.screenW = cf.screenWidthDp * dn.density; rs.screenH = cf.screenHeightDp * dn.density }

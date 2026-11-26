@@ -92,6 +92,8 @@ open class Page(protected val ctx: Context, file: String, transparent: Boolean, 
 
     protected fun js(s: String) { if (loaded) view.evaluateJavascript(s, null) else queue.add(s) }
     protected fun q(s: String) = JSONObject.quote(s)
+    /** the accent (#hex) as --acc: the exam tags' tint */
+    fun accent(hex: String) = js("document.documentElement.style.setProperty('--acc',${q(hex)})")
     fun theme(t: String, dark: Boolean) { if (t == "you") js("youVars(${q(pizza.kulhad.medslave.ui.You.css)})"); js("R.theme(${q(t)},$dark)") }
     fun detach() { (view.parent as? ViewGroup)?.removeView(view) }
 }

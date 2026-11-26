@@ -64,11 +64,16 @@ class FeedWeb(ctx: Context, f: Feed) : Page(ctx, "feed.html", false, { FeedBridg
 
 class Feed(val rs: Rs) {
     private var made: FeedWeb? = null
-    val web: FeedWeb get() = made ?: FeedWeb(rs.ctx, this).also { made = it; it.theme(rs.set.theme, rs.dark); it.like(likeHex) }
+    val web: FeedWeb get() = made ?: FeedWeb(rs.ctx, this).also { made = it; it.theme(rs.set.theme, rs.dark); it.like(likeHex); if (accHex.isNotEmpty()) it.accent(accHex) }
     fun theme(t: String, dark: Boolean) { made?.theme(t, dark) }
+    var accHex = ""   // the accent (#hex), for the exam tags' tint
+        set(v) { field = v; made?.accent(v) }
     var likeHex = "#ff3040"
         set(v) { field = v; made?.like(v) }
     var storyOpen by mutableStateOf(false)
+
+/** exam tags: NEET or AIIMS anywhere in a tag's full name */
+private val EXAM = Regex("neet|aiims", RegexOption.IGNORE_CASE)
 
     private class Acc(val h: String, val ic: String, val c: String) { val subs = ArrayList<Int>() }
     private var deck: Deck? = null
@@ -153,8 +158,11 @@ class Feed(val rs: Rs) {
         val (n, o, _) = card(r, acc[ai]) ?: return null; val reels = rs.reels; val mcq = lastMcq
         val tags = n.optJSONArray(5)?.let { t -> (0 until t.length()).map { t.getString(it).split("::").last().replace(Regex("[^\\p{L}\\p{N}_]"), "") } }.orEmpty().filter { it.isNotEmpty() }
         val hash = tags.take(3).joinToString(" ") { "#" + it.lowercase() }   // the card's own tags; no deck paths in the feed
+        /* exam tags (NEET, AIIMS anywhere in the full tag): their hashtags get a slight accent tint */
+        val ex = n.optJSONArray(5)?.let { t -> (0 until t.length()).map { t.getString(it) } }.orEmpty().filter { EXAM.containsMatchIn(it) }
+            .map { "#" + it.split("::").last().replace(Regex("[^\\p{L}\\p{N}_]"), "").lowercase() }
         return JSONObject().put("a", ai).put("n", n).put("o", o).put("likes", r.nextInt(120, 98000)).put("coms", r.nextInt(4, 2400))
-            .put("cap", (CAPS[r.nextInt(CAPS.size)] + " " + hash).trim())
+            .put("cap", (CAPS[r.nextInt(CAPS.size)] + " " + hash).trim()).put("ex", JSONArray(ex))
             .put("cm", JSONArray(List(2) { JSONArray().put(reels.names[r.nextInt(reels.names.size)] + reels.suffixes[r.nextInt(reels.suffixes.size)]).put(reels.comments[r.nextInt(reels.comments.size)]) }))
             .put("t", listOf("2 minutes ago", "18 minutes ago", "1 hour ago", "3 hours ago", "7 hours ago", "yesterday", "2 days ago")[r.nextInt(7)])
             .also { song(r, it) }

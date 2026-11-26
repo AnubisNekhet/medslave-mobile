@@ -70,7 +70,7 @@ button:active,button:hover{background:none;color:inherit}
 .f-pa button{display:flex;align-items:center;gap:5px;font-size:14px;font-weight:700;line-height:1}
 /* optical alignment: the plane's tail leaves empty space on its left and its weight sits high; the bubble's weight sits high too */
 .f-pa .f-sh{margin-left:-5px}.f-pa .f-sh svg{position:relative;top:1px}.f-pa .f-cm svg{position:relative;top:-.5px}
-.f-tag{color:var(--text-fg-faint)}
+.f-tag{color:var(--text-fg-faint)}.f-tag.f-ex{color:color-mix(in srgb,var(--text-fg-faint) 78%,var(--acc,var(--text-fg-faint)))}   /* exam hashtags: a slight accent tint */
 /* pull to refresh: the logo under the top bar */
 #ptr{position:fixed;left:50%;top:calc(66px + var(--st,0px));z-index:4;width:26px;height:26px;opacity:0;transform:translate(-50%,0);pointer-events:none;color:var(--text-fg)}
 #ptr svg{display:block;width:26px;height:26px}
