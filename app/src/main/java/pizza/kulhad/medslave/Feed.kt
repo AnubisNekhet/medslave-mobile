@@ -205,7 +205,9 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
         val d = deck ?: rs.deck
         val m = subOf ?: HashMap<Long, Int>().also { m -> d.subjects.forEachIndexed { i, s -> s.notes.forEach { m[it.id] = i } } }.also { subOf = it }
         val s = m[n.id] ?: return -1
-        return acc.indexOfFirst { s in it.subs }
+        /* any of the accounts that post this subject, picked by the card (so a card always shows the same one, and its profile matches) */
+        val l = acc.indices.filter { s in acc[it].subs }; if (l.isEmpty()) return -1
+        return l[Math.floorMod(n.id.hashCode(), l.size)]
     }
     /** the feed account for a card: handle, icon, colour (#hex); null before the feed is built */
     fun accountOf(n: Note): Triple<String, String, String>? = acc.getOrNull(accIndex(n))?.let { Triple(it.h, it.ic, it.c) }
