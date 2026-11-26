@@ -47,7 +47,7 @@ ${actions(p)}
 ${p.cap?`<div class="f-pc"><b>${ESC(a.h)}</b> ${hashtags(p.cap)}</div>`:''}
 ${p.cm.length?`<div class="f-pv f-cm">View all ${fmt(p.coms)} comments</div>`:''}
 ${p.cm.map(([u,t])=>`<div class="f-pc f-cmt"><b>${ESC(u)}</b> ${ESC(t)}</div>`).join('')}
-<div class="f-pt">${ESC(cap1(p.t))}</div></article>`}
+${p.t?`<div class="f-pt">${ESC(cap1(p.t))}</div>`:''}</article>`}
 
 /* ---- the heatmap post: always first, from daily.heatmap. answers revealed per day (the app's medslave:activity), one block per month,
    Monday-first weeks, today at the right end; a tap on a day shows its count. caption: today and the streak */

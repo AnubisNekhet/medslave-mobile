@@ -216,7 +216,7 @@ class Feed(val rs: Rs) {
             val r = Random(System.nanoTime()); val list = JSONArray(); val a = savedList()
             for (i in 0 until a.length()) { val e = a.getJSONArray(i); val n = by[e.getLong(0)] ?: continue
                 list.put(JSONObject().put("a", -2).put("n", JSONArray(DeckStore.noteJson(rs.ctx, n))).put("o", e.getInt(1)).put("likes", r.nextInt(120, 98000))
-                    .put("coms", r.nextInt(4, 2400)).put("cap", "").put("cm", JSONArray()).put("t", "saved")) }
+                    .put("coms", r.nextInt(4, 2400)).put("cap", "").put("cm", JSONArray()).put("t", "")) }   // no time line in the archive
             val j = JSONObject().put("a", -2).put("name", "Saved Cards").put("bio", "").put("posts", list.length()).put("followers", -1).put("following", -1)
                 .put("hl", JSONArray()).put("list", list)
             main.post { if (pfAi == -2) web.profile(j.toString()) }

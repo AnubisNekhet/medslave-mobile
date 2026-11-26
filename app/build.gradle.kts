@@ -16,8 +16,8 @@ android {
         applicationId = "pizza.kulhad.medslave"
         minSdk = 26
         targetSdk = 35
-        versionCode = 41
-        versionName = "1.40"
+        versionCode = 42
+        versionName = "1.41"
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
     }
     signingConfigs {
