@@ -34,6 +34,7 @@ class FeedBridge(private val f: Feed) {
     @JavascriptInterface fun pfOpen(open: Boolean) = h.post { f.profileOpen = open; if (!open) f.stopSong() }
     @JavascriptInterface fun saved() = h.post { f.savedProfile() }
     @JavascriptInterface fun save(id: String, o: Int, on: Boolean) = h.post { f.save(id.toLong(), o, on) }
+    @JavascriptInterface fun hide(id: String, o: Int, text: String, path: String) = h.post { f.hide(id.toLong(), o, text, path) }
     @JavascriptInterface fun play(k: String) = h.post { f.playSong(k) }
     @JavascriptInterface fun mute() = h.post { f.rs.reels.tapMusic() }
 }
@@ -134,8 +135,10 @@ class Feed(val rs: Rs) {
     private fun card(r: Random, a: Acc): Triple<JSONArray, Int, Int>? {
         val d = deck ?: return null; val s = a.subs[r.nextInt(a.subs.size)]; val notes = d.subjects[s].notes
         if (notes.isEmpty()) return null
-        val n = notes[r.nextInt(notes.size)]
-        return Triple(JSONArray(DeckStore.noteJson(rs.ctx, n)), n.ords[r.nextInt(n.ords.size)], s)
+        var n: Note; var o: Int; var k = 0
+        do { n = notes[r.nextInt(notes.size)]; o = n.ords[r.nextInt(n.ords.size)] } while (isHidden(n.id, o) && ++k < 12)   // never a hidden card
+        if (isHidden(n.id, o)) return null
+        return Triple(JSONArray(DeckStore.noteJson(rs.ctx, n)), o, s)
     }
 
     /** one post: a random card from account ai's niche, with counts, a caption from the card's tags and two comments */
@@ -179,7 +182,8 @@ class Feed(val rs: Rs) {
             kids.take(3 + r.nextInt(4)).forEach { k ->
                 val notes = d.notesFor(k); if (notes.isEmpty()) return@forEach
                 val items = JSONArray()
-                repeat(2 + r.nextInt(4)) { val n = notes[r.nextInt(notes.size)]; items.put(JSONObject().put("n", JSONArray(DeckStore.noteJson(rs.ctx, n))).put("o", n.ords[r.nextInt(n.ords.size)]).also { song(r, it) }) }
+                repeat(2 + r.nextInt(4)) { val n = notes[r.nextInt(notes.size)]; val o = n.ords[r.nextInt(n.ords.size)]; if (isHidden(n.id, o)) return@repeat
+                    items.put(JSONObject().put("n", JSONArray(DeckStore.noteJson(rs.ctx, n))).put("o", o).also { song(r, it) }) }
                 hl.put(JSONObject().put("t", k.name).put("ic", icons[r.nextInt(icons.size)]).put("items", items))
             }
             val count = st.nextInt(9, 240); pfLeft = count - 1   // the card it was opened from is the first post
@@ -206,6 +210,22 @@ class Feed(val rs: Rs) {
         if (on) l.add(0, JSONArray().put(id).put(o))
         rs.store.set(SAVED, JSONArray(l).toString())
     }
+    /* ---- hidden cards (a post's menu › Hide): never picked for posts, stories or reels; listed in Settings › Hidden cards */
+    class Hidden(val id: Long, val o: Int, val text: String, val path: String)
+    private fun hiddenList(): JSONArray = runCatching { JSONArray(rs.store.get(HIDDEN) ?: "[]") }.getOrDefault(JSONArray())
+    private var hiddenKeys: Set<String>? = null
+    var hiddenTick by androidx.compose.runtime.mutableIntStateOf(0)   // bumps when the list changes
+    fun isHidden(id: Long, o: Int): Boolean {
+        val k = hiddenKeys ?: hiddenList().let { a -> (0 until a.length()).map { a.getJSONArray(it).let { e -> "${e.getLong(0)}:${e.getInt(1)}" } }.toSet() }.also { hiddenKeys = it }
+        return "$id:$o" in k
+    }
+    fun hidden(): List<Hidden> = hiddenList().let { a -> (0 until a.length()).map { a.getJSONArray(it).let { e -> Hidden(e.getLong(0), e.getInt(1), e.optString(2), e.optString(3)) } } }
+    private fun setHidden(l: List<JSONArray>) { rs.store.set(HIDDEN, JSONArray(l).toString()); hiddenKeys = null; hiddenTick++ }
+    fun hide(id: Long, o: Int, text: String, path: String) {
+        val a = hiddenList(); val l = (0 until a.length()).map { a.getJSONArray(it) }.filter { !(it.getLong(0) == id && it.getInt(1) == o) }.toMutableList()
+        l.add(0, JSONArray().put(id).put(o).put(text).put(path)); setHidden(l)
+    }
+    fun unhide(id: Long, o: Int) { val a = hiddenList(); setHidden((0 until a.length()).map { a.getJSONArray(it) }.filter { !(it.getLong(0) == id && it.getInt(1) == o) }) }
     fun isSaved(id: Long, o: Int): Boolean { val a = savedList(); return (0 until a.length()).any { a.getJSONArray(it).let { e -> e.getLong(0) == id && e.getInt(1) == o } } }
     /** saved from Reels: the feed's bookmarks follow */
     fun saveFromReels(id: Long, o: Int, on: Boolean) { save(id, o, on); made?.savedSet(saved().toString()) }

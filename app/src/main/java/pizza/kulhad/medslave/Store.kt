@@ -16,6 +16,7 @@ const val AGK = "medslave:again"      // missed cards still to come back per dec
 const val SK = "medslave:settings"
 const val AK = "medslave:activity"    // answers revealed per day {yyyy-mm-dd: n}
 const val SEEN = "medslave:seen"
+const val HIDDEN = "medslave:hidden"   // hidden cards [[note id, ordinal, text, deck path], …] (a post's menu › Hide)
 const val SAVED = "medslave:saved"     // saved cards [[note id, ordinal], …] (the feed's save button)
 const val PLAYLISTS = "medslave:playlists"   // the user's playlists [{name, songs: [[title, artist, preview, art]]}]
 const val RK = "medslave:recent"      // the deck reviewed last (its path), for the home bar's resume button

@@ -163,10 +163,16 @@ class Rs(val ctx: Context) {
     /** the next card. d: where it comes from in Scroll up, 1 = below, -1 = above */
     fun next(d: Int = 1) {
         val s = S ?: return
-        s.i++
-        if (s.i >= s.q.size) return finish()
-        val it = s.q[s.i]; val n = it.n
-        val o = if (it.rq) it.o else (s.first ?: n.ords[(Math.random() * n.ords.size).toInt()]).also { s.first = null }
+        /* the next card that isn't hidden (a post's menu › Hide) */
+        var it: Item; var o: Int
+        while (true) {
+            s.i++
+            if (s.i >= s.q.size) return finish()
+            it = s.q[s.i]
+            o = if (it.rq) it.o else (s.first ?: it.n.ords[(Math.random() * it.n.ords.size).toInt()]).also { s.first = null }
+            if (!feed.isHidden(it.n.id, o)) break
+        }
+        val n = it.n
         val c = Cur(n, o, it.rq, DeckStore.noteJson(ctx, n))
         cur = c; stage = 0; mcqOk = null
         if (!it.rq) { s.ri = s.i; remember() }

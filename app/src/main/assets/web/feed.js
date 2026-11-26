@@ -5,12 +5,12 @@
    hides its bottom bar). App.seen(account): its story was watched. App.imp(). App.settings() / App.credits(): the gear and the logo.
    App.profile(account) → R.profile, App.pmore() → R.pposts, App.pfOpen(open), App.saved() → R.profile (saved.cards), App.save(id, o, on).
    App.play(song) / App.mute(): the song of whatever post or story is on screen, by "title · artist" ('' for none) */
-const A_=window.App||{more(){},com(){},share(){},story(){},seen(){},imp(){},settings(){},credits(){},refresh(){},profile(){},pmore(){},pfOpen(){},saved(){},save(){},play(){},mute(){}};
+const A_=window.App||{more(){},com(){},share(){},story(){},seen(){},imp(){},settings(){},credits(){},refresh(){},profile(){},pmore(){},pfOpen(){},saved(){},save(){},hide(){},play(){},mute(){}};
 const F={acc:[],posts:[],groups:[],wait:false,saved:new Set()};
 function fitX(){document.querySelectorAll('.f-pb').forEach(clip)}   /* face.js calls it after MathJax and after an MCQ's explanation opens: posts re-check their 'more' */
 const ESC=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
 const SVG=(p,a='')=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"${a}>${p}</svg>`;
-const ICN={heart:'<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
+const ICN={dots:'<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>',stop:'<path d="M2.586 16.726A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2h6.624a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586z"/><path d="M8 12h8"/>',heart:'<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
  com:'<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',send:'<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',save:'<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>',
  cal:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/>'};
 const fmt=n=>n>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':n>=1e4?Math.round(n/1e3)+'K':n>=1e3?(n/1e3).toFixed(1).replace(/\.0$/,'')+'K':''+n;
@@ -21,7 +21,8 @@ const HACC={h:'daily.heatmap',c:'#a6e3a1',ic:ICN.cal},SACC={h:'saved.cards',c:'#
 const accOf=a=>a==-1?HACC:a==-2?SACC:F.acc[a];
 const avatar=a=>`<span class="f-av" style="background:${a.c}">${SVG(a.ic)}</span>`;
 function reviewHTML(n,o){cur={n,o};stage=1;FL=false;return `<div class="wrap"><div class="tinder-swipe tinder-swipe--answer">${face(true)}</div></div>`}   /* a story: as the reviewer draws it */
-function answerHTML(n,o){cur={n,o};stage=1;FL=false;EXIN=true;const h=face(true);EXIN=false;return h.replace(/^(<div class="prettify-flashcard[^"]*">)<div class="prettify-deck">[\s\S]*?<\/div>(?:<hr[^>]*>|<div class="prettify-divider[^"]*"><\/div>)/,'$1')}   /* a post: no deck path on the card */
+function answerHTML(n,o){cur={n,o};stage=1;FL=false;EXIN=true;const tg=SET.tags;SET.tags=false;const h=face(true);SET.tags=tg;EXIN=false;   /* no tags on a post: its caption has them as hashtags */
+ return h.replace(/^(<div class="prettify-flashcard[^"]*">)<div class="prettify-deck">[\s\S]*?<\/div>(?:<hr[^>]*>|<div class="prettify-divider[^"]*"><\/div>)/,'$1')}   /* a post: no deck path on the card */
 function settle(el){imgs(el);mj(el);el.querySelectorAll('.f-pb').forEach(clip);subs(el)}
 function clip(b){if(b.classList.contains('open'))return;const c=b.querySelector('.prettify-flashcard');b.classList.toggle('clip',!!c&&c.scrollHeight>c.clientHeight+2)}
 document.addEventListener('load',e=>{if(e.target.tagName!='IMG')return;ioBox(e.target);const b=e.target.closest('.f-pb');if(b)clip(b)},true);
@@ -41,7 +42,7 @@ const isSaved=p=>p.n&&F.saved.has(p.n[0]+':'+p.o);
 const hashtags=c=>ESC(c).replace(/#[^\s#]+/g,'<span class="f-tag">$&</span>');
 const actions=p=>`<div class="f-pa"><button class="f-lk${p.liked?' on':''}" aria-label="Like">${SVG(ICN.heart)}<span class="f-lkn">${fmt(p.likes+(p.liked?1:0))}</span></button><button class="f-cm" aria-label="Comments">${SVG(ICN.com)}<span>${fmt(p.coms)}</span></button><button class="f-sh" aria-label="Share">${SVG(ICN.send)}</button><button class="f-sv${isSaved(p)?' on':''}" aria-label="Save">${SVG(ICN.save)}</button></div>`;
 function postHTML(p,i){const a=accOf(p.a);return `<article class="f-post" data-i="${i}">
-<header class="f-ph">${avatar(a)}<span class="f-pn"><b>${ESC(a.h)}</b>${subHTML([p.st&&'♪ '+p.st,p.n&&dir(p.n)])}</span></header>
+<header class="f-ph">${avatar(a)}<span class="f-pn"><b>${ESC(a.h)}</b>${subHTML([p.st&&'♪ '+p.st,p.n&&dir(p.n)])}</span>${p.n?`<button class="f-more" aria-label="More">${SVG(ICN.dots)}</button>`:''}</header>
 <div class="f-pb f-load">${skel()}</div>
 ${actions(p)}
 ${p.cap?`<div class="f-pc"><b>${ESC(a.h)}</b> ${hashtags(p.cap)}</div>`:''}
@@ -89,7 +90,16 @@ function addPosts(l){const box=$('#posts'),at=F.posts.length;F.posts.push(...l);
 function kick(b){b.classList.remove('go');void b.offsetWidth;b.classList.add('go')}   /* restarts a button's one-shot animation */
 function like(el,p,v){p.liked=v;const b=el.querySelector('.f-lk');b.classList.toggle('on',v);b.classList.remove('pop','unpop');void b.offsetWidth;b.classList.add(v?'pop':'unpop');el.querySelector('.f-lkn').textContent=fmt(p.likes+(v?1:0))}
 let LT=0,LX=null;
-function postClick(e){const el=e.target.closest('.f-post');if(!el)return;const p=postOf(el);if(!p)return;const a=accOf(p.a);
+/* a post's menu (the three dots): Hide keeps the card out of posts, stories and reels (Settings › Hidden cards brings it back) */
+function menuClose(){document.querySelectorAll('.f-menu').forEach(m=>m.remove())}
+const plain=n=>{const d=document.createElement('div');d.innerHTML=String(n[4][0]||'').replace(/<ol class="mcq"[\s\S]*?<\/ol>/,'').replace(/\{\{c\d+::([\s\S]*?)(::[\s\S]*?)?\}\}/g,'$1').replace(/<br\s*\/?>/gi,' ');return d.textContent.replace(/\s+/g,' ').trim().slice(0,160)};
+function hidePost(p){const k=p.n[0]+':'+p.o;A_.hide(String(p.n[0]),p.o,plain(p.n),dir(p.n));
+ document.querySelectorAll('.f-post').forEach(x=>{const q=postOf(x);if(!q||!q.n||q.n[0]+':'+q.o!=k)return;
+  if(RM()){x.remove();return}x.style.height=x.offsetHeight+'px';x.style.overflow='hidden';void x.offsetHeight;x.classList.add('f-gone');x.style.height='0px';setTimeout(()=>x.remove(),380)})}
+document.addEventListener('scroll',menuClose,true);
+function postClick(e){if(!e.target.closest('.f-menu,.f-more'))menuClose();const el=e.target.closest('.f-post');if(!el)return;const p=postOf(el);if(!p)return;const a=accOf(p.a);
+ const mo=e.target.closest('.f-more');if(mo){const open=el.querySelector('.f-menu');menuClose();if(!open){el.insertAdjacentHTML('beforeend',`<div class="f-menu"><button class="f-hide">${SVG(ICN.stop)}<span>Hide</span></button></div>`)}return}
+ if(e.target.closest('.f-hide')){menuClose();return hidePost(p)}
  if(e.target.closest('.f-ph .f-av,.f-ph .f-pn b'))return openAccount(p);
  if(e.target.closest('.f-sub'))return A_.mute();
  if(e.target.closest('.f-lk'))return like(el,p,!p.liked);

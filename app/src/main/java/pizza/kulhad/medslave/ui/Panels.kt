@@ -77,7 +77,7 @@ import pizza.kulhad.medslave.THEMES
 /* ---------------------------------------------------------------- settings (#sp): a menu of Appearance, Reviewing, Data */
 @Composable
 fun SettingsPanel(rs: Rs) {
-    val names = mapOf("ap" to "Appearance", "rv" to "Reviewing", "da" to "Data")
+    val names = mapOf("ap" to "Appearance", "rv" to "Reviewing", "hd" to "Hidden cards", "da" to "Data")
     androidx.activity.compose.BackHandler(rs.settingsSec != null) { rs.settingsSec = null }
     Popup({ SettingsTitle(rs, names) }, { rs.settingsOpen = false }) { SettingsBody(rs, names) }
 }
@@ -99,7 +99,7 @@ private fun SettingsBody(rs: Rs, names: Map<String, String>) {
         val dir = if (sec != null) 1f else -1f
         Column(Modifier.graphicsLayer { translationX = (1 - a.value) * dir * 24 * density; alpha = a.value }.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp)) {
             when (sec) {
-                null -> listOf("ap" to Ic.PALETTE, "rv" to Ic.CARDS, "da" to Ic.DB).forEachIndexed { i, (k, ic) ->
+                null -> listOf("ap" to Ic.PALETTE, "rv" to Ic.CARDS, "hd" to Ic.STOP, "da" to Ic.DB).forEachIndexed { i, (k, ic) ->
                     Row(Modifier.fillMaxWidth().then(if (i > 0) Modifier.dashedBottom(P.divider, top = true) else Modifier).press(shape = RoundedCornerShape(10.dp)) { rs.settingsSec = k }
                         .padding(horizontal = 3.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                         Icon(ic, 24.dp, P.text, 1.8f)
@@ -123,8 +123,26 @@ private fun SettingsBody(rs: Rs, names: Map<String, String>) {
                         Btn(if (tdone) "Done" else "Reset", enabled = !tdone, h = 37.dp, size = 14.4.sp, pad = 18.dp) { rs.resetTutorial(); tdone = true }
                     }
                 }
+                "hd" -> HiddenSec(rs)
                 "da" -> DataSec(rs)
             }
+        }
+    }
+}
+
+/** Settings › Hidden cards: the cards hidden from a post's menu; Unhide lets one come up again */
+@Composable
+private fun HiddenSec(rs: Rs) {
+    rs.feed.hiddenTick   // re-read when the list changes
+    val l = rs.feed.hidden()
+    if (l.isEmpty()) { Txt("Cards you hide from a post\u2019s menu show up here. They don\u2019t come up in posts, stories or reels.", size = 14.sp, color = P.faint, modifier = Modifier.padding(vertical = 8.dp)); return }
+    l.forEachIndexed { i, h ->
+        Row(Modifier.fillMaxWidth().then(if (i > 0) Modifier.dashedBottom(P.divider, top = true) else Modifier).padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.weight(1f)) {
+                Txt(h.text.ifEmpty { "A card" }.let { if (it.length > 90) it.take(88).trimEnd() + "…" else it }, size = 14.4.sp)
+                if (h.path.isNotEmpty()) Txt(h.path, size = 12.sp, color = P.faint)
+            }
+            Btn("Unhide", h = 34.dp, size = 13.6.sp, pad = 14.dp) { rs.feed.unhide(h.id, h.o) }
         }
     }
 }

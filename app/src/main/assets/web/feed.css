@@ -41,6 +41,15 @@ button:active,button:hover{background:none;color:inherit}
 #posts{padding:12px 10px 8px}
 .f-post{margin-bottom:14px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--card-radius);box-shadow:var(--card-box-shadow) 0 7px 14px 0,var(--card-box-shadow) 0 3px 6px 0;overflow:hidden;padding-bottom:12px}
 .f-ph{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px dashed var(--pdiv)}
+/* a post's menu: the three dots top right, and a small card under them with Hide (a red stop sign) */
+.f-post{position:relative}
+.f-more{margin-left:auto;flex:none;width:34px;height:34px;margin-right:-8px;display:grid;place-items:center;background:none;border:0;color:var(--text-fg);border-radius:50%;-webkit-tap-highlight-color:transparent}
+.f-more svg{width:20px;height:20px;display:block}.f-more:active{background:var(--pdiv)}
+.f-menu{position:absolute;top:50px;right:10px;z-index:5;background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;box-shadow:var(--card-box-shadow) 0 7px 14px 0,var(--card-box-shadow) 0 3px 6px 0;padding:4px;animation:fmenu .16s cubic-bezier(.2,.8,.2,1)}
+@keyframes fmenu{from{transform:translateY(-4px) scale(.96);opacity:0}}
+.f-hide{display:flex;align-items:center;gap:10px;padding:9px 16px 9px 12px;background:none;border:0;color:var(--text-fg);font:inherit;font-size:15px;font-weight:700;border-radius:7px;-webkit-tap-highlight-color:transparent}
+.f-hide:active{background:var(--pdiv)}.f-hide svg{width:20px;height:20px;display:block;color:#ff3040}
+.f-post.f-gone{transition:height .34s cubic-bezier(.4,0,.2,1),margin .34s,opacity .2s;opacity:0;margin-bottom:0!important;border-width:0}
 .f-pn{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.2}
 .f-pn b{font-size:14px}.f-pn small{font-size:12px;color:var(--text-fg-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .f-pb{position:relative;border-bottom:1px dashed var(--pdiv)}
