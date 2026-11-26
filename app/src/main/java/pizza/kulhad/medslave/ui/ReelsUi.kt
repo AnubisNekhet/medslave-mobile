@@ -62,6 +62,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
@@ -443,9 +444,11 @@ private fun AddPlaylist(rs: Rs, edit: pizza.kulhad.medslave.Reels.Playlist?, clo
                         /* the album cover at its true size (a square as tall as the pill) at the left end, under the song's accent (picked by the
                            song, so it stays put) fading in from 5% to full across the cover; the rest of the pill is the full colour. the title and
                            × in the opposite of the text colour (black in dark mode, white in light) */
-                        val bg = if (acc.isEmpty()) P.hi else acc[((s.title + s.artist).hashCode().toUInt() % acc.size.toUInt()).toInt()]
                         var cov by remember(s.art) { mutableStateOf<ImageBitmap?>(null) }
                         LaunchedEffect(s.art) { rs.reels.art(s.art) { cov = it } }
+                        /* the cover's dominant hue, made pastel for the theme (coverTint); a grey cover, or none yet, keeps an accent picked by the song */
+                        val dark = P.dark
+                        val fgc = P.bg; val bg = remember(cov, dark, fgc) { cov?.let { coverTint(it, dark, fgc) } } ?: if (acc.isEmpty()) P.hi else acc[((s.title + s.artist).hashCode().toUInt() % acc.size.toUInt()).toInt()]
                         Box(Modifier.fillMaxWidth().height(28.dp).clip(RoundedCornerShape(30.dp)).background(bg)) {   // full width: one song per row
                             Box(Modifier.size(28.dp).align(Alignment.CenterStart)) {
                                 cov?.let { Image(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
@@ -459,7 +462,7 @@ private fun AddPlaylist(rs: Rs, edit: pizza.kulhad.medslave.Reels.Playlist?, clo
                     }
                 }
             }
-            BasicTextField(text, { text = it }, Modifier.fillMaxWidth().heightIn(min = if (edit != null) 120.dp else 200.dp, max = 340.dp).clip(RoundedCornerShape(8.dp)).background(P.text.copy(alpha = .07f)).padding(12.dp),
+            BasicTextField(text, { text = it }, Modifier.fillMaxWidth().heightIn(min = 82.dp, max = 340.dp).clip(RoundedCornerShape(8.dp)).background(P.text.copy(alpha = .07f)).padding(12.dp),
                 textStyle = TextStyle(color = P.text, fontSize = 14.sp, fontFamily = Carlito), cursorBrush = SolidColor(P.text),
                 decorationBox = { inner -> Box { if (text.isEmpty()) Txt(if (edit != null) "Add more songs, one per line (Song – Artist),\nor a playlist link" else "Paste songs, one per line (Song – Artist),\nor a Spotify, Apple Music or YouTube playlist link", size = 14.sp, color = P.faint); inner() } })
             Txt("Each song plays its 30-second preview. Finding them takes a couple of seconds a song.", size = 12.8.sp, color = P.faint)
@@ -550,4 +553,27 @@ fun androidx.compose.foundation.layout.BoxScope.Waves(c: Color) {
             lineTo(170 * u, 200 * u); lineTo(-40 * u, 200 * u); close() }
         withTransform({ rotate(-28f) }) { drawPath(wave(52f), c1); drawPath(wave(76f), c2) }
     }
+}
+
+/** a cover's dominant colour as a pastel: the hue that most of its colourful pixels share (36 hue buckets, each pixel weighted by how vivid
+    it is, the best bucket taken with its neighbours), then a fixed saturation and lightness, like the theme's accents: light and soft in
+    dark mode (black text on it), a mid tone in light mode (white text on it), then lightened / darkened until the text on it (fg) reads
+    at a 4.5:1 contrast at least. null for a cover with too little colour */
+fun coverTint(img: ImageBitmap, dark: Boolean, fg: Color): Color? {
+    val b = android.graphics.Bitmap.createScaledBitmap(img.asAndroidBitmap(), 24, 24, true)
+    val w = FloatArray(36); val cx = FloatArray(36); val cy = FloatArray(36); val hsv = FloatArray(3); var tot = 0f
+    for (y in 0 until 24) for (x in 0 until 24) {
+        android.graphics.Color.colorToHSV(b.getPixel(x, y), hsv)
+        if (hsv[2] < .18f || hsv[1] < .22f) continue
+        val wt = hsv[1] * hsv[2]; val i = (hsv[0] / 10f).toInt().coerceIn(0, 35); val rad = Math.toRadians(hsv[0].toDouble())
+        w[i] += wt; cx[i] += (kotlin.math.cos(rad) * wt).toFloat(); cy[i] += (kotlin.math.sin(rad) * wt).toFloat(); tot += wt
+    }
+    if (tot < 24 * 24 * .04f) return null
+    val best = (0 until 36).maxBy { w[(it + 35) % 36] + w[it] + w[(it + 1) % 36] }
+    val ks = listOf((best + 35) % 36, best, (best + 1) % 36)
+    val h = ((Math.toDegrees(kotlin.math.atan2(ks.sumOf { cy[it].toDouble() }, ks.sumOf { cx[it].toDouble() })) + 360) % 360).toFloat()
+    val f = fg.copy(alpha = 1f).toArgb(); var l = if (dark) .80f else .55f
+    fun col() = androidx.core.graphics.ColorUtils.HSLToColor(floatArrayOf(h, if (dark) .72f else .58f, l))
+    while (androidx.core.graphics.ColorUtils.calculateContrast(f, col()) < 4.5 && l in .1f..(.95f)) l += if (dark) .02f else -.02f
+    return Color(col())
 }
