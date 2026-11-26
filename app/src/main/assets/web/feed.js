@@ -178,12 +178,19 @@ function svGo(g){const p=$('#svp');p.scrollTo({left:g*p.clientWidth,behavior:'sm
 function svNext(){const G=SV.list[SV.g];if(SV.i<G.items.length-1)svShow(SV.g,SV.i+1);else if(SV.g<SV.list.length-1)svGo(SV.g+1);else svClose()}
 function svPrev(){if(SV.i>0)svShow(SV.g,SV.i-1);else if(SV.g>0)svGo(SV.g-1);else svShow(SV.g,0)}
 function svOpen(g,list,src){SV.list=list;SV.src=src;svBuild();const sv=$('#sv'),r=ringAt(g);sv.classList.add('on');SV.on=true;SV.last=0;A_.story(true);
- if(r&&!RM()){sv.style.transformOrigin=`${r.left+r.width/2}px ${r.top+r.height/2}px`;sv.animate([{transform:`scale(${r.width/innerWidth})`,opacity:.3,borderRadius:'50%'},{transform:'none',opacity:1,borderRadius:'0'}],{duration:320,easing:'cubic-bezier(.2,.8,.2,1)'})}
- const p=$('#svp');p.scrollLeft=g*p.clientWidth;svShow(g,0);cancelAnimationFrame(SV.raf);SV.raf=requestAnimationFrame(svTick)}
+ if(r&&!RM()){sv.style.transformOrigin=`${r.left+r.width/2}px ${r.top+r.height/2}px`;sv.animate([{transform:`scale(${r.width/innerWidth})`,opacity:.3,borderRadius:'50%'},{transform:'none',opacity:1,borderRadius:'0'}],{duration:200,easing:'cubic-bezier(.2,.8,.2,1)'})}
+ const p=$('#svp');p.scrollLeft=g*p.clientWidth;cube();svShow(g,0);cancelAnimationFrame(SV.raf);SV.raf=requestAnimationFrame(svTick)}
 function svClose(now){if(!SV.on)return;SV.on=false;cancelAnimationFrame(SV.raf);const sv=$('#sv'),r=!now&&!RM()&&ringAt(SV.g),done=()=>{if(F.next){F.groups=F.next;F.next=null}rings();tune()};
  A_.story(false);
- if(r){sv.style.transformOrigin=`${r.left+r.width/2}px ${r.top+r.height/2}px`;sv.animate([{transform:'none',opacity:1,borderRadius:'0'},{transform:`scale(${r.width/innerWidth})`,opacity:0,borderRadius:'50%'}],{duration:240,easing:'cubic-bezier(.4,0,.6,1)'}).onfinish=()=>{if(!SV.on){sv.classList.remove('on');$('#svp').innerHTML=''}};return done()}
+ if(r){sv.style.transformOrigin=`${r.left+r.width/2}px ${r.top+r.height/2}px`;sv.animate([{transform:'none',opacity:1,borderRadius:'0'},{transform:`scale(${r.width/innerWidth})`,opacity:0,borderRadius:'50%'}],{duration:170,easing:'cubic-bezier(.4,0,.6,1)'}).onfinish=()=>{if(!SV.on){sv.classList.remove('on');$('#svp').innerHTML=''}};return done()}
  sv.classList.remove('on');$('#svp').innerHTML='';done()}
+/* between accounts the stories turn like a cube: each account's page pivots on the edge it shares with the next as the pager scrolls
+   (a swipe or the move to the next account), darkening a little as it turns away */
+let CUBE=0;function cube(){CUBE=0;const p=$('#svp'),w=p.clientWidth;if(!w)return;
+ p.querySelectorAll('.f-sg').forEach(s=>{const f=Math.max(-1,Math.min(1,(s.offsetLeft-p.scrollLeft)/w));
+  if(RM()||Math.abs(f)<.001||Math.abs(f)>=1){s.style.transform='';s.style.filter='';return}
+  const e=f<0?w/2:-w/2;s.style.transform=`perspective(${w*2.2}px) translateX(${e}px) rotateY(${f*90}deg) translateX(${-e}px)`;s.style.filter=`brightness(${1-Math.abs(f)*.45})`})}
+$('#svp').addEventListener('scroll',()=>{if(!CUBE)CUBE=requestAnimationFrame(cube)},{passive:true});
 let SVS=0;$('#svp').addEventListener('scroll',()=>{clearTimeout(SVS);SVS=setTimeout(()=>{const p=$('#svp'),g=Math.round(p.scrollLeft/p.clientWidth);if(SV.on&&g!=SV.g)svShow(g,0)},120)},{passive:true});
 /* a tap: right 70% = next, left 30% = previous; holding pauses; the account at the top opens its profile */
 let PD=null,HT=0;
