@@ -87,10 +87,10 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.cardGest
     val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
     if (rs.cur == null) return@awaitEachGesture
     val flip = rs.set.flip; val x0 = down.position.x; val y0 = down.position.y; val t0 = down.uptimeMillis
-    var bot = rs.web.atBottom(); var top = rs.web.atTop(); rs.web.exUp = false; rs.web.exDown = false
+    var bot = rs.web.atBottom(); var top = rs.web.atTop(); rs.web.exUp = false; rs.web.exDown = false; rs.web.moved = false
     /* not while an explanation card under the finger can still scroll that way */
-    fun canBot() = bot && !rs.web.exDown
-    fun canTop() = top && !rs.web.exUp
+    fun canBot() = bot && !rs.web.exDown && !rs.web.moved   // and the card didn't scroll during this touch
+    fun canTop() = top && !rs.web.exUp && !rs.web.moved
     val tinder = !flip && !rs.leaving
     var drag = false; var dx = 0f; var dy = 0f; var multi = false; var lastGlow = 0f; var tUp = t0
     /* Reels: an answer card follows the finger (with its overlay) instead of waiting for the swipe to end, as reels do */

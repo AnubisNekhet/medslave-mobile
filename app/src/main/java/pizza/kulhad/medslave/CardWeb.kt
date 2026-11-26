@@ -33,6 +33,7 @@ class CardBridge(private val w: CardWeb) {
     @JavascriptInterface fun sc(top: Boolean, bot: Boolean) = h.post { w.top = top; w.bot = bot }
     @JavascriptInterface fun pick(ok: Boolean) = h.post { w.onPick(ok) }
     @JavascriptInterface fun ex(up: Boolean, down: Boolean) = h.post { w.exUp = up; w.exDown = down }
+    @JavascriptInterface fun mv() = h.post { w.moved = true }
 }
 
 /** one of the app's pages (an html file in assets/web) in a WebView, served from https://appassets.androidplatform.net/ so it behaves like a
@@ -104,6 +105,8 @@ class CardWeb(ctx: Context) : Page(ctx, "card.html", true, { CardBridge(it as Ca
     var seqN by mutableIntStateOf(1)
     /** this touch is on an MCQ's explanation card, which can still scroll up / down (reset as each touch lands) */
     var exUp = false; var exDown = false
+    /** the card scrolled during this touch (reset as each touch lands): a swipe that was scrolling it never moves to the next card */
+    var moved = false
     var contentH by mutableFloatStateOf(0f)   // the card's full height in CSS px (= dp)
     var onTap: () -> Unit = {}
     var onPick: (Boolean) -> Unit = {}   // an MCQ's option tapped: right or wrong
@@ -121,7 +124,7 @@ class CardWeb(ctx: Context) : Page(ctx, "card.html", true, { CardBridge(it as Ca
     fun opts(source: Boolean, expl: Boolean, tags: Boolean) = js("R.opts($source,$expl,$tags)")
     /** draws a card; onReady runs once it's on screen */
     fun show(noteJson: String, o: Int, stage: Int, flip: Boolean, onReady: () -> Unit = {}) {
-        val s = ++seq; waits.clear(); waits[s] = onReady; top = true; bot = true
+        val s = ++seq; waits.clear(); waits[s] = onReady; top = true; bot = false   // at its end only once the page says so
         js("R.show($s,$noteJson,$o,$stage,$flip)")
     }
     fun clear() { waits.clear(); js("R.clear()") }

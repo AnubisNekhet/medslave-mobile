@@ -3,7 +3,7 @@
    App.st(left, n): sequential clozes still hidden + the step size. App.tap(): a pulsing cloze was tapped (= Next).
    App.h(px): the card's full height in CSS px (Reels Mode keeps tall cards above the account row). App.sc(top, bottom): whether the
    card's own scroll is at its top / bottom (a card taller than the view scrolls inside itself). App.ready(seq): a draw is on the page */
-const A_=window.App||{st(){},tap(){},h(){},sc(){},ready(){},pick(){},ex(){}};
+const A_=window.App||{st(){},tap(){},h(){},sc(){},ready(){},pick(){},ex(){},mv(){}};
 /* an MCQ's option tapped on the question side: that's the answer. the answer side is redrawn with it marked, and the app is told
    whether it was right (App.pick), which it uses as the verdict when the card moves on */
 document.addEventListener('click',e=>{const l=e.target.closest('#stage .option-group label[data-o]');if(!l||stage||!cur)return;e.preventDefault();
@@ -28,7 +28,7 @@ function fitX(){document.querySelectorAll('#stage table,#stage .prettify-deck,#s
  const c=card(),x=c&&c.parentNode.querySelector(':scope>.mcq-exc');A_.h((c?c.scrollHeight+c.offsetHeight-c.clientHeight:0)+(x?x.offsetHeight+10:0));scRep()}   /* the card's full height, and an MCQ's explanation card under it */
 const RSZ=new ResizeObserver(()=>fitX());
 function deckFade(d){d.classList.toggle('sl',d.scrollLeft>1);d.classList.toggle('sr',d.scrollLeft+d.clientWidth<d.scrollWidth-1)}
-$('#stage').addEventListener('scroll',e=>{const d=e.target;if(!d.classList)return;if(d.classList.contains('prettify-deck'))deckFade(d);else if(d.classList.contains('prettify-flashcard'))scRep()},true);
+$('#stage').addEventListener('scroll',e=>{const d=e.target;if(!d.classList)return;if(d.classList.contains('prettify-deck'))deckFade(d);else if(d.classList.contains('prettify-flashcard')){scRep();A_.mv()}},true);   /* mv: it scrolled during this touch */
 addEventListener('resize',fitX);$('#stage').addEventListener('load',e=>{if(e.target.tagName=='IMG')ioBox(e.target);fitX()},true);
 $('#stage').addEventListener('dragstart',e=>e.preventDefault());
 /* a touch on an MCQ's explanation card: tell the app which ways it can still scroll, so a swipe there scrolls it rather than the reel */
