@@ -174,7 +174,11 @@ function svShow(g,i){const G=SV.list[g];if(!G)return svClose();SV.g=g;SV.i=i;SV.
 function svTick(t){if(!SV.on)return;const dt=SV.last?t-SV.last:0;SV.last=t;if(!SV.hold)SV.el+=dt;
  const b=page(SV.g)?.querySelectorAll('.f-bar i')[SV.i];if(b)b.style.width=Math.min(100,SV.el/SV.DUR*100)+'%';
  if(SV.el>=SV.DUR)svNext();SV.raf=requestAnimationFrame(svTick)}
-function svGo(g){const p=$('#svp');p.scrollTo({left:g*p.clientWidth,behavior:'smooth'});svShow(g,0)}
+/* the pager settles itself (the WebView's own snap was abrupt): an ease-out to an account's page, the cube following */
+let GLIDE=0;function glide(g,ms=280){const p=$('#svp'),from=p.scrollLeft,to=g*p.clientWidth;cancelAnimationFrame(GLIDE);if(RM()||Math.abs(to-from)<1){p.scrollLeft=to;return}
+ const t0=performance.now();p.style.overflowX='hidden';const step=t=>{const k=Math.min(1,(t-t0)/ms),e=1-Math.pow(1-k,3);p.scrollLeft=from+(to-from)*e;
+  if(k<1)GLIDE=requestAnimationFrame(step);else p.style.overflowX=''};GLIDE=requestAnimationFrame(step)}
+function svGo(g){glide(g);svShow(g,0)}
 function svNext(){const G=SV.list[SV.g];if(SV.i<G.items.length-1)svShow(SV.g,SV.i+1);else if(SV.g<SV.list.length-1)svGo(SV.g+1);else svClose()}
 function svPrev(){if(SV.i>0)svShow(SV.g,SV.i-1);else if(SV.g>0)svGo(SV.g-1);else svShow(SV.g,0)}
 function svOpen(g,list,src){SV.list=list;SV.src=src;svBuild();const sv=$('#sv'),r=ringAt(g);sv.classList.add('on');SV.on=true;SV.last=0;A_.story(true);
@@ -191,6 +195,11 @@ let CUBE=0;function cube(){CUBE=0;const p=$('#svp'),w=p.clientWidth;if(!w)return
   if(RM()||Math.abs(f)<.001||Math.abs(f)>=1){s.style.transform='';s.style.filter='';return}
   const e=f<0?w/2:-w/2;s.style.transform=`perspective(${w*2.2}px) translateX(${e}px) rotateY(${f*90}deg) translateX(${-e}px)`;s.style.filter=`brightness(${1-Math.abs(f)*.45})`})}
 $('#svp').addEventListener('scroll',()=>{if(!CUBE)CUBE=requestAnimationFrame(cube)},{passive:true});
+/* a swipe between accounts: on release, on to the next page past a quarter (or a quick flick), otherwise back */
+let SW=null;$('#svp').addEventListener('touchstart',e=>{const p=$('#svp');cancelAnimationFrame(GLIDE);p.style.overflowX='';SW={x:e.touches[0].clientX,s:p.scrollLeft,t:performance.now()}},{passive:true});
+$('#svp').addEventListener('touchend',()=>{if(!SW||!SV.on)return;const p=$('#svp'),w=p.clientWidth,d=p.scrollLeft-SW.s,v=d/Math.max(1,performance.now()-SW.t);SW=null;
+ if(Math.abs(d)<2)return;let g=Math.round(SW_g(p,w,d,v));g=Math.max(0,Math.min(SV.list.length-1,g));glide(g);if(g!=SV.g)svShow(g,0)},{passive:true});
+const SW_g=(p,w,d,v)=>{const base=SV.g;return Math.abs(d)>w*.25||Math.abs(v)>.45?base+Math.sign(d):base};
 let SVS=0;$('#svp').addEventListener('scroll',()=>{clearTimeout(SVS);SVS=setTimeout(()=>{const p=$('#svp'),g=Math.round(p.scrollLeft/p.clientWidth);if(SV.on&&g!=SV.g)svShow(g,0)},120)},{passive:true});
 /* a tap: right 70% = next, left 30% = previous; holding pauses; the account at the top opens its profile */
 let PD=null,HT=0;

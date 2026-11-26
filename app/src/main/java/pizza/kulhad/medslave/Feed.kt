@@ -228,7 +228,7 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
             kids.take(3 + r.nextInt(4)).forEach { k ->
                 val notes = d.notesFor(k); if (notes.isEmpty()) return@forEach
                 val items = JSONArray()
-                repeat(2 + r.nextInt(4)) { val n = notes[r.nextInt(notes.size)]; val o = n.ords[r.nextInt(n.ords.size)]; if (isHidden(n.id, o)) return@repeat
+                repeat(2 + r.nextInt(4)) { val n = notes[r.nextInt(notes.size)]; val o = n.ords[r.nextInt(n.ords.size)]; if (isHidden(n.id, o) || n.mcq) return@repeat   // highlights are stories: no MCQs
                     items.put(JSONObject().put("n", JSONArray(DeckStore.noteJson(rs.ctx, n))).put("o", o).also { song(r, it) }) }
                 hl.put(JSONObject().put("t", k.name).put("ic", icons[r.nextInt(icons.size)]).put("items", items))
             }
@@ -304,7 +304,7 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
         val times = listOf("1m", "4m", "12m", "38m", "1h", "2h", "3h", "5h", "9h", "14h", "20h")
         val g = ArrayList<Int>()
         pick.forEach { ai ->
-            val items = JSONArray(); repeat(1 + r.nextInt(3)) { card(r, acc[ai])?.let { (n, o, _) -> items.put(JSONObject().put("n", n).put("o", o).also { song(r, it) }) } }
+            val items = JSONArray(); repeat(1 + r.nextInt(3)) { card(r, acc[ai], noMcq = true)?.let { (n, o, _) -> items.put(JSONObject().put("n", n).put("o", o).also { song(r, it) }) } }
             if (items.length() == 0) return@forEach
             g.add(ai)
             out.put(JSONObject().put("a", ai).put("t", times[r.nextInt(times.size)]).put("items", items).put("seen", "$b:${acc[ai].h}" in seen))

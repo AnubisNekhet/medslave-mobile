@@ -123,7 +123,7 @@ button:active,button:hover{background:none;color:inherit}
 /* the story viewer: one page per account, swiped sideways; bars on top count its stories */
 #sv{position:fixed;inset:0;z-index:20;display:none;background-color:var(--bgc)}   /* the reviewer's background */
 #sv.on{display:block}
-#svp{display:flex;height:100%;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior:none}
+#svp{display:flex;height:100%;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;overscroll-behavior:none}   /* no CSS snap: feed.js glides it to a page */
 #svp::-webkit-scrollbar{display:none}
 .f-sg{flex:none;width:100%;height:100%;scroll-snap-align:start;scroll-snap-stop:always;display:flex;flex-direction:column;position:relative;backface-visibility:hidden;will-change:transform}
 #sv{background-color:#000}#sv .f-sg{background-color:var(--bgc)}   /* black behind the turning cube */
