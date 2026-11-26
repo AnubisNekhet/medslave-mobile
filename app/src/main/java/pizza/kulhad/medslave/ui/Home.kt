@@ -321,14 +321,12 @@ fun Credits(rs: Rs) {
             val decks = rs.deck.top.filter { it.cnt > 0 }
             val tot = decks.sumOf { it.cnt }.coerceAtLeast(1)
             val colOf = { i: Int -> cols[i % cols.size].let { if (dark) it.second else it.first } }
-            /* the pie: a slice per top-level deck, by its number of questions, with a thin gap in the card colour between slices */
-            val gap = P.card
+            /* the pie: a slice per top-level deck, by its number of questions; solid colours, no outlines */
             androidx.compose.foundation.Canvas(Modifier.size(170.dp)) {
                 var start = -90f
                 decks.forEachIndexed { i, n ->
                     val sweep = 360f * n.cnt / tot
                     drawArc(colOf(i), start, sweep, useCenter = true)
-                    if (decks.size > 1) drawArc(gap, start, sweep, useCenter = true, style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
                     start += sweep
                 }
             }
