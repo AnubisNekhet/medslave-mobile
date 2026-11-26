@@ -16,7 +16,7 @@ You're going to doomscroll anyway, so make it your flashcards. medslave turns yo
 - **Your progress.** A study heatmap, plus progress backup and restore as a JSON file.
 
 ### MCQs
-- **Multiple-choice cards drawn like AkiraRemix MCQs.** The options are shuffled, you tap one to answer, and the right and wrong answers are marked. The explanation sits in its own card, which you can turn off. In the feed it folds away behind a chevron.
+- **Multiple-choice cards drawn like AkiraRemix MCQs.** The options are shuffled, you tap one to answer, and the right and wrong answers are marked. The explanation sits in its own card under the answer, or, with Hide explanation, on the back of the answer card: turn it over with a sideways swipe (up or down in Tinder). In the feed it folds away behind a chevron.
 
 ### Music and playlists
 - **A song on most posts and reels.** Songs play as 30-second previews, sorted into genres you can switch on and off. Previews are cached and cleaned up for you.

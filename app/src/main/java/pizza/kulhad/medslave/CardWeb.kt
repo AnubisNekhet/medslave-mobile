@@ -111,7 +111,10 @@ class CardWeb(ctx: Context) : Page(ctx, "card.html", true, { CardBridge(it as Ca
     private var seq = 0
     private val waits = HashMap<Int, () -> Unit>()
 
-    fun init(paths: List<String>, source: Boolean, expl: Boolean, tags: Boolean) = js("R.init(${JSONArray(paths)},$source,$expl,$tags)")
+    fun init(paths: List<String>, source: Boolean, expl: Boolean, tags: Boolean, hidex: Boolean) { js("R.init(${JSONArray(paths)},$source,$expl,$tags)"); hidex(hidex) }
+    fun hidex(v: Boolean) = js("R.hidex($v)")
+    /** turns an MCQ answer over to its explanation and back (Hide explanation): sideways ("y") or up/down ("x"), dir the swipe's way */
+    fun turn(ax: String, dir: Int) = js("R.turn('$ax',$dir)")
     /** Settings › Reviewing: show source, explanation, tags */
     fun opts(source: Boolean, expl: Boolean, tags: Boolean) = js("R.opts($source,$expl,$tags)")
     /** draws a card; onReady runs once it's on screen */

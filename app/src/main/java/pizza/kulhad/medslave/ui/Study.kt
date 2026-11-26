@@ -125,7 +125,10 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.cardGest
         else rs.scope.launch { val t = tween<Float>(260, easing = pizza.kulhad.medslave.EASE_OUTISH); launch { rs.oy.animateTo(0f, t) }; rs.ty.animateTo(0f, t) }
     } else if (flip) {
         if (!multi && abs(dy) > 50 && abs(dy) > abs(dx) * 1.2f) { if (dy < 0 && canBot()) rs.advance(true) else if (dy > 0 && canTop() && rs.stage == 1) rs.advance(true, false) }
+        else if (!multi && rs.stage == 1 && abs(dx) > 50 && abs(dx) > abs(dy) * 1.2f) rs.web.turn("y", if (dx > 0) 1 else -1)   // sideways: an MCQ answer turns over (Hide explanation)
         if (!rs.leaving && lastGlow != 0f) rs.web.glow(0f)
+    } else if (!flip && !drag && !multi && rs.stage == 1 && abs(dy) > 50 && abs(dy) > abs(dx) * 1.2f && (dy < 0 && bot || dy > 0 && top)) {
+        rs.web.turn("x", if (dy < 0) 1 else -1)   // Tinder: up or down turns an MCQ answer over (Hide explanation)
     } else if (drag) {
         val v = abs(dx) / (tUp - t0 + 1)
         if (abs(dx) > 100 || v > .6f) rs.fly(sign(dx).toInt(), dy * d)

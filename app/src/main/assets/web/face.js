@@ -1,7 +1,7 @@
 /* medslave · face.js: a card's HTML (basic, cloze, image occlusion, IO one by one, MathJax, trimmed blank lines), shared by
    card.html (the reviewer) and feed.html (Reels Mode's home feed). face(A) draws cur = {n, o}; A = the answer side */
 const $=s=>document.querySelector(s),HR='<hr class="prettify-divider prettify-divider--answer">',DV='<div class="prettify-divider prettify-divider--answer"></div>';
-let DATA={paths:[]},SET={source:false,expl:true,tags:false},cur=null,stage=0,FL=false;
+let DATA={paths:[]},SET={source:false,expl:true,tags:false,hidex:false},cur=null,stage=0,FL=false;
 const deck=pi=>`<div class="prettify-deck">${(DATA.paths[pi]||'').split(' › ').map(x=>`<span class="prettify-subdeck">${x}</span>`).join('&nbsp;/&nbsp;')}</div>`;
 /* a card's tags at its bottom (Settings › Reviewing › Show tags): each tag's last part, as on the site's cards */
 const tags=n=>SET.tags&&n[5]&&n[5].length?`<div class="prettify-tags">${n[5].map(t=>{const l=String(t).split('::').filter(Boolean).pop().replace(/_/g,' ').trim();return `<span class="prettify-tag">${l.replace(/</g,'&lt;')}</span>`}).join('')}</div>`:'';
@@ -43,12 +43,16 @@ function mcqFace(m,A,pi,key){if(MQ.key!=key){MQ.key=key;MQ.picked=null;MQ.order=
   +`<div class="prettify-field prettify-field--front mcq-of"><div class="center-text"><div class="prettify-field option-group center-text">${ops}</div></div></div>`
 }
 /* the explanation: its own small card under the MCQ card on the answer side (Settings › Reviewing › Show explanation) */
-let EXIN=false;   /* feed posts: the explanation inside the MCQ card, as before */
+let EXIN=false,TURN=false;   /* TURN: the reviewer can turn an MCQ answer over to its explanation (Hide explanation) */
+/* the answer card with the explanation on its back: both sides share one grid cell, so they're the same height (the taller one, up to the
+   card's cap) and each scrolls on its own */
+const mcqTurn=(fr,m)=>`<div class="mcq-flip"><div class="mcq-rot"><div class="mcq-side mcq-front">${fr}</div><div class="mcq-side mcq-back"><div class="prettify-flashcard mcq-exb"><div class="prettify-field center-text extra">${m.extra}</div></div></div></div></div>`;   /* feed posts: the explanation inside the MCQ card, as before */
 /* a post's explanation: under a divider, collapsed to a few lines; the chevron shows the rest or hides it */
 const mcqIn=m=>m.extra&&SET.expl?`<hr class="prettify-divider prettify-divider--answer"><div class="mcq-col"><div class="prettify-field center-text extra mcq-colb">${m.extra}</div><button class="mcq-chev" onclick="event.stopPropagation();this.parentNode.classList.toggle('open')" aria-label="Show more"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>`:'';
 const mcqEx=m=>m.extra&&SET.expl?`<div class="prettify-flashcard mcq-exc"><div class="prettify-field center-text extra">${m.extra}</div></div>`:'';
 function face(A){const{n,o}=cur,[,k,pi]=n,f=n[4].map(trimF);let h;
-const mq=k=='b'&&mcqOf(f);if(mq)return `<div class="prettify-flashcard mcq-card">${mcqFace(mq,A,pi,n[0]+':'+o)}${A&&EXIN?mcqIn(mq):''}${tags(n)}</div>`+(A&&!EXIN?mcqEx(mq):'');
+const mq=k=='b'&&mcqOf(f);if(mq){const fr=`<div class="prettify-flashcard mcq-card">${mcqFace(mq,A,pi,n[0]+':'+o)}${A&&EXIN?mcqIn(mq):''}${tags(n)}</div>`;
+ if(A&&!EXIN&&TURN&&SET.hidex&&SET.expl&&mq.extra)return mcqTurn(fr,mq);return fr+(A&&!EXIN?mcqEx(mq):'')}
 if(k=='b'){const[fr,bk,ex,ti,so,ht]=f,sr=SET.source?so:'',q=o?bk:fr;
 h=deck(pi)+HR+(A?ttl(ti)+(f[6]=='ioe'?'':fld('front',q)+HR)+fld('back',o?fr:bk)+(ex?HR+fld('back',ex,'center-text extra'):'')+(!o&&sr?DV+fld('front zoomable-image',sr,'center-text extra'):'')+tags(n)
 :(o?'':ttl(ti))+fld('front',q)+(o?'':tags(n)))}

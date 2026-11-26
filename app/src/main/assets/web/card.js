@@ -17,7 +17,11 @@ function draw(){const st=$('#stage');st.innerHTML='<div class="wrap">'+render()+
  mj(st);st.querySelectorAll('.prettify-deck').forEach(d=>d.scrollLeft=d.scrollWidth);fitX();RSZ.disconnect();RSZ.observe(st.firstElementChild);
  {const b=$('#allClozeBtn');if(b)b.onclick=()=>revealAll(b)}syncNxt()}
 /* the card on screen: in Flip, the face showing */
-const card=()=>document.querySelector(FL&&stage?'#stage .flip-back>.prettify-flashcard,#stage .fade-back>.prettify-flashcard':'#stage .flip-front>.prettify-flashcard,#stage .fade-front>.prettify-flashcard,#swipe>.prettify-flashcard');
+TURN=true;
+/* the card on show; an MCQ answer turned over (Hide explanation) gives the side that's facing */
+const card=()=>{const w=document.querySelector(FL&&stage?'#stage .flip-back,#stage .fade-back':'#stage .flip-front,#stage .fade-front,#swipe');if(!w)return null;
+ const r=w.querySelector(':scope>.mcq-flip>.mcq-rot');if(r)return r.querySelector(':scope>'+(r.classList.contains('turned')?'.mcq-back':'.mcq-front')+'>.prettify-flashcard');
+ return w.querySelector(':scope>.prettify-flashcard')};
 function scRep(){const c=card();A_.sc(!c||c.scrollTop<=1,!c||c.scrollTop+c.clientHeight>=c.scrollHeight-2)}
 /* tables and the deck path that fit get .nsx; the card's full height (as if it didn't scroll) and its scroll state go to the app */
 function fitX(){document.querySelectorAll('#stage table,#stage .prettify-deck,#stage [style*="overflow"]').forEach(e=>e.classList.toggle('nsx',e.scrollWidth<=e.clientWidth+1));document.querySelectorAll('#stage .prettify-deck').forEach(deckFade);
@@ -48,7 +52,11 @@ function glow(v){const k=$('#swipe');if(!k)return;k.classList.toggle('gl-ok',v>0
 /* the app's calls */
 const R={
  init(paths,source,expl,tags){DATA.paths=paths;R.opts(source,expl,tags)},
- opts(source,expl,tags){SET.source=!!source;SET.expl=expl!==false;SET.tags=!!tags},   /* Settings › Reviewing */
+ opts(source,expl,tags){SET.source=!!source;SET.expl=expl!==false;SET.tags=!!tags},
+ hidex(v){SET.hidex=!!v},
+ /* turn an MCQ answer over to its explanation and back: ax 'y' sideways (Flip, Reels), 'x' up/down (Tinder); dir the swipe's way */
+ turn(ax,dir){const r=document.querySelector('#stage .mcq-rot');if(!r)return;r.dataset.ax=ax;const a=(+r.dataset.a||0)+dir*180;r.dataset.a=a;
+  r.style.transform=ax=='y'?`rotateY(${a}deg)`:`rotateX(${-a}deg)`;r.classList.toggle('turned',Math.abs(a/180)%2==1);setTimeout(scRep,480)},   /* Settings › Reviewing */
  theme(t,dark){document.documentElement.dataset.theme=t;document.body.classList.toggle('night_mode',dark);document.body.classList.toggle('nightMode',dark)},
  show(seq,n,o,s,flip){cur={n,o};stage=s;FL=!!flip;draw();requestAnimationFrame(()=>A_.ready(seq))},
  clear(){cur=null;$('#stage').innerHTML='';A_.h(0)},

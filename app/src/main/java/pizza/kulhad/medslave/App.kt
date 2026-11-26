@@ -110,7 +110,7 @@ class Rs(val ctx: Context) {
     fun loadDeck() {
         io.execute {
             val d = DeckStore.load(ctx)
-            post { deck = d; loaded = true; web.init(d.paths, set.source, set.expl, set.tags); pending?.let { pending = null; importUri(it) } }
+            post { deck = d; loaded = true; web.init(d.paths, set.source, set.expl, set.tags, set.hidex); pending?.let { pending = null; importUri(it) } }
         }
     }
 
@@ -361,7 +361,7 @@ class Rs(val ctx: Context) {
         val ex = j.optString("exported", "").take(10)
         dialog = Dlg("Replace all progress on this device with this file" + (if (ex.isNotEmpty()) " (exported $ex)" else "") + "?", "Replace", cancel = true) {
             store.replaceAll(m.mapValues { it.value as String }); set.load(); last = null; S = null; cur = null; fin = null
-            settingsOpen = false; study = false; heatTick++; web.init(deck.paths, set.source, set.expl, set.tags)
+            settingsOpen = false; study = false; heatTick++; web.init(deck.paths, set.source, set.expl, set.tags, set.hidex)
         }
     }
 
@@ -408,7 +408,7 @@ class Rs(val ctx: Context) {
         if (busy || deck.empty) return
         dialog = Dlg("Delete " + (deck.meta?.let { "“${it.name}”" } ?: "the current deck") + " from this device? Your place and card order in it are cleared too. Your activity history stays.", "Delete", cancel = true, danger = true) {
             busy = true
-            io.execute { DeckStore.delete(ctx); post { store.dropProgress(); last = null; S = null; cur = null; fin = null; busy = false; dkMsg = ""; deck = Deck.EMPTY; web.init(emptyList(), set.source, set.expl, set.tags) } }
+            io.execute { DeckStore.delete(ctx); post { store.dropProgress(); last = null; S = null; cur = null; fin = null; busy = false; dkMsg = ""; deck = Deck.EMPTY; web.init(emptyList(), set.source, set.expl, set.tags, set.hidex) } }
         }
     }
 }

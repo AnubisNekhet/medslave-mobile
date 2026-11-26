@@ -1508,3 +1508,13 @@ button.rp .rp-x{animation:rpX .26s .14s cubic-bezier(.3,1.7,.5,1) both}
 .mcq-chev svg{display:block;transition:transform .25s cubic-bezier(.2,.8,.2,1)}
 .mcq-col.open .mcq-chev svg{transform:rotate(180deg)}
 .mcq-exc>.prettify-field{margin:.7em .8em}
+
+/* Hide explanation: an MCQ answer with its explanation on the back. one grid cell for both sides keeps them the same height */
+.mcq-flip{perspective:1400px}
+.mcq-rot{display:grid;transform-style:preserve-3d;transition:transform .45s cubic-bezier(.2,.8,.2,1)}
+.mcq-side{grid-area:1/1;display:grid;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.mcq-side>.prettify-flashcard{margin:0!important}
+.mcq-back{transform:rotateY(180deg)}.mcq-rot[data-ax=x]>.mcq-back{transform:rotateX(180deg)}
+.mcq-exb{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}.mcq-exb::-webkit-scrollbar{display:none}
+.mcq-exb>.prettify-field{margin:.9em 1em}
+@media (prefers-reduced-motion:reduce){.mcq-rot{transition:none}}

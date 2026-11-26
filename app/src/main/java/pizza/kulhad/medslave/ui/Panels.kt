@@ -113,7 +113,8 @@ private fun SettingsBody(rs: Rs, names: Map<String, String>) {
                     /* what cards show: re-drawn at once, and the feed follows */
                     val opts = { rs.set.save(); rs.web.opts(rs.set.source, rs.set.expl, rs.set.tags); rs.feed.opts(); rs.cur?.let { c -> rs.web.show(c.json, c.o, rs.stage, rs.set.flip) } }
                     Row2("Show source") { Switch(rs.set.source) { rs.set.source = it; opts() } }
-                    if (rs.deck.hasMcq) Row2("Show explanation", "Under MCQ answers") { Switch(rs.set.expl) { rs.set.expl = it; opts() } }
+                    if (rs.deck.hasMcq) Row2("Hide explanation", if (rs.set.flip) "On the back of the answer: swipe sideways to turn it over" else "On the back of the answer: swipe up or down to turn it over") {
+                        Switch(rs.set.hidex) { rs.set.hidex = it; rs.web.hidex(it); opts() } }
                     Row2("Show tags", "At the bottom of each card") { Switch(rs.set.tags) { rs.set.tags = it; opts() } }
                     Row2("Volume keys", "Down if you knew it, up if you didn’t") { Switch(rs.set.volkeys) { rs.set.volkeys = it; rs.set.save() } }
                     var tdone by remember { mutableStateOf(false) }
