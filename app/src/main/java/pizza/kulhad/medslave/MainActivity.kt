@@ -111,7 +111,7 @@ class MainActivity : ComponentActivity() {
        question side either one shows the answer. anywhere else they're the volume */
     override fun dispatchKeyEvent(e: android.view.KeyEvent): Boolean {
         val k = e.keyCode
-        if ((k == android.view.KeyEvent.KEYCODE_VOLUME_DOWN || k == android.view.KeyEvent.KEYCODE_VOLUME_UP) && rs.study && rs.cur != null
+        if ((k == android.view.KeyEvent.KEYCODE_VOLUME_DOWN || k == android.view.KeyEvent.KEYCODE_VOLUME_UP) && rs.set.volkeys && rs.study && rs.cur != null
             && !rs.progressOpen && !rs.settingsOpen && rs.dialog == null && rs.reels.sheet == null && !rs.tutorial) {
             if (e.action == android.view.KeyEvent.ACTION_DOWN && e.repeatCount == 0) {
                 if (rs.stage == 0) rs.advance(true)

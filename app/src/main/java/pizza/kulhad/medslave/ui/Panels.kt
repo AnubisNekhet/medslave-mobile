@@ -115,6 +115,7 @@ private fun SettingsBody(rs: Rs, names: Map<String, String>) {
                     Row2("Show source") { Switch(rs.set.source) { rs.set.source = it; opts() } }
                     if (rs.deck.hasMcq) Row2("Show explanation", "Under MCQ answers") { Switch(rs.set.expl) { rs.set.expl = it; opts() } }
                     Row2("Show tags", "At the bottom of each card") { Switch(rs.set.tags) { rs.set.tags = it; opts() } }
+                    Row2("Volume keys", "Down if you knew it, up if you didn’t") { Switch(rs.set.volkeys) { rs.set.volkeys = it; rs.set.save() } }
                     var tdone by remember { mutableStateOf(false) }
                     LaunchedEffect(tdone) { if (tdone) { delay(1500); tdone = false } }
                     Row2("Show the tutorial again", "On the next card you open") {
