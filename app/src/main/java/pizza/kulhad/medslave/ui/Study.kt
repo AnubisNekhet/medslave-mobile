@@ -103,7 +103,7 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.cardGest
         dx = (c.position.x - x0) / d; dy = (c.position.y - y0) / d
         if (!c.pressed) { tUp = c.uptimeMillis; break }
         if (follow && !multi) {
-            if (!rdrag && abs(dy) > 10 && abs(dy) > abs(dx) * 1.2f && (dy < 0 && canBot() || dy > 0 && canTop())) rdrag = true
+            if (!rdrag && abs(dy) > 10 && abs(dy) > abs(dx) * 1.2f && (dy < 0 && canBot() || dy > 0 && canTop())) { rdrag = true; rs.preCapture() }
             if (rdrag) { c.consume()   /* the reel moves, not the card's page under it */
                 val py = (if (dy < 0 && !bot || dy > 0 && !top) 0f else dy) * d; rs.scope.launch { rs.ty.snapTo(py); rs.oy.snapTo(py) } }
         }

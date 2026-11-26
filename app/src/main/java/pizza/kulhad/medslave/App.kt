@@ -239,16 +239,22 @@ class Rs(val ctx: Context) {
         if (!set.reels) web.glow(if (ok) 1f else -1f)
         leaving = true
         if (set.rev == "up") {
+            val go = { pic: Bitmap?, top: Float ->
+                if (pic != null) { val g = Ghost(pic.asImageBitmap(), d, top); ghost = g; slide(g, stageH - kotlin.math.abs(dragOff)) }
+                next(-d)
+                scope.launch { delay(450); leaving = false }
+            }
+            val pre = preShot; preShot = null
+            /* dragged (Reels): the picture taken as the drag began, placed where the drag left the card — it moves on at once */
+            if (pre != null && dragOff != 0f) { go(pre, dragOff); return }
             capture { bmp ->
-                /* dragged first (Reels): the picture is the card shifted by the drag, with empty stage where it moved from. that strip
-                   would cover the next card coming in, so only the card's part is kept */
+                /* a picture taken now (after a drag, if the early one is missing): the card shifted by the drag, with empty stage where it
+                   moved from. that strip would cover the next card coming in, so only the card's part is kept */
                 val off = dragOff.roundToInt().coerceIn(-(bmp?.height ?: 1) + 1, (bmp?.height ?: 1) - 1)
                 val pic = if (bmp == null || off == 0) bmp
                     else if (off < 0) Bitmap.createBitmap(bmp, 0, 0, bmp.width, bmp.height + off)
                     else Bitmap.createBitmap(bmp, 0, off, bmp.width, bmp.height - off)
-                if (pic != null) ghost = Ghost(pic.asImageBitmap(), d, if (off > 0) off.toFloat() else 0f)
-                next(-d)
-                scope.launch { delay(450); leaving = false }
+                go(pic, if (off > 0) off.toFloat() else 0f)
             }
             return
         }
@@ -299,14 +305,31 @@ class Rs(val ctx: Context) {
         }
     }
     /** …and once it's on screen. pop: from 80% and transparent, overshooting to 101%. up: rises from below, overshooting 4dp */
+    /** Reels: a picture of the card at rest, taken as a drag begins, so letting go needn't wait for one */
+    var preShot: Bitmap? = null
+    fun preCapture() { preShot = null; capture { preShot = it } }
+    /** the leaving card's picture moves off as soon as it exists (h px, overshooting 4dp); the new card joins it once drawn */
+    private fun slide(g: Ghost, h: Float) {
+        val k = 4 * density
+        scope.launch {
+            g.y.animateTo(g.d * h, keyframes { durationMillis = 450; 0f at 0 using EASE_OUTISH; g.d * (h + k) at 315 using EASE_IN_OUT; g.d * h at 450 })
+            if (ghost === g) ghost = null
+        }
+    }
     private fun runEnter(m: String, d: Int) {
         enterJob?.cancel()
         enterJob = scope.launch {
             val g = ghost
-            if (g != null) launch {
-                val h = travel; val k = 4 * density
-                g.y.animateTo(g.d * h, keyframes { durationMillis = 450; 0f at 0 using EASE_OUTISH; g.d * (h + k) at 315 using EASE_IN_OUT; g.d * h at 450 })
-                if (ghost === g) ghost = null
+            if (m == "up" && g != null && g.y.isRunning) {
+                /* the new card rides right behind the leaving one, wherever that has got to */
+                alpha.snapTo(1f)
+                val hImg = g.img.height.toFloat()
+                androidx.compose.runtime.snapshotFlow { g.y.value }.collect { v ->
+                    val p = if (g.d < 0) g.top + v + hImg else g.top + v - stageH
+                    ty.snapTo(p); oy.snapTo(p)
+                    if (!g.y.isRunning) { ty.snapTo(0f); oy.snapTo(0f); enterJob?.cancel() }
+                }
+                return@launch
             }
             if (m == "up") {
                 alpha.snapTo(1f)
