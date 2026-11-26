@@ -78,7 +78,7 @@ val P: Pal @Composable get() = LocalPal.current
 
 val Carlito = FontFamily(Font(R.font.carlito_regular, FontWeight.Normal), Font(R.font.carlito_bold, FontWeight.Bold))
 val RED = Color(0xFFE5534B)       // destructive buttons, required marks
-val HEART = Color(0xFFFF3040)     // Reels like / Repost
+val HEART = Color(0xFFFF3040)     // Reels like
 
 /* catppuccin [latte, mocha] pairs (deck pills, avatars) */
 val DCOL = listOf("#dd7878" to "#f2cdcd", "#ea76cb" to "#f5c2e7", "#8839ef" to "#cba6f7", "#d20f39" to "#f38ba8", "#e64553" to "#eba0ac",

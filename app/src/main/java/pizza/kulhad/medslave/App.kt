@@ -199,7 +199,7 @@ class Rs(val ctx: Context) {
     /** question side: reveal (or the next sequential cloze step). answer side: ok false = missed it (requeued) */
     fun advance(sw: Boolean = false, ok0: Boolean = true) {
         val c = cur ?: return; if (leaving) return
-        /* an MCQ: the picked option decides (a wrong pick comes back later; swiping down or Repost still means missed). a swipe on the
+        /* an MCQ: the picked option decides (a wrong pick comes back later; swiping down still means missed). a swipe on the
            question reveals the answer like any card */
         val reelMcq = stage == 1 && c.n.mcq && set.reels   // Reels Mode: an MCQ's verdict is already decided (the pick, or right without one)
         val ok = if (reelMcq) mcqOk ?: true else if (stage == 1 && ok0 && c.n.mcq && mcqOk != null) mcqOk!! else ok0
@@ -262,16 +262,6 @@ class Rs(val ctx: Context) {
             val t = tween<Float>(250, easing = EASE_IN)
             launch { ty.animateTo(d * screenH * .6f, t) }; launch { alpha.animateTo(0f, t) }
             delay(230); leaving = false; next(-d)
-        }
-    }
-
-    fun repost(after: () -> Unit) {
-        if (cur == null || leaving) return
-        scope.launch {
-            delay(if (rm()) 0 else 420)
-            val c = cur
-            if (c != null && !leaving) { if (stage == 0) { store.actBump(); heatTick++ }; requeue(c); S?.let { it.wr++ }; leave(-1, false) }
-            after()
         }
     }
 

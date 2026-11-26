@@ -103,7 +103,7 @@ fun kfmt(n: Int): String = when {
 private fun ActLabel(t: String, color: Color = P.text) =
     androidx.compose.foundation.text.BasicText(t, style = TextStyle(color = color, fontSize = 12.sp, fontFamily = Carlito, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, shadow = glowStyle()))
 
-/* the overlay: bottom left the account and song, the right column like / comments / Repost / share / music */
+/* the overlay: bottom left the account and song, the right column like / comments / save / music */
 @Composable
 fun ReelOverlay(rs: Rs) {
     val r = rs.reels; val hap = LocalHapticFeedback.current
@@ -127,25 +127,12 @@ fun ReelOverlay(rs: Rs) {
                     ActLabel(kfmt(r.likes + if (r.liked) 1 else 0))
                 }
                 if (!rs.set.nocom) Act(onClick = { r.open("com") }) { Icon(Ic.COMMENT, 25.dp, P.text); ActLabel(kfmt(r.coms)) }
-                /* Repost = missed it: red, the arrows turn half a turn, a cross pops in, then the card is requeued and scrolls up */
-                val turn = remember { Animatable(0f) }; val x = remember { Animatable(0f) }
-                LaunchedEffect(r.repostAt) {
-                    if (r.repostAt == 0) return@LaunchedEffect
-                    launch { turn.snapTo(0f); turn.animateTo(180f, tween(420, easing = CubicBezierEasing(.4f, 0f, .2f, 1f))) }
-                    x.snapTo(0f); kotlinx.coroutines.delay(140); x.animateTo(1f, tween(260, easing = CubicBezierEasing(.3f, 1.7f, .5f, 1f)))
-                }
-                LaunchedEffect(rs.cur) { if (!r.reposting) { turn.snapTo(0f); x.snapTo(0f) } }
-                val red = r.reposting
+                /* Save: the card goes into saved.cards (the feed's archive), a pop when it turns on */
+                val sp = remember { Animatable(1f) }
+                LaunchedEffect(r.savePop) { if (r.savePop > 0) sp.animateTo(1f, keyframes { durationMillis = 350; .6f at 0; 1.25f at 210; 1f at 350 }) }
                 Act(onClick = {
-                    if (rs.cur != null && !rs.leaving && !r.reposting) { r.reposting = true; r.repostAt++; rs.repost { r.reposting = false } }
-                }) {
-                    Box(Modifier.size(25.dp), contentAlignment = Alignment.Center) {
-                        Icon(Ic.REPOST, 25.dp, if (red) HEART else P.text, modifier = Modifier.rotate(if (red) turn.value else 0f))
-                        if (red) Icon(Ic.CROSS, 25.dp, HEART, 2.6f, modifier = Modifier.scale(x.value))
-                    }
-                    ActLabel("Repost")
-                }
-                Act(onClick = { r.open("share") }) { Icon(Ic.SEND, 25.dp, P.text); ActLabel("Share") }
+                    rs.cur?.let { c -> r.saved = !r.saved; if (r.saved) r.savePop++; rs.feed.saveFromReels(c.n.id, c.o, r.saved) }
+                }) { Icon(Ic.SAVE, 25.dp, P.text, fill = r.saved, modifier = Modifier.scale(sp.value)); ActLabel(if (r.saved) "Saved" else "Save") }
                 /* music: a tap mutes, a long press opens the genre switches */
                 var art by remember { mutableStateOf<ImageBitmap?>(null) }
                 LaunchedEffect(r.song) { art = null; r.song?.let { s -> r.art(s.art) { if (r.song === s) art = it } } }

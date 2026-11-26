@@ -71,7 +71,7 @@ object Ic {
     const val RIGHT = "<polyline points=\"9 6 15 12 9 18\"/>"
     const val HEART = "<path d=\"M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z\"/>"
     const val COMMENT = "<path d=\"M7.9 20A9 9 0 1 0 4 16.1L2 22Z\"/>"
-    const val REPOST = "<path d=\"m17 2 4 4-4 4\"/><path d=\"M3 11v-1a4 4 0 0 1 4-4h14\"/><path d=\"m7 22-4-4 4-4\"/><path d=\"M21 13v1a4 4 0 0 1-4 4H3\"/>"
+    const val SAVE = "<path d=\"m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z\"/>"   // bookmark
     const val CROSS = "<path d=\"M9.6 9.6l4.8 4.8M14.4 9.6l-4.8 4.8\"/>"
     const val SEND = "<path d=\"m22 2-7 20-4-9-9-4Z\"/><path d=\"M22 2 11 13\"/>"
     const val NOTE = "<path d=\"M9 18V5l12-2v13\"/><circle cx=\"6\" cy=\"18\" r=\"3\"/><circle cx=\"18\" cy=\"16\" r=\"3\"/>"

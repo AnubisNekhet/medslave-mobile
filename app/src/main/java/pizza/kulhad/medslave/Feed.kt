@@ -49,6 +49,7 @@ class FeedWeb(ctx: Context, f: Feed) : Page(ctx, "feed.html", false, { FeedBridg
     fun nocom(v: Boolean) = js("R.nocom($v)")
     fun songsOn(j: String) = js("R.songsOn($j)")
     fun opts(source: Boolean, expl: Boolean, tags: Boolean) = js("R.opts($source,$expl,$tags)")
+    fun savedSet(j: String) = js("R.savedSet($j)")
     fun replay() = js("R.replay()")
     fun profile(j: String) = js("R.profile($j)")
     fun profilePosts(j: String) = js("R.pposts($j)")
@@ -205,6 +206,9 @@ class Feed(val rs: Rs) {
         if (on) l.add(0, JSONArray().put(id).put(o))
         rs.store.set(SAVED, JSONArray(l).toString())
     }
+    fun isSaved(id: Long, o: Int): Boolean { val a = savedList(); return (0 until a.length()).any { a.getJSONArray(it).let { e -> e.getLong(0) == id && e.getInt(1) == o } } }
+    /** saved from Reels: the feed's bookmarks follow */
+    fun saveFromReels(id: Long, o: Int, on: Boolean) { save(id, o, on); made?.savedSet(saved().toString()) }
     fun savedProfile() {
         val d = deck ?: return; pfAi = -2; pfLeft = 0
         io.execute {
