@@ -336,7 +336,7 @@ private fun MusicSheet(rs: Rs) {
                 Box(Modifier.size(32.dp).clip(CircleShape).clickable { r.removePlaylist(p) }, contentAlignment = Alignment.Center) { Txt("×", size = 20.sp, color = P.faint) }
             }
         }
-        Btn("Add a playlist", Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 12.dp), h = 38.dp, size = 14.4.sp) { adding = true }
+        Btn("Add a playlist", Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 12.dp), p = true, h = 38.dp, size = 14.4.sp) { adding = true }
         /* the genres all at once: only while one of your playlists is on, so something can still play */
         val gk = r.genres.map { it.first }.filter { g -> r.songs.any { it.genre == g && !it.dead } }
         val listOn = r.lists.any { it.songs.isNotEmpty() && it.key !in rs.set.goff }

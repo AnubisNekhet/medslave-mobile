@@ -63,13 +63,13 @@ fun Pal.accented(a: Color?): Pal {
     if (a == null) return this
     fun l(c: Color) = c.luminance()
     fun cr(x: Color, y: Color) = (maxOf(l(x), l(y)) + .05f) / (minOf(l(x), l(y)) + .05f)
-    val on = if (cr(a, card) >= cr(a, text)) card else text
+    val on = if (dark) card else if (cr(a, card) >= cr(a, text)) card else text   // dark mode: always the dark card colour on the accent
     return Pal(bg, card, text, faint, border, divider, press, accent, link, red, green, dark, a, on)
 }
 /** the accent in use: the chosen one, or by default the theme's blue (Dracula's cyan, Material You's main accent) */
 fun accentOf(theme: String, i: Int, dark: Boolean): Color? {
     val l = accents(theme); if (l.isEmpty()) return null
-    val k = if (i in l.indices) i else when (theme) { "tokyo" -> 6; "nord" -> 8; "dracula" -> 4; "you" -> 0; else -> 11 }.coerceIn(l.indices)
+    val k = if (i in l.indices) i else when (theme) { "tokyo" -> 6; "nord" -> 6; "dracula" -> 4; "you" -> 0; else -> 11 }.coerceIn(l.indices)
     return l[k].let { if (dark) it.second else it.first }
 }
 /** each theme's own accent colours, [light, dark] pairs (Settings › Appearance: the circles under Theme) */
