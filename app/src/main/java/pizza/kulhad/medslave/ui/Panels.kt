@@ -202,7 +202,7 @@ private fun Appearance(rs: Rs) {
             val l = pal(t, false); val d = pal(t, true)
             val la = if (t == "tokyo" || t == "default") Color(0xFFE49320) else l.accent
             val da = if (t == "default") Color(0xFFF9E2AF) else d.accent
-            Tile(tp[t]!!, rs.set.theme == t, modifier = Modifier.width(106.dp), small = true, onClick = { rs.set.theme = t; rs.set.save() }) {
+            Tile(tp[t]!!, rs.set.theme == t, modifier = Modifier.width(106.dp), small = true, onClick = { if (rs.set.theme != t) rs.set.accent = -1; rs.set.theme = t; rs.set.save() }) {
                 Row(Modifier.height(58.dp)) {
                     listOf(Triple(l.bg, l.card, la), Triple(d.bg, d.card, da)).forEach { (bg, cd, ac) ->
                         Box(Modifier.weight(1f).fillMaxHeight().background(bg), contentAlignment = Alignment.Center) {
@@ -218,6 +218,18 @@ private fun Appearance(rs: Rs) {
         }
     }
     val lock = rs.set.reels
+    /* the accent: the theme's own colours as circles (its blue by default); it fills full-contrast buttons and switches */
+    val list = pizza.kulhad.medslave.ui.accents(rs.set.theme).map { if (P.dark) it.second else it.first }
+    val now = pizza.kulhad.medslave.ui.accentOf(rs.set.theme, rs.set.accent, P.dark)
+    val acs = rememberScrollState()
+    LaunchedEffect(rs.set.theme) { val i = list.indexOf(now).coerceAtLeast(0); acs.scrollTo(((i * 48 + 19) * dn).toInt() - acs.viewportSize / 2) }   // the chosen one in view
+    Row(Modifier.fillMaxWidth().horizontalScroll(acs).padding(bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        list.forEachIndexed { i, col ->
+            val sel = col == now
+            Box(Modifier.size(38.dp).clip(CircleShape).border(2.dp, if (sel) P.text else Color.Transparent, CircleShape).padding(4.dp).clip(CircleShape)
+                .background(col).clickable { rs.set.accent = i; rs.set.save() })
+        }
+    }
     Head("Review style")
     /* Reels is a review style of its own: Flip + Scroll up with the Reels overlay */
     val flipStyle = rs.set.style == "flip" || rs.set.style == "doom"

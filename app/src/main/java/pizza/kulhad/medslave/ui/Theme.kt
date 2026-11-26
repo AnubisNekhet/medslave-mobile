@@ -38,6 +38,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalConfiguration
@@ -55,7 +56,30 @@ import pizza.kulhad.medslave.R
 
 /* colours from style.css: the default theme's light/dark .card variables and the themes block (html[data-theme]) */
 class Pal(val bg: Color, val card: Color, val text: Color, val faint: Color, val border: Color, val divider: Color, val press: Color,
-          val accent: Color, val link: Color, val red: Color, val green: Color, val dark: Boolean)
+          val accent: Color, val link: Color, val red: Color, val green: Color, val dark: Boolean, val hi: Color = text, val onHi: Color = card)
+/* hi: the fill of full-contrast buttons and a switch that's on; onHi: what sits on it. the chosen accent (Settings › Appearance) or,
+   without one, the text colour as before */
+fun Pal.accented(a: Color?): Pal {
+    if (a == null) return this
+    fun l(c: Color) = c.luminance()
+    fun cr(x: Color, y: Color) = (maxOf(l(x), l(y)) + .05f) / (minOf(l(x), l(y)) + .05f)
+    val on = if (cr(a, card) >= cr(a, text)) card else text
+    return Pal(bg, card, text, faint, border, divider, press, accent, link, red, green, dark, a, on)
+}
+/** the accent in use: the chosen one, or by default the theme's blue (Dracula's cyan, Material You's main accent) */
+fun accentOf(theme: String, i: Int, dark: Boolean): Color? {
+    val l = accents(theme); if (l.isEmpty()) return null
+    val k = if (i in l.indices) i else when (theme) { "tokyo" -> 6; "nord" -> 8; "dracula" -> 4; "you" -> 0; else -> 11 }.coerceIn(l.indices)
+    return l[k].let { if (dark) it.second else it.first }
+}
+/** each theme's own accent colours, [light, dark] pairs (Settings › Appearance: the circles under Theme) */
+fun accents(theme: String): List<Pair<Color, Color>> = when (theme) {
+    "tokyo" -> listOf("#f52a65" to "#f7768e", "#b15c00" to "#ff9e64", "#8c6c3e" to "#e0af68", "#587539" to "#9ece6a", "#118c74" to "#73daca", "#007197" to "#7dcfff", "#2e7de9" to "#7aa2f7", "#9854f1" to "#bb9af7").map { c(it.first) to c(it.second) }
+    "nord" -> listOf("#bf616a", "#d08770", "#ebcb8b", "#a3be8c", "#b48ead", "#8fbcbb", "#88c0d0", "#81a1c1", "#5e81ac").map { c(it) to c(it) }
+    "dracula" -> listOf("#cb3a2a" to "#ff5555", "#a34d14" to "#ffb86c", "#846e15" to "#f1fa8c", "#14710a" to "#50fa7b", "#036a96" to "#8be9fd", "#644ac9" to "#bd93f9", "#a3144d" to "#ff79c6").map { c(it.first) to c(it.second) }
+    "you" -> You.accents
+    else -> DCOL   // default and Catppuccin: Catppuccin's Latte / Mocha accents
+}
 
 private fun c(s: String): Color { val h = s.removePrefix("#"); val v = h.toLong(16); return if (h.length == 8) Color(((v and 0xff) shl 24 or (v ushr 8)).toInt()) else Color((0xff000000 or v).toInt()) }
 private fun mix(a: String, p: Float, b: String) = lerp(c(b), c(a), p)
@@ -63,7 +87,7 @@ private fun mix(a: String, p: Float, b: String) = lerp(c(b), c(a), p)
 /** Material You (Android 12+): the phone's wallpaper colours, read as the app starts. light and dark palettes for the app, and the same
     colours as card variables for the web pages (css, injected by Page.theme) */
 object You {
-    var light: Pal? = null; var dark: Pal? = null; var css = ""
+    var light: Pal? = null; var dark: Pal? = null; var css = ""; var accents = listOf<Pair<Color, Color>>()
     val ok get() = android.os.Build.VERSION.SDK_INT >= 31
     fun load(ctx: android.content.Context) {
         if (!ok) return
@@ -95,6 +119,7 @@ object You {
                 "--ctp-green:${rgb(c(gn).let { (it.value shr 32).toInt() })};--ctp-blue:${rgb(v["a1"]!!)};--ctp-yellow:${if (d) "249, 226, 175" else "223, 142, 29"};" +
                 "--ctp-teal:${if (d) "148, 226, 213" else "23, 146, 153"};--accent:${h("a1")}"
         }
+        accents = listOf(1, 2, 3).map { col(k("system_accent${it}_600")) to col(k("system_accent${it}_200")) }
         css = "html[data-theme=you] .card:not(.night_mode){${vars(false)}}html[data-theme=you] .card.card.night_mode,html[data-theme=you] .card.card.nightMode{${vars(true)}}"
     }
 }
@@ -146,9 +171,9 @@ fun Modifier.press(enabled: Boolean = true, bg: Color? = null, pressed: Color = 
 fun Btn(label: String, modifier: Modifier = Modifier, p: Boolean = false, danger: Boolean = false, enabled: Boolean = true, h: Dp = 38.dp,
         size: TextUnit = 16.sp, pad: Dp = 25.dp, onClick: () -> Unit) {
     val s = RoundedCornerShape(8.dp)
-    Box(modifier.heightIn(min = h).border(1.dp, P.border, s).press(enabled, if (p) P.text else P.card, if (p) P.text.copy(alpha = .85f) else P.press, s, onClick)
+    Box(modifier.heightIn(min = h).border(1.dp, if (p) P.hi else P.border, s).press(enabled, if (p) P.hi else P.card, if (p) P.hi.copy(alpha = .85f) else P.press, s, onClick)
         .padding(horizontal = pad), contentAlignment = Alignment.Center) {
-        Txt(label, size = size, bold = true, color = when { !enabled -> P.faint; p -> P.card; danger -> RED; else -> P.text }, lines = 1)
+        Txt(label, size = size, bold = true, color = when { !enabled -> P.faint; p -> P.onHi; danger -> RED; else -> P.text }, lines = 1)
     }
 }
 @Composable
@@ -193,7 +218,7 @@ fun Popup(title: @Composable RowScope.() -> Unit, onClose: () -> Unit, maxW: Dp 
 @Composable
 fun Switch(on: Boolean, enabled: Boolean = true, onChange: (Boolean) -> Unit) {
     val x by animateFloatAsState(if (on) 1f else 0f, tween(200), label = "sw")
-    val bg = lerp(P.border, P.text, x); val knob = lerp(P.faint, P.card, x)
+    val bg = lerp(P.border, P.hi, x); val knob = lerp(P.faint, P.onHi, x)
     Box(Modifier.size(45.dp, 26.dp).clip(RoundedCornerShape(13.dp)).background(bg).clickable(enabled = enabled) { onChange(!on) }) {
         Box(Modifier.offset(x = (3 + 19 * x).dp, y = 3.dp).size(20.dp).clip(CircleShape).background(knob))
     }

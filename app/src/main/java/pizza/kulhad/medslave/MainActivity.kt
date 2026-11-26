@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalConfiguration
 import pizza.kulhad.medslave.ui.Credits
+import pizza.kulhad.medslave.ui.accented
 import pizza.kulhad.medslave.ui.DialogBox
 import pizza.kulhad.medslave.ui.Home
 import pizza.kulhad.medslave.ui.ImportPanel
@@ -65,7 +66,7 @@ class MainActivity : ComponentActivity() {
             val dark = when (rs.set.mode) { "light" -> false; "dark" -> true; else -> sys }   // Settings › Appearance › Mode
             LaunchedEffect(dark) { val t = android.graphics.Color.TRANSPARENT
                 enableEdgeToEdge(if (dark) SystemBarStyle.dark(t) else SystemBarStyle.light(t, t), if (dark) SystemBarStyle.dark(t) else SystemBarStyle.light(t, t)) }
-            val p = remember(rs.set.theme, dark) { pal(rs.set.theme, dark) }
+            val p = remember(rs.set.theme, dark, rs.set.accent) { pal(rs.set.theme, dark).accented(pizza.kulhad.medslave.ui.accentOf(rs.set.theme, rs.set.accent, dark)) }
             rs.scope = rememberCoroutineScope()
             val dn = LocalDensity.current; val cf = LocalConfiguration.current
             SideEffect { rs.density = dn.density; rs.screenW = cf.screenWidthDp * dn.density; rs.screenH = cf.screenHeightDp * dn.density }
