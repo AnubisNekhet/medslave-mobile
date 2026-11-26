@@ -109,7 +109,7 @@ class Rs(val ctx: Context) {
     fun loadDeck() {
         io.execute {
             val d = DeckStore.load(ctx)
-            post { deck = d; loaded = true; web.init(d.paths, set.source); pending?.let { pending = null; importUri(it) } }
+            post { deck = d; loaded = true; web.init(d.paths, set.source, set.expl, set.tags); pending?.let { pending = null; importUri(it) } }
         }
     }
 
@@ -135,18 +135,11 @@ class Rs(val ctx: Context) {
     fun recent(): Node? = store.get(RK)?.let { k -> if (k == deck.all.ps) deck.all else deck.nodes.find { it.ps == k } }
     fun resetTutorial() { store.set(SEEN, null); tut = true }
 
-    /** MCQ cards in a pass, per Settings › Reviewing (all / only MCQs / no MCQs); a choice that would leave nothing keeps them all */
-    private fun mcqFilter(notes: List<Note>): List<Note> = when (set.mcq) {
-        "only" -> notes.filter { it.mcq }.ifEmpty { notes }
-        "none" -> notes.filter { !it.mcq }.ifEmpty { notes }
-        else -> notes
-    }
     /** an MCQ's verdict from the option tapped (null: none tapped) */
     private var mcqOk: Boolean? = null
     init { web.onPick = { ok -> if (cur?.n?.mcq == true && stage == 0) { mcqOk = ok; advance(true) } } }
 
-    fun begin(notes0: List<Note>, name: String, key: String, resume: Boolean = true) {
-        val notes = mcqFilter(notes0)
+    fun begin(notes: List<Note>, name: String, key: String, resume: Boolean = true) {
         val sv = if (resume) lastOf(key) else null
         val p = if (set.ordered) Order.planOrdered(notes, sv) else {
             val seed = if (resume) store.obj(OK).optString(key, "").ifEmpty { null } else null
@@ -240,6 +233,7 @@ class Rs(val ctx: Context) {
         off while the next one comes in from the other side; otherwise the card slides away, then the next one is drawn */
     fun leave(d: Int, ok: Boolean = d < 0) {
         if (leaving) return
+        if (dragOff * d < 0) dragOff = 0f   // dragged one way but leaving the other (a Reels MCQ): no hand-off from the drag
         if (rm()) return next(-d)
         if (!set.reels) web.glow(if (ok) 1f else -1f)
         leaving = true
@@ -283,11 +277,17 @@ class Rs(val ctx: Context) {
 
     private var enterJob: Job? = null
     /** New Card Reveal, before the card is drawn: the start of the animation */
+    /** Reels: how far the card was dragged when it was let go (px). the old card's picture carries on from there and the new one starts
+        right behind it, so both travel stageH - |dragOff| together with no gap */
+    var dragOff = 0f
+    private var travel = 0f
     private fun prepEnter(m: String, d: Int) {
         enterJob?.cancel()
+        travel = stageH - kotlin.math.abs(dragOff); dragOff = 0f
+        val tr = travel
         enterJob = scope.launch {
             tx.snapTo(0f); rot.snapTo(0f)
-            if (m == "up") { ty.snapTo(d * stageH); oy.snapTo(d * stageH); alpha.snapTo(1f); scale.snapTo(1f) }
+            if (m == "up") { ty.snapTo(d * tr); oy.snapTo(d * tr); alpha.snapTo(1f); scale.snapTo(1f) }
             else { ty.snapTo(0f); oy.snapTo(0f); scale.snapTo(.8f); alpha.snapTo(0f) }
         }
     }
@@ -297,12 +297,12 @@ class Rs(val ctx: Context) {
         enterJob = scope.launch {
             val g = ghost
             if (g != null) launch {
-                val h = stageH; val k = 4 * density
+                val h = travel; val k = 4 * density
                 g.y.animateTo(g.d * h, keyframes { durationMillis = 450; 0f at 0 using EASE_OUTISH; g.d * (h + k) at 315 using EASE_IN_OUT; g.d * h at 450 })
                 if (ghost === g) ghost = null
             }
             if (m == "up") {
-                val h = stageH; val k = 4 * density
+                val h = travel; val k = 4 * density
                 val kf = keyframes<Float> { durationMillis = 450; d * h at 0 using EASE_OUTISH; -d * k at 315 using EASE_IN_OUT; 0f at 450 }
                 launch { oy.animateTo(0f, kf) }
                 ty.animateTo(0f, kf)
@@ -330,7 +330,7 @@ class Rs(val ctx: Context) {
         val ex = j.optString("exported", "").take(10)
         dialog = Dlg("Replace all progress on this device with this file" + (if (ex.isNotEmpty()) " (exported $ex)" else "") + "?", "Replace", cancel = true) {
             store.replaceAll(m.mapValues { it.value as String }); set.load(); last = null; S = null; cur = null; fin = null
-            settingsOpen = false; study = false; heatTick++; web.init(deck.paths, set.source)
+            settingsOpen = false; study = false; heatTick++; web.init(deck.paths, set.source, set.expl, set.tags)
         }
     }
 
@@ -377,7 +377,7 @@ class Rs(val ctx: Context) {
         if (busy || deck.empty) return
         dialog = Dlg("Delete " + (deck.meta?.let { "“${it.name}”" } ?: "the current deck") + " from this device? Your place and card order in it are cleared too. Your activity history stays.", "Delete", cancel = true, danger = true) {
             busy = true
-            io.execute { DeckStore.delete(ctx); post { store.dropProgress(); last = null; S = null; cur = null; fin = null; busy = false; dkMsg = ""; deck = Deck.EMPTY; web.init(emptyList(), set.source) } }
+            io.execute { DeckStore.delete(ctx); post { store.dropProgress(); last = null; S = null; cur = null; fin = null; busy = false; dkMsg = ""; deck = Deck.EMPTY; web.init(emptyList(), set.source, set.expl, set.tags) } }
         }
     }
 }

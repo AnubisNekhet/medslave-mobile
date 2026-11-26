@@ -48,6 +48,7 @@ class FeedWeb(ctx: Context, f: Feed) : Page(ctx, "feed.html", false, { FeedBridg
     fun refreshed(j: String) = js("R.refreshed($j)")
     fun nocom(v: Boolean) = js("R.nocom($v)")
     fun songsOn(j: String) = js("R.songsOn($j)")
+    fun opts(source: Boolean, expl: Boolean, tags: Boolean) = js("R.opts($source,$expl,$tags)")
     fun replay() = js("R.replay()")
     fun profile(j: String) = js("R.profile($j)")
     fun profilePosts(j: String) = js("R.pposts($j)")
@@ -93,7 +94,7 @@ class Feed(val rs: Rs) {
         if (s == 0) acc = emptyList()
         val b = slot()
         io.execute {
-            val j = JSONObject().put("paths", JSONArray(d.paths)).put("source", rs.set.source)
+            val j = JSONObject().put("paths", JSONArray(d.paths)).put("source", rs.set.source).put("expl", rs.set.expl).put("tags", rs.set.tags)
                 .put("acc", JSONArray(acc.map { a -> JSONObject().put("h", a.h).put("ic", a.ic).put("c", a.c) }))
                 .put("posts", posts(0)).put("groups", stories(b)).put("act", JSONObject(act())).put("saved", saved())
             main.post { if (deck === d) { bucket = b; web.feed(j.toString()); web.nocom(rs.set.nocom) } }
@@ -115,6 +116,8 @@ class Feed(val rs: Rs) {
     fun playSong(k: String) { if (k.isEmpty()) stopSong() else rs.reels.byKey(k)?.let { rs.reels.playSong(it) } ?: stopSong() }
     /** the songs changed (a genre or playlist switched, a playlist edited or removed): the page swaps any post's or story's song that's
         no longer on for one that is, and plays again */
+    /** Settings › Reviewing changed what cards show */
+    fun opts() { made?.opts(rs.set.source, rs.set.expl, rs.set.tags) }
     fun songsChanged() { made?.let { w -> w.songsOn(JSONArray(rs.reels.songs.filter { !it.dead && it.genre !in rs.set.goff }.map { rs.reels.key(it) }).toString()) } }
     fun stopSong() { if (!rs.study) rs.reels.stop() }
 

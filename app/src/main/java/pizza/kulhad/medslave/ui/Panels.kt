@@ -110,15 +110,11 @@ private fun SettingsBody(rs: Rs, names: Map<String, String>) {
                 "ap" -> Appearance(rs)
                 "rv" -> {
                     Row2("Ordered mode") { Switch(rs.set.ordered) { rs.setOrdered(it) } }
-                    if (rs.deck.hasMcq) {   /* only when the deck has MCQs */
-                        Row2("MCQ cards", "Takes effect when you next open a deck")
-                        Row(Modifier.fillMaxWidth().padding(bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf("all" to "All", "only" to "Only MCQs", "none" to "No MCQs").forEach { (k, l) ->
-                                Btn(l, Modifier.weight(1f), p = rs.set.mcq == k, h = 36.dp, size = 14.sp, pad = 8.dp) { rs.set.mcq = k; rs.set.save() }
-                            }
-                        }
-                    }
-                    Row2("Show source") { Switch(rs.set.source) { rs.set.source = it; rs.set.save(); rs.web.source(it); rs.cur?.let { c -> rs.web.show(c.json, c.o, rs.stage, rs.set.flip) } } }
+                    /* what cards show: re-drawn at once, and the feed follows */
+                    val opts = { rs.set.save(); rs.web.opts(rs.set.source, rs.set.expl, rs.set.tags); rs.feed.opts(); rs.cur?.let { c -> rs.web.show(c.json, c.o, rs.stage, rs.set.flip) } }
+                    Row2("Show source") { Switch(rs.set.source) { rs.set.source = it; opts() } }
+                    if (rs.deck.hasMcq) Row2("Show explanation", "Under MCQ answers") { Switch(rs.set.expl) { rs.set.expl = it; opts() } }
+                    Row2("Show tags", "At the bottom of each card") { Switch(rs.set.tags) { rs.set.tags = it; opts() } }
                     var tdone by remember { mutableStateOf(false) }
                     LaunchedEffect(tdone) { if (tdone) { delay(1500); tdone = false } }
                     Row2("Show the tutorial again", "On the next card you open") {

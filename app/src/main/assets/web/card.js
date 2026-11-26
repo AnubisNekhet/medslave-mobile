@@ -45,8 +45,8 @@ function answer(rm){stage=1;const w=document.querySelector('#stage .flip-wrap,#s
 function glow(v){const k=$('#swipe');if(!k)return;k.classList.toggle('gl-ok',v>0);k.classList.toggle('gl-no',v<0);k.style.setProperty('--glow-opacity',(Math.min(1,Math.abs(v))*.55).toFixed(3))}
 /* the app's calls */
 const R={
- init(paths,source){DATA.paths=paths;SET.source=!!source},
- source(v){SET.source=!!v},
+ init(paths,source,expl,tags){DATA.paths=paths;R.opts(source,expl,tags)},
+ opts(source,expl,tags){SET.source=!!source;SET.expl=expl!==false;SET.tags=!!tags},   /* Settings › Reviewing */
  theme(t,dark){document.documentElement.dataset.theme=t;document.body.classList.toggle('night_mode',dark);document.body.classList.toggle('nightMode',dark)},
  show(seq,n,o,s,flip){cur={n,o};stage=s;FL=!!flip;draw();requestAnimationFrame(()=>A_.ready(seq))},
  clear(){cur=null;$('#stage').innerHTML='';A_.h(0)},

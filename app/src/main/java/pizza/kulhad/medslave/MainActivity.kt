@@ -107,6 +107,21 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(i: Intent) { super.onNewIntent(i); handle(i) }
 
+    /* the volume keys while reviewing (Reels or not, a card on screen, nothing open over it): down = knew it, up = missed it; on the
+       question side either one shows the answer. anywhere else they're the volume */
+    override fun dispatchKeyEvent(e: android.view.KeyEvent): Boolean {
+        val k = e.keyCode
+        if ((k == android.view.KeyEvent.KEYCODE_VOLUME_DOWN || k == android.view.KeyEvent.KEYCODE_VOLUME_UP) && rs.study && rs.cur != null
+            && !rs.progressOpen && !rs.settingsOpen && rs.dialog == null && rs.reels.sheet == null && !rs.tutorial) {
+            if (e.action == android.view.KeyEvent.ACTION_DOWN && e.repeatCount == 0) {
+                if (rs.stage == 0) rs.advance(true)
+                else if (k == android.view.KeyEvent.KEYCODE_VOLUME_DOWN) rs.advance(true, true) else rs.wrong()
+            }
+            return true
+        }
+        return super.dispatchKeyEvent(e)
+    }
+
     /** "Open with medslave" / share to medslave: an .apkg from a file manager or a chat app */
     private fun handle(i: Intent?) {
         val u: Uri? = when (i?.action) {

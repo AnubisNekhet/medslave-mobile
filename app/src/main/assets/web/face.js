@@ -1,9 +1,10 @@
 /* medslave · face.js: a card's HTML (basic, cloze, image occlusion, IO one by one, MathJax, trimmed blank lines), shared by
    card.html (the reviewer) and feed.html (Reels Mode's home feed). face(A) draws cur = {n, o}; A = the answer side */
 const $=s=>document.querySelector(s),HR='<hr class="prettify-divider prettify-divider--answer">',DV='<div class="prettify-divider prettify-divider--answer"></div>';
-let DATA={paths:[]},SET={source:false},cur=null,stage=0,FL=false;
+let DATA={paths:[]},SET={source:false,expl:true,tags:false},cur=null,stage=0,FL=false;
 const deck=pi=>`<div class="prettify-deck">${(DATA.paths[pi]||'').split(' › ').map(x=>`<span class="prettify-subdeck">${x}</span>`).join('&nbsp;/&nbsp;')}</div>`;
-const tags=()=>'';
+/* a card's tags at its bottom (Settings › Reviewing › Show tags): each tag's last part, as on the site's cards */
+const tags=n=>SET.tags&&n[5]&&n[5].length?`<div class="prettify-tags">${n[5].map(t=>{const l=String(t).split('::').filter(Boolean).pop().replace(/_/g,' ').trim();return `<span class="prettify-tag">${l.replace(/</g,'&lt;')}</span>`}).join('')}</div>`:'';
 const fld=(c,x,z='center-text')=>`<div class="prettify-field prettify-field--${c}"><div class="${z}">${x}</div></div>`;
 const ttl=t=>t?`<div class="prettify-field prettify-field--front center-text"><h3 class="title">${t}</h3></div>`+HR:'';
 /* MathJax: \( … \) and \[ … \], typeset as SVG by vendor/tex-svg.js, loaded the first time a card has math */
@@ -40,17 +41,19 @@ function mcqFace(m,A,pi,key){if(MQ.key!=key){MQ.key=key;MQ.picked=null;MQ.order=
   :`<input type="radio" id="opt${i}" name="mcq" value="${i}"><label for="opt${i}" data-o="${i}">${m.opts[i]}</label>`).join('');
  return deck(pi)+HR+ttl(m.title)+`<div class="prettify-field prettify-field--front mcq-qf"><div class="center-text"><div class="prettify-field center-text zoomable-image">${m.q}</div></div></div>`+HR   /* the question, a divider, then the options */
   +`<div class="prettify-field prettify-field--front mcq-of"><div class="center-text"><div class="prettify-field option-group center-text">${ops}</div></div></div>`
-  +(A&&m.extra?`<hr class="prettify-divider prettify-divider--answer"><div class="prettify-field prettify-field--front mcq-ex"><div class="center-text"><div class="prettify-field center-text extra">${m.extra}</div></div></div>`:'')}
+}
+/* the explanation: its own small card under the MCQ card on the answer side (Settings › Reviewing › Show explanation) */
+const mcqEx=m=>m.extra&&SET.expl?`<div class="prettify-flashcard mcq-exc"><div class="prettify-field center-text extra">${m.extra}</div></div>`:'';
 function face(A){const{n,o}=cur,[,k,pi]=n,f=n[4].map(trimF);let h;
-const mq=k=='b'&&mcqOf(f);if(mq)return `<div class="prettify-flashcard mcq-card${A&&mq.extra?' mcq-a':''}">${mcqFace(mq,A,pi,n[0]+':'+o)}</div>`;
+const mq=k=='b'&&mcqOf(f);if(mq)return `<div class="prettify-flashcard mcq-card">${mcqFace(mq,A,pi,n[0]+':'+o)}${tags(n)}</div>`+(A?mcqEx(mq):'');
 if(k=='b'){const[fr,bk,ex,ti,so,ht]=f,sr=SET.source?so:'',q=o?bk:fr;
-h=deck(pi)+HR+(A?ttl(ti)+(f[6]=='ioe'?'':fld('front',q)+HR)+fld('back',o?fr:bk)+(ex?HR+fld('back',ex,'center-text extra'):'')+(!o&&sr?DV+fld('front zoomable-image',sr,'center-text extra'):'')+tags()
-:(o?'':ttl(ti))+fld('front',q)+(o?'':tags()))}
+h=deck(pi)+HR+(A?ttl(ti)+(f[6]=='ioe'?'':fld('front',q)+HR)+fld('back',o?fr:bk)+(ex?HR+fld('back',ex,'center-text extra'):'')+(!o&&sr?DV+fld('front zoomable-image',sr,'center-text extra'):'')+tags(n)
+:(o?'':ttl(ti))+fld('front',q)+(o?'':tags(n)))}
 else if(k=='c'){const[tx,ex,ti,so,ht,lf,sq,ha]=f,sr=SET.source?so:'',L=!lf,sn=(sq||'').trim()?(Number(sq)||1):0,sb=sn&&!A?`<div class="sequentialCloze" data-n="${sn}">`:'',se=sn&&!A?'</div>':'',ab=A&&ha&&[...tx.matchAll(/\{\{c(\d+)::/g)].some(m=>+m[1]!=o+1)?'<div class="center-text"><button id="allClozeBtn">Reveal all clozes</button></div>':'',w=x=>`<div class="prettify-field prettify-field--front zoomable-image cloze-extra">${L?'<div class="center-text extra">':''}${x}${L?'</div>':''}</div>`;
 h=deck(pi)+DV+`<div class="prettify-field prettify-field--front">${sb}${L?'<div class="center-text">':''}${ti?`<h3 class="title">${ti}</h3><div class="shift-right">`:''}${cloze(tx,o+1,A,ha)}${ab}${ti?'</div>':''}${L?'</div>':''}${se}</div>`
-+(A&&ex?DV+w(ex):'')+(A&&sr?DV+w(sr):'')+tags()}
++(A&&ex?DV+w(ex):'')+(A&&sr?DV+w(sr):'')+tags(n)}
 else{const[oc,hd,im,ft,...r]=f,x=r.filter(Boolean),g=y=>HR+fld('front extra',`<div id="io-footer">${y}</div>`),px=oc.search(IOR)>=0,io=`<div class="io-c" id="image-occlusion-container">${im}<svg ${px?'class="io-px" viewBox="0 0 0 0"':'viewBox="0 0 1 1"'} preserveAspectRatio="none">${px?rects(oc,A):shapes(oc,o+1,A)}</svg></div>`;
-h=deck(pi)+HR+(hd?fld('front',`<div id="io-header">${hd}</div>`)+HR:'')+fld('front',px&&!A?`<div class="sequentialCloze" data-n="1">${io}</div>`:io)+(ft?g(ft):'')+(A?x.slice(0,5).map(g).join(''):'')+tags()}
+h=deck(pi)+HR+(hd?fld('front',`<div id="io-header">${hd}</div>`)+HR:'')+fld('front',px&&!A?`<div class="sequentialCloze" data-n="1">${io}</div>`:io)+(ft?g(ft):'')+(A?x.slice(0,5).map(g).join(''):'')+tags(n)}
 return `<div class="prettify-flashcard${k=='c'?' prettify-flashcard-front':''}">${h}</div>`}
 const medURL=k=>'/media/'+encodeURIComponent(k);
 /* an element's deck images: <img data-m> gets its src from the app's media folder */

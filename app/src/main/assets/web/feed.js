@@ -203,7 +203,7 @@ function dayHTML(p){const d=new Date(p.day+'T00:00'),y=d.getFullYear(),mo=d.getM
 const R={
  theme(t,dark){document.documentElement.dataset.theme=t;document.body.classList.toggle('night_mode',dark);document.body.classList.toggle('nightMode',dark);
   document.body.style.setProperty('--bgc',getComputedStyle(document.body).backgroundColor)},
- feed(d){DATA.paths=d.paths;SET.source=!!d.source;F.acc=d.acc;F.posts=[];F.groups=d.groups;F.saved=new Set(d.saved||[]);$('#posts').innerHTML='';svClose(true);pfClose(true);rings();
+ feed(d){DATA.paths=d.paths;SET.source=!!d.source;SET.expl=d.expl!==false;SET.tags=!!d.tags;F.acc=d.acc;F.posts=[];F.groups=d.groups;F.saved=new Set(d.saved||[]);$('#posts').innerHTML='';svClose(true);pfClose(true);rings();
   $('#empty').hidden=!!d.acc.length;HJ='';heat(d.act);addPosts(d.posts);FD.scrollTop=0},
  heat(m){heat(m)},
  refreshed(l){setTimeout(()=>{$('#posts').querySelectorAll('.f-post:not([data-i="h"]),.f-loadmore').forEach(e=>e.remove());F.posts=[];F.wait=false;addPosts(l);
@@ -214,6 +214,7 @@ const R={
  profile(j){pfRender(j)},
  pposts(l){if(!l.length)PF.more=false;const at=PF.list.length;PF.list.push(...l);setTimeout(()=>pfAdd(l,at),400+Math.random()*700)},
  closeProfile(){pfClose()},
+ opts(source,expl,tags){SET.source=!!source;SET.expl=expl!==false;SET.tags=!!tags},   /* Settings › Reviewing (cards drawn from now on) */
  nocom(v){document.body.classList.toggle('nocom',!!v)},   /* Settings › Appearance › Hide comments */
  close(){svClose()},
  replay(){SONG=null;tune()},   /* the feed is back on screen: its song again */

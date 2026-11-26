@@ -175,14 +175,19 @@ class Reels(private val rs: Rs) {
     // music
     var song by mutableStateOf<Song?>(null)
     var muted by mutableStateOf(false)
-    private var want = false
-    private var paused = false        // the app is in the background
-    private var prepared = false
+    @Volatile private var want = false
+    @Volatile private var paused = false        // the app is in the background
+    @Volatile private var prepared = false
+    /* the music player runs on its own thread: starting a song (reset, data source, prepare) used to stall the screen while the feed
+       scrolled. everything that touches mp goes through au() */
+    private val audio = android.os.HandlerThread("medslave-audio").apply { start() }
+    private val ah = Handler(audio.looper)
+    private fun au(f: () -> Unit) { ah.post { runCatching(f) } }
     private val mp = MediaPlayer().apply {
         setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
         isLooping = true
-        setOnPreparedListener { prepared = true; isLooping = true; if (want && !paused) { vol(); it.start() } }
-        setOnErrorListener { _, _, _ -> prepared = false; onError(); true }
+        setOnPreparedListener { prepared = true; isLooping = true; if (want && !paused) { val v = if (muted) 0f else 1f; it.setVolume(v, v); it.start() } }
+        setOnErrorListener { _, _, _ -> prepared = false; h.post { onError() }; true }
     }
 
     init { loadLists() }
@@ -218,9 +223,8 @@ class Reels(private val rs: Rs) {
     }
     private fun set(s: Song) {
         song = s; prepared = false
-        val f = cached(s)
-        try { mp.reset(); if (f.exists()) { f.setLastModified(System.currentTimeMillis()); mp.setDataSource(f.path) } else { mp.setDataSource(s.url); fetch(s) }; mp.prepareAsync() } catch (e: Exception) { onError() }
-        want = true
+        val f = cached(s); want = true
+        au { try { mp.reset(); if (f.exists()) { f.setLastModified(System.currentTimeMillis()); mp.setDataSource(f.path) } else { mp.setDataSource(s.url); fetch(s) }; mp.prepareAsync() } catch (e: Exception) { h.post { onError() } } }
     }
     /** the feed's and stories' song: keeps playing if it's already the one */
     fun playSong(s: Song) { if (song === s && want) return play(); set(s) }
@@ -254,11 +258,11 @@ class Reels(private val rs: Rs) {
             if (!rs.busy) java.io.File(f, "media.tmp").deleteRecursively()
         }
     }
-    private fun vol() { val v = if (muted) 0f else 1f; runCatching { mp.setVolume(v, v) } }
-    fun play() { want = true; vol(); if (prepared && !paused) runCatching { if (!mp.isPlaying) mp.start() } }
-    fun stop() { want = false; if (prepared) runCatching { if (mp.isPlaying) mp.pause() } }
+    private fun vol() { val v = if (muted) 0f else 1f; au { mp.setVolume(v, v) } }
+    fun play() { want = true; vol(); if (prepared && !paused) au { if (!mp.isPlaying) mp.start() } }
+    fun stop() { want = false; if (prepared) au { if (mp.isPlaying) mp.pause() } }
     fun tapMusic() { muted = !muted; play() }
-    fun pause(p: Boolean) { paused = p; if (p) { if (prepared) runCatching { if (mp.isPlaying) mp.pause() } } else if (want) play() }
+    fun pause(p: Boolean) { paused = p; if (p) { if (prepared) au { if (mp.isPlaying) mp.pause() } } else if (want) play() }
     /** the songs changed: the reviewer swaps its song if that one's off or gone; the feed and stories swap theirs (Feed.songsChanged) */
     fun genreChanged() { if (rs.study) song?.let { if (!gOn(it) || songs.none { s -> s === it }) set(pick()) }; rs.feed.songsChanged() }
 
@@ -298,7 +302,7 @@ class Reels(private val rs: Rs) {
     fun post(text: String) { loading = false; list.add(0, Comment("you", "now", text, 0, pick(DCOL).second)) }
     fun close() { sheet = null; qr = false; gen++ }
 
-    fun release() { runCatching { mp.release() } }
+    fun release() { au { mp.release() }; audio.quitSafely() }
 
     /* ---- cover art, loaded once each */
     private val art = LruCache<String, ImageBitmap>(48)

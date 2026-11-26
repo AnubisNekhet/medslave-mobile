@@ -52,19 +52,20 @@ class Settings(private val st: Store) {
     var source by mutableStateOf(false)
     var goff by mutableStateOf(setOf<String>()) // music genres switched off
     var nocom by mutableStateOf(false)           // Reels Mode: hide comments (Settings › Appearance)
-    var mcq by mutableStateOf("all")             // MCQ cards in a pass: all | only | none (Settings › Reviewing; shown when the deck has MCQs)
+    var expl by mutableStateOf(true)             // show an MCQ's explanation (Settings › Reviewing)
+    var tags by mutableStateOf(false)            // show a card's tags at its bottom (Settings › Reviewing)
 
     init { load() }
     fun load() {
         val o = st.obj(SK)
         ordered = o.optBoolean("ordered", false); style = o.optString("style", "tinder"); reveal = o.optString("reveal", "pop")
         theme = o.optString("theme", "default").let { if (it in THEMES) it else "default" }
-        reels = o.optBoolean("reels", true); source = o.optBoolean("source", false); nocom = o.optBoolean("nocom", false); mcq = o.optString("mcq", "all")
+        reels = o.optBoolean("reels", true); source = o.optBoolean("source", false); nocom = o.optBoolean("nocom", false); expl = o.optBoolean("expl", true); tags = o.optBoolean("tags", false)
         goff = o.optJSONArray("goff")?.let { a -> (0 until a.length()).map { a.optString(it) }.toSet() } ?: emptySet()
     }
     fun save() {
         st.set(SK, JSONObject().put("ordered", ordered).put("style", style).put("reveal", reveal).put("theme", theme)
-            .put("reels", reels).put("source", source).put("nocom", nocom).put("mcq", mcq).put("goff", JSONArray(goff.toList())).toString())
+            .put("reels", reels).put("source", source).put("nocom", nocom).put("expl", expl).put("tags", tags).put("goff", JSONArray(goff.toList())).toString())
     }
     /** Reels Mode forces Flip + Scroll up */
     val flip get() = reels || style == "flip" || style == "doom"

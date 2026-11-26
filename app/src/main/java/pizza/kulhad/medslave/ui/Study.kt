@@ -86,6 +86,8 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.cardGest
     var bot = rs.web.atBottom(); var top = rs.web.atTop()
     val tinder = !flip && !rs.leaving
     var drag = false; var dx = 0f; var dy = 0f; var multi = false; var lastGlow = 0f; var tUp = t0
+    /* Reels: an answer card follows the finger (with its overlay) instead of waiting for the swipe to end, as reels do */
+    val follow = flip && rs.set.reels && rs.stage == 1 && !rs.leaving; var rdrag = false
     fun glow(v: Float) { if (!rs.set.reels && abs(v - lastGlow) > .015f) { lastGlow = v; rs.web.glow(v) } }
     while (true) {
         val ev = awaitPointerEvent(PointerEventPass.Initial)
@@ -93,6 +95,10 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.cardGest
         val c = ev.changes.firstOrNull { it.id == down.id } ?: break
         dx = (c.position.x - x0) / d; dy = (c.position.y - y0) / d
         if (!c.pressed) { tUp = c.uptimeMillis; break }
+        if (follow && !multi) {
+            if (!rdrag && abs(dy) > 10 && abs(dy) > abs(dx) * 1.2f && (dy < 0 && bot || dy > 0 && top)) rdrag = true
+            if (rdrag) { val py = (if (dy < 0 && !bot || dy > 0 && !top) 0f else dy) * d; rs.scope.launch { rs.ty.snapTo(py); rs.oy.snapTo(py) } }
+        }
         if (flip) {
             if (rs.stage == 1 && (bot || top)) glow(if (abs(dy) > 10 && abs(dy) > abs(dx)) (if (dy < 0 && bot) minOf(1f, -dy / 160) else if (dy > 0 && top) -minOf(1f, dy / 160) else 0f) else 0f)
         } else if (tinder) {
@@ -104,7 +110,12 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.cardGest
             }
         }
     }
-    if (flip) {
+    if (rdrag) {
+        /* let go far or fast enough: it carries on (from where it is) and the next card comes in behind it; otherwise it springs back */
+        val v = abs(dy) / (tUp - t0 + 1)
+        if (!multi && (abs(dy) > 90 || v > .5f)) { rs.dragOff = rs.ty.value; if (dy < 0) rs.advance(true) else rs.advance(true, false) }
+        else rs.scope.launch { val t = tween<Float>(260, easing = pizza.kulhad.medslave.EASE_OUTISH); launch { rs.oy.animateTo(0f, t) }; rs.ty.animateTo(0f, t) }
+    } else if (flip) {
         if (!multi && abs(dy) > 50 && abs(dy) > abs(dx) * 1.2f) { if (dy < 0 && bot) rs.advance(true) else if (dy > 0 && top && rs.stage == 1) rs.advance(true, false) }
         if (!rs.leaving && lastGlow != 0f) rs.web.glow(0f)
     } else if (drag) {

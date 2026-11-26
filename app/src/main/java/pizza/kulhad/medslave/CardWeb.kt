@@ -107,8 +107,9 @@ class CardWeb(ctx: Context) : Page(ctx, "card.html", true, { CardBridge(it as Ca
     private var seq = 0
     private val waits = HashMap<Int, () -> Unit>()
 
-    fun init(paths: List<String>, source: Boolean) = js("R.init(${JSONArray(paths)},$source)")
-    fun source(v: Boolean) = js("R.source($v)")
+    fun init(paths: List<String>, source: Boolean, expl: Boolean, tags: Boolean) = js("R.init(${JSONArray(paths)},$source,$expl,$tags)")
+    /** Settings › Reviewing: show source, explanation, tags */
+    fun opts(source: Boolean, expl: Boolean, tags: Boolean) = js("R.opts($source,$expl,$tags)")
     /** draws a card; onReady runs once it's on screen */
     fun show(noteJson: String, o: Int, stage: Int, flip: Boolean, onReady: () -> Unit = {}) {
         val s = ++seq; waits.clear(); waits[s] = onReady; top = true; bot = true
