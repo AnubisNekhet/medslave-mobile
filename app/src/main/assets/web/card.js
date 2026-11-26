@@ -3,7 +3,7 @@
    App.st(left, n): sequential clozes still hidden + the step size. App.tap(): a pulsing cloze was tapped (= Next).
    App.h(px): the card's full height in CSS px (Reels Mode keeps tall cards above the account row). App.sc(top, bottom): whether the
    card's own scroll is at its top / bottom (a card taller than the view scrolls inside itself). App.ready(seq): a draw is on the page */
-const A_=window.App||{st(){},tap(){},h(){},sc(){},ready(){},pick(){}};
+const A_=window.App||{st(){},tap(){},h(){},sc(){},ready(){},pick(){},ex(){}};
 /* an MCQ's option tapped on the question side: that's the answer. the answer side is redrawn with it marked, and the app is told
    whether it was right (App.pick), which it uses as the verdict when the card moves on */
 document.addEventListener('click',e=>{const l=e.target.closest('#stage .option-group label[data-o]');if(!l||stage||!cur)return;e.preventDefault();
@@ -21,12 +21,14 @@ const card=()=>document.querySelector(FL&&stage?'#stage .flip-back>.prettify-fla
 function scRep(){const c=card();A_.sc(!c||c.scrollTop<=1,!c||c.scrollTop+c.clientHeight>=c.scrollHeight-2)}
 /* tables and the deck path that fit get .nsx; the card's full height (as if it didn't scroll) and its scroll state go to the app */
 function fitX(){document.querySelectorAll('#stage table,#stage .prettify-deck,#stage [style*="overflow"]').forEach(e=>e.classList.toggle('nsx',e.scrollWidth<=e.clientWidth+1));document.querySelectorAll('#stage .prettify-deck').forEach(deckFade);
- const c=card();A_.h(c?c.scrollHeight+c.offsetHeight-c.clientHeight:0);scRep()}
+ const c=card(),x=c&&c.parentNode.querySelector(':scope>.mcq-exc');A_.h((c?c.scrollHeight+c.offsetHeight-c.clientHeight:0)+(x?x.offsetHeight+10:0));scRep()}   /* the card's full height, and an MCQ's explanation card under it */
 const RSZ=new ResizeObserver(()=>fitX());
 function deckFade(d){d.classList.toggle('sl',d.scrollLeft>1);d.classList.toggle('sr',d.scrollLeft+d.clientWidth<d.scrollWidth-1)}
 $('#stage').addEventListener('scroll',e=>{const d=e.target;if(!d.classList)return;if(d.classList.contains('prettify-deck'))deckFade(d);else if(d.classList.contains('prettify-flashcard'))scRep()},true);
 addEventListener('resize',fitX);$('#stage').addEventListener('load',e=>{if(e.target.tagName=='IMG')ioBox(e.target);fitX()},true);
 $('#stage').addEventListener('dragstart',e=>e.preventDefault());
+/* a touch on an MCQ's explanation card: tell the app which ways it can still scroll, so a swipe there scrolls it rather than the reel */
+document.addEventListener('touchstart',e=>{const x=e.target.closest&&e.target.closest('#stage .mcq-exc');if(x)A_.ex(x.scrollTop>1,x.scrollTop+x.clientHeight<x.scrollHeight-2)},{passive:true});
 const front=()=>document.querySelector('#stage .flip-front,#stage .fade-front')||$('#stage');
 function reveal(n){const q='.cloze:not(.cloze-inactive):not(.cloze-revealed)',r=front();[...r.querySelectorAll(q)].slice(0,n).forEach(c=>{if(c.hasAttribute('data-cloze'))c.innerHTML=c.getAttribute('data-cloze');c.classList.add('cloze-revealed')});mj(r);syncNxt();fitX()}
 function seqLeft(){if(stage||!document.querySelector('#stage .sequentialCloze'))return 0;return front().querySelectorAll('.cloze:not(.cloze-inactive):not(.cloze-revealed)').length}
@@ -53,4 +55,5 @@ const R={
  answer(rm){answer(rm)},
  step(){reveal(seqN())},
  glow(v){glow(v)},
- long(v){$('#stage').classList.toggle('long',!!v)}};
+ long(v){$('#stage').classList.toggle('long',!!v)},
+ room(px){document.documentElement.style.setProperty('--room',px+'px')}};

@@ -47,9 +47,13 @@ button:active,button:hover{background:none;color:inherit}
 .f-pb .prettify-flashcard{max-height:125vw;overflow:hidden;margin:0;border:0;border-radius:0;box-shadow:none;padding-top:.7em}
 .f-pb .prettify-field:last-of-type{margin-bottom:.9em}   /* even space above and below the answer (it has no deck path on top) */
 .f-pb.open .prettify-flashcard{max-height:none}
+.f-pb .prettify-flashcard:has(.mcq-col){max-height:none}   /* an MCQ post: its explanation folds itself (chevron), so no "more" on top */
 .f-pmore{display:none;position:absolute;left:0;right:0;bottom:0;height:70px;align-items:flex-end;justify-content:center;padding-bottom:10px;
  background:linear-gradient(to bottom,transparent,var(--card-bg) 70%);font-size:13px;font-weight:700;color:var(--text-fg-faint)}
-.f-pb.clip:not(.open) .f-pmore{display:flex}
+.f-pb.clip .f-pmore{display:flex}
+.f-pb.open .f-pmore{position:static;height:auto;background:none;padding:0 0 6px}   /* opened: the chevron stays under the post, turned up */
+.f-pmore .mcq-chev{margin:0;color:var(--text-fg)}
+.f-pb.open .f-pmore .mcq-chev svg{transform:rotate(180deg)}
 .f-pb #allClozeBtn{display:none}
 /* the action row and the text under it: 23px icons with their counts beside them, then one even rhythm of 14px lines */
 .f-pa{display:flex;align-items:center;gap:14px;padding:11px 12px 9px}

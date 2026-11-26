@@ -21,9 +21,9 @@ const HACC={h:'daily.heatmap',c:'#a6e3a1',ic:ICN.cal},SACC={h:'saved.cards',c:'#
 const accOf=a=>a==-1?HACC:a==-2?SACC:F.acc[a];
 const avatar=a=>`<span class="f-av" style="background:${a.c}">${SVG(a.ic)}</span>`;
 function reviewHTML(n,o){cur={n,o};stage=1;FL=false;return `<div class="wrap"><div class="tinder-swipe tinder-swipe--answer">${face(true)}</div></div>`}   /* a story: as the reviewer draws it */
-function answerHTML(n,o){cur={n,o};stage=1;FL=false;return face(true).replace(/^(<div class="prettify-flashcard[^"]*">)<div class="prettify-deck">[\s\S]*?<\/div>(?:<hr[^>]*>|<div class="prettify-divider[^"]*"><\/div>)/,'$1')}   /* a post: no deck path on the card */
+function answerHTML(n,o){cur={n,o};stage=1;FL=false;EXIN=true;const h=face(true);EXIN=false;return h.replace(/^(<div class="prettify-flashcard[^"]*">)<div class="prettify-deck">[\s\S]*?<\/div>(?:<hr[^>]*>|<div class="prettify-divider[^"]*"><\/div>)/,'$1')}   /* a post: no deck path on the card */
 function settle(el){imgs(el);mj(el);el.querySelectorAll('.f-pb').forEach(clip);subs(el)}
-function clip(b){const c=b.querySelector('.prettify-flashcard');b.classList.toggle('clip',!!c&&c.scrollHeight>c.clientHeight+2)}
+function clip(b){if(b.classList.contains('open'))return;const c=b.querySelector('.prettify-flashcard');b.classList.toggle('clip',!!c&&c.scrollHeight>c.clientHeight+2)}
 document.addEventListener('load',e=>{if(e.target.tagName!='IMG')return;ioBox(e.target);const b=e.target.closest('.f-pb');if(b)clip(b)},true);
 const FD=$('#feed'),PFE=$('#pf');
 
@@ -77,7 +77,7 @@ const LAG=()=>Math.random()<.15?900+Math.random()*1300:200+Math.random()*700;
 function skel(){const w=[[86,64,72],[78,92,58,66],[70,88],[90,60,80,50]][Math.random()*4|0];
  return `<div class="f-sk" style="min-height:${120+Math.random()*110|0}px">${w.map(x=>`<i style="width:${x}%"></i>`).join('')}</div>`}
 function arrive(b){if(b.dataset.t)return;b.dataset.t=1;const el0=b.closest('.f-post');setTimeout(()=>{const el=b.closest('.f-post');if(!el)return;const p=postOf(el);if(!p)return;
- b.classList.remove('f-load');b.innerHTML=p.day?dayHTML(p):answerHTML(p.n,p.o)+'<div class="f-pmore">more</div>';b.classList.add('f-in');settle(el)},el0&&el0.dataset.i=='p0'?0:LAG())}   /* the card a profile was opened from is there at once */
+ b.classList.remove('f-load');b.innerHTML=p.day?dayHTML(p):answerHTML(p.n,p.o)+'<div class="f-pmore"><button class="mcq-chev" aria-label="Show more"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>';b.classList.add('f-in');settle(el)},el0&&el0.dataset.i=='p0'?0:LAG())}   /* the card a profile was opened from is there at once */
 const near=root=>new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.__o.unobserve(e.target);arrive(e.target)}}),{root,rootMargin:'300px 0px'});
 const NEAR=near(FD);
 function watch(e){if(!e.querySelector)return;const b=e.querySelector('.f-pb.f-load');if(b){if(e.closest('#pf'))arrive(b);else{b.__o=NEAR;NEAR.observe(b)}}if(e.classList.contains('f-post'))SEEN.observe(e)}   /* a profile's few posts load straight away (each after its delay) */
@@ -100,7 +100,7 @@ function postClick(e){const el=e.target.closest('.f-post');if(!el)return;const p
  if(sv){kick(sv);if(!p.n)return sv.classList.toggle('on');const k=p.n[0]+':'+p.o,on=!F.saved.has(k);on?F.saved.add(k):F.saved.delete(k);A_.save(String(p.n[0]),p.o,on);
   document.querySelectorAll('.f-post').forEach(x=>{const q=postOf(x);if(q&&q.n&&q.n[0]+':'+q.o==k)x.querySelector('.f-sv').classList.toggle('on',on)});return}
  const b=e.target.closest('.f-pb');if(!b)return;
- if(e.target.closest('.f-pmore')){b.classList.add('open');return}
+ if(e.target.closest('.f-pmore')){b.classList.toggle('open');return}   /* the chevron opens a long post and folds it again */
  const now=Date.now();if(now-LT<320&&LX===el){LT=0;const h=document.createElement('i');h.className='f-burst';h.innerHTML=SVG(ICN.heart);b.appendChild(h);setTimeout(()=>h.remove(),900);if(!p.liked)like(el,p,true)}else{LT=now;LX=el}}
 $('#posts').addEventListener('click',postClick);$('#pfl').addEventListener('click',postClick);
 FD.addEventListener('scroll',()=>{if(!F.wait&&F.posts.length&&FD.clientHeight+FD.scrollTop>FD.scrollHeight-FD.clientHeight*1.5){F.wait=true;F.asked=Date.now();A_.more()}},{passive:true});

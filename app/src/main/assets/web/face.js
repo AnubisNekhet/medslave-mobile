@@ -43,9 +43,12 @@ function mcqFace(m,A,pi,key){if(MQ.key!=key){MQ.key=key;MQ.picked=null;MQ.order=
   +`<div class="prettify-field prettify-field--front mcq-of"><div class="center-text"><div class="prettify-field option-group center-text">${ops}</div></div></div>`
 }
 /* the explanation: its own small card under the MCQ card on the answer side (Settings › Reviewing › Show explanation) */
+let EXIN=false;   /* feed posts: the explanation inside the MCQ card, as before */
+/* a post's explanation: under a divider, collapsed to a few lines; the chevron shows the rest or hides it */
+const mcqIn=m=>m.extra&&SET.expl?`<hr class="prettify-divider prettify-divider--answer"><div class="mcq-col"><div class="prettify-field center-text extra mcq-colb">${m.extra}</div><button class="mcq-chev" onclick="event.stopPropagation();this.parentNode.classList.toggle('open')" aria-label="Show more"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>`:'';
 const mcqEx=m=>m.extra&&SET.expl?`<div class="prettify-flashcard mcq-exc"><div class="prettify-field center-text extra">${m.extra}</div></div>`:'';
 function face(A){const{n,o}=cur,[,k,pi]=n,f=n[4].map(trimF);let h;
-const mq=k=='b'&&mcqOf(f);if(mq)return `<div class="prettify-flashcard mcq-card">${mcqFace(mq,A,pi,n[0]+':'+o)}${tags(n)}</div>`+(A?mcqEx(mq):'');
+const mq=k=='b'&&mcqOf(f);if(mq)return `<div class="prettify-flashcard mcq-card">${mcqFace(mq,A,pi,n[0]+':'+o)}${A&&EXIN?mcqIn(mq):''}${tags(n)}</div>`+(A&&!EXIN?mcqEx(mq):'');
 if(k=='b'){const[fr,bk,ex,ti,so,ht]=f,sr=SET.source?so:'',q=o?bk:fr;
 h=deck(pi)+HR+(A?ttl(ti)+(f[6]=='ioe'?'':fld('front',q)+HR)+fld('back',o?fr:bk)+(ex?HR+fld('back',ex,'center-text extra'):'')+(!o&&sr?DV+fld('front zoomable-image',sr,'center-text extra'):'')+tags(n)
 :(o?'':ttl(ti))+fld('front',q)+(o?'':tags(n)))}

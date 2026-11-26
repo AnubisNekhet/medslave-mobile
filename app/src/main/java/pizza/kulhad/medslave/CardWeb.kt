@@ -32,6 +32,7 @@ class CardBridge(private val w: CardWeb) {
     @JavascriptInterface fun ready(seq: Int) = h.post { w.ready(seq) }
     @JavascriptInterface fun sc(top: Boolean, bot: Boolean) = h.post { w.top = top; w.bot = bot }
     @JavascriptInterface fun pick(ok: Boolean) = h.post { w.onPick(ok) }
+    @JavascriptInterface fun ex(up: Boolean, down: Boolean) = h.post { w.exUp = up; w.exDown = down }
 }
 
 /** one of the app's pages (an html file in assets/web) in a WebView, served from https://appassets.androidplatform.net/ so it behaves like a
@@ -52,6 +53,7 @@ open class Page(protected val ctx: Context, file: String, transparent: Boolean, 
         settings.allowContentAccess = false
         settings.mediaPlaybackRequiresUserGesture = true
         settings.textZoom = 100
+        settings.offscreenPreRaster = true   // draw the whole view at once: a new card doesn't appear in halves
         isVerticalScrollBarEnabled = false
         isHorizontalScrollBarEnabled = false
         overScrollMode = WebView.OVER_SCROLL_NEVER
@@ -98,6 +100,8 @@ open class Page(protected val ctx: Context, file: String, transparent: Boolean, 
 class CardWeb(ctx: Context) : Page(ctx, "card.html", true, { CardBridge(it as CardWeb) }) {
     var seqLeft by mutableIntStateOf(0)
     var seqN by mutableIntStateOf(1)
+    /** this touch is on an MCQ's explanation card, which can still scroll up / down (reset as each touch lands) */
+    var exUp = false; var exDown = false
     var contentH by mutableFloatStateOf(0f)   // the card's full height in CSS px (= dp)
     var onTap: () -> Unit = {}
     var onPick: (Boolean) -> Unit = {}   // an MCQ's option tapped: right or wrong
@@ -120,6 +124,8 @@ class CardWeb(ctx: Context) : Page(ctx, "card.html", true, { CardBridge(it as Ca
     fun step() = js("R.step()")
     fun glow(v: Float) = js("R.glow(${"%.3f".format(java.util.Locale.US, v)})")
     fun long(v: Boolean) = js("R.long($v)")
+    /** Reels: the room (dp) at the bottom a card stays out of: the account row */
+    fun room(dp: Float) = js("R.room(${"%.1f".format(java.util.Locale.US, dp)})")
 
     internal fun ready(s: Int) {
         val f = waits.remove(s) ?: return

@@ -61,7 +61,11 @@ fun Study(rs: Rs) {
             /* Reels: a card too tall to sit above the account row ends just above it and scrolls there (capReel) */
             val capPx = if (reelsOn && rs.reels.whoTop > 0 && (rs.web.contentH + 16) * d > rs.reels.whoTop - 6 * d) rs.stageH - rs.reels.whoTop + 6 * d else 0f
             LaunchedEffect(capPx > 0) { rs.web.long(capPx > 0) }
-            Box(Modifier.fillMaxSize().padding(bottom = (capPx / d).dp).graphicsLayer {
+            /* the card view itself never changes size (resizing it as a new card slid in drew it in pieces): the page keeps the room
+               under the account row free instead (--room) */
+            val room = if (reelsOn && rs.reels.whoTop > 0) (rs.stageH - rs.reels.whoTop + 6 * d) / d else 0f
+            LaunchedEffect(room) { rs.web.room(room) }
+            Box(Modifier.fillMaxSize().graphicsLayer {
                 translationX = rs.tx.value; translationY = rs.ty.value; rotationZ = rs.rot.value; alpha = rs.alpha.value
                 scaleX = rs.scale.value; scaleY = rs.scale.value
             }) {
@@ -83,7 +87,10 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.cardGest
     val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
     if (rs.cur == null) return@awaitEachGesture
     val flip = rs.set.flip; val x0 = down.position.x; val y0 = down.position.y; val t0 = down.uptimeMillis
-    var bot = rs.web.atBottom(); var top = rs.web.atTop()
+    var bot = rs.web.atBottom(); var top = rs.web.atTop(); rs.web.exUp = false; rs.web.exDown = false
+    /* not while an explanation card under the finger can still scroll that way */
+    fun canBot() = bot && !rs.web.exDown
+    fun canTop() = top && !rs.web.exUp
     val tinder = !flip && !rs.leaving
     var drag = false; var dx = 0f; var dy = 0f; var multi = false; var lastGlow = 0f; var tUp = t0
     /* Reels: an answer card follows the finger (with its overlay) instead of waiting for the swipe to end, as reels do */
@@ -96,7 +103,7 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.cardGest
         dx = (c.position.x - x0) / d; dy = (c.position.y - y0) / d
         if (!c.pressed) { tUp = c.uptimeMillis; break }
         if (follow && !multi) {
-            if (!rdrag && abs(dy) > 10 && abs(dy) > abs(dx) * 1.2f && (dy < 0 && bot || dy > 0 && top)) rdrag = true
+            if (!rdrag && abs(dy) > 10 && abs(dy) > abs(dx) * 1.2f && (dy < 0 && canBot() || dy > 0 && canTop())) rdrag = true
             if (rdrag) { val py = (if (dy < 0 && !bot || dy > 0 && !top) 0f else dy) * d; rs.scope.launch { rs.ty.snapTo(py); rs.oy.snapTo(py) } }
         }
         if (flip) {
@@ -116,7 +123,7 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.cardGest
         if (!multi && (abs(dy) > 90 || v > .5f)) { rs.dragOff = rs.ty.value; if (dy < 0) rs.advance(true) else rs.advance(true, false) }
         else rs.scope.launch { val t = tween<Float>(260, easing = pizza.kulhad.medslave.EASE_OUTISH); launch { rs.oy.animateTo(0f, t) }; rs.ty.animateTo(0f, t) }
     } else if (flip) {
-        if (!multi && abs(dy) > 50 && abs(dy) > abs(dx) * 1.2f) { if (dy < 0 && bot) rs.advance(true) else if (dy > 0 && top && rs.stage == 1) rs.advance(true, false) }
+        if (!multi && abs(dy) > 50 && abs(dy) > abs(dx) * 1.2f) { if (dy < 0 && canBot()) rs.advance(true) else if (dy > 0 && canTop() && rs.stage == 1) rs.advance(true, false) }
         if (!rs.leaving && lastGlow != 0f) rs.web.glow(0f)
     } else if (drag) {
         val v = abs(dx) / (tUp - t0 + 1)
