@@ -4,27 +4,34 @@
    App.com(handle, n) / App.share(): the app's comment and share sheets. App.story(open): the story viewer opened or closed (the app
    hides its bottom bar). App.seen(account): its story was watched. App.imp(). App.settings() / App.credits(): the gear and the logo.
    App.profile(account) → R.profile, App.pmore() → R.pposts, App.pfOpen(open), App.saved() → R.profile (saved.cards), App.save(id, o, on).
+   App.hide(id, o, text, path): a post's menu › Hide. App.block(account): Block (a profile's ⋯ or a post's menu) hides every subject the
+   account posts; the app answers with R.blocked(names).
    App.play(song) / App.mute(): the song of whatever post or story is on screen, by "title · artist" ('' for none) */
-const A_=window.App||{more(){},com(){},share(){},story(){},seen(){},imp(){},settings(){},credits(){},refresh(){},profile(){},pmore(){},pfOpen(){},saved(){},save(){},hide(){},play(){},mute(){}};
+const A_=window.App||{more(){},com(){},share(){},story(){},seen(){},imp(){},settings(){},credits(){},refresh(){},profile(){},pmore(){},pfOpen(){},saved(){},save(){},hide(){},block(){},play(){},mute(){}};
 const F={acc:[],posts:[],groups:[],wait:false,saved:new Set()};
 function fitX(){document.querySelectorAll('.f-pb').forEach(clip)}   /* face.js calls it after MathJax and after an MCQ's explanation opens: posts re-check their 'more' */
 const ESC=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
 const SVG=(p,a='')=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"${a}>${p}</svg>`;
-const ICN={dots:'<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>',stop:'<path d="M2.586 16.726A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2h6.624a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586z"/><path d="M8 12h8"/>',heart:'<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
+const ICN={drop:'<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',timer:'<path d="M10 2h4"/><path d="m12 14 3-3"/><circle cx="12" cy="14" r="8"/>',ban:'<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>',dots:'<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>',stop:'<path d="M2.586 16.726A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2h6.624a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586z"/><path d="M8 12h8"/>',heart:'<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
  com:'<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',send:'<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',save:'<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>',
  cal:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/>'};
 const fmt=n=>n>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':n>=1e4?Math.round(n/1e3)+'K':n>=1e3?(n/1e3).toFixed(1).replace(/\.0$/,'')+'K':''+n;
 const cap1=t=>String(t).charAt(0).toUpperCase()+String(t).slice(1);   /* "3 hours ago": a capital first letter, no all-caps */
 const RM=()=>matchMedia('(prefers-reduced-motion:reduce)').matches;
-/* accounts: the deck's (0…), daily.heatmap (-1), saved.cards (-2) */
-const HACC={h:'daily.heatmap',c:'#a6e3a1',ic:ICN.cal},SACC={h:'Saved Cards',c:'#b4befe',ic:ICN.save};
-const accOf=a=>a==-1?HACC:a==-2?SACC:F.acc[a];
+/* accounts: the deck's (0…), daily.heatmap (-1), saved.cards (-2), countdown.timer (-3: now and then a post of the days to the next
+   exam, and a story at the back of the row), hydration.break (-4: now and then a reminder to drink water) */
+const HACC={h:'daily.heatmap',c:'#a6e3a1',ic:ICN.cal},SACC={h:'Saved Cards',c:'#b4befe',ic:ICN.save},CACC={h:'countdown.timer',c:'#fab387',ic:ICN.timer},YACC={h:'hydration.break',c:'#89dceb',ic:ICN.drop};
+const SPN={'-3':'Countdown timer','-4':'Hydration break'};   /* the blockable special accounts' entries in the hidden subjects (Feed.kt CD_NAME, HY_NAME) */
+const accOf=a=>a==-1?HACC:a==-2?SACC:a==-3?CACC:a==-4?YACC:F.acc[a];
+const cdHTML=(p,x='')=>`<div class="f-cd${x}"><b>${(+p.cd).toLocaleString()}</b><small>day${p.cd==1?'':'s'} until ${ESC(p.exam)}</small></div>`;
 /* an account's avatar: its colour, two diagonal waves over it (each a further hue step round the wheel), the icon on top */
 function hueStep(hex,dh){const n=parseInt(String(hex).slice(1),16);if(isNaN(n))return hex;let r=(n>>16&255)/255,g=(n>>8&255)/255,b=(n&255)/255;
  const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2,d=mx-mn;let h=0,s=0;
  if(d){s=d/(1-Math.abs(2*l-1));h=mx==r?((g-b)/d)%6:mx==g?(b-r)/d+2:(r-g)/d+4;h*=60}
  return `hsl(${((h+dh)%360+360)%360} ${Math.round(s*100)}% ${Math.round(l*100)}%)`}
 const WAVE=y=>`M-40 ${y}C-15 ${y-12} 5 ${y+12} 30 ${y}S75 ${y-12} 100 ${y}S145 ${y+12} 170 ${y}V200H-40Z`;
+/* the avatar's waves as a background (for text: hydration.break's "Wait!" is filled with its account's colour and waves) */
+const waveBg=a=>`url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><rect width="100" height="100" fill="${a.c}"/><g transform="rotate(-28 50 50)"><path d="${WAVE(52)}" fill="${hueStep(a.c,22)}"/><path d="${WAVE(76)}" fill="${hueStep(a.c,44)}"/></g></svg>`)}")`;
 const avatar=(a,x='')=>`<span class="f-av${x}" style="background:${a.c}"><svg class="f-wv" viewBox="0 0 100 100" preserveAspectRatio="none"><g transform="rotate(-28 50 50)"><path d="${WAVE(52)}" fill="${hueStep(a.c,22)}"/><path d="${WAVE(76)}" fill="${hueStep(a.c,44)}"/></g></svg>${SVG(a.ic)}</span>`;
 function reviewHTML(n,o){cur={n,o};stage=1;FL=false;return `<div class="wrap"><div class="tinder-swipe tinder-swipe--answer">${face(true)}</div></div>`}   /* a story: as the reviewer draws it */
 function answerHTML(n,o){cur={n,o};stage=1;FL=false;EXIN=true;const tg=SET.tags;SET.tags=false;const h=face(true);SET.tags=tg;EXIN=false;   /* no tags on a post: its caption has them as hashtags */
@@ -39,7 +46,7 @@ function clip(b){if(b.classList.contains('open'))return;
 const CHEV='<div class="f-pmore"><button class="mcq-chev" aria-label="Show more"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>';
 const slides=p=>p.single||!p.more||!p.more.length?[{n:p.n,o:p.o}]:[{n:p.n,o:p.o}].concat(p.more);
 const mid=h=>h.replace(/^(<div class="prettify-flashcard[^"]*">)([\s\S]*)(<\/div>)$/,'$1<div class="f-mid">$2</div>$3');
-function bodyHTML(p){if(p.day)return dayHTML(p);const s=slides(p);if(s.length<2)return answerHTML(p.n,p.o)+CHEV;
+function bodyHTML(p){if(p.day)return dayHTML(p);if(p.cd!=null)return cdHTML(p);if(p.hy)return `<div class="f-cd f-hy"><b class="f-wave" style="--c:${YACC.c};background-image:${waveBg(YACC)}">Wait!</b><span>Have you hydrated yourself? Go take a sip of water right now.</span></div>`;const s=slides(p);if(s.length<2)return answerHTML(p.n,p.o)+CHEV;
  return `<div class="f-car">${s.map(c=>`<div class="f-sl">${mid(answerHTML(c.n,c.o))}</div>`).join('')}</div>`}
 const cardAt=(el,p)=>slides(p)[Math.min(el.__s||0,slides(p).length-1)];   /* the card on show (hide and save act on it) */
 document.addEventListener('scroll',e=>{const c=e.target;if(!c.classList||!c.classList.contains('f-car'))return;const el=c.closest('.f-post'),p=el&&postOf(el);if(!p)return;
@@ -63,7 +70,7 @@ const dotsHTML=p=>slides(p).length>1?`<div class="f-dots">${slides(p).map((_,k)=
 const hashtags=(c,ex)=>ESC(c).replace(/#[^\s#]+/g,m=>`<span class="f-tag${ex&&ex.includes(m)?' f-ex':''}">${m}</span>`);   /* ex: exam hashtags (a slight accent tint) */
 const actions=p=>`${dotsHTML(p)}<div class="f-pa"><button class="f-lk${p.liked?' on':''}" aria-label="Like">${SVG(ICN.heart)}<span class="f-lkn">${fmt(p.likes+(p.liked?1:0))}</span></button><button class="f-cm" aria-label="Comments">${SVG(ICN.com)}<span>${fmt(p.coms)}</span></button><button class="f-sh" aria-label="Share">${SVG(ICN.send)}</button>${p===F.hp?'':`<button class="f-sv${isSaved(p)?' on':''}" aria-label="Save">${SVG(ICN.save)}</button>`}</div>`;
 function postHTML(p,i){const a=accOf(p.a);return `<article class="f-post" data-i="${i}">
-<header class="f-ph">${avatar(a)}<span class="f-pn"><b>${ESC(a.h)}</b>${subHTML([p.st&&'♪ '+p.st,p.n&&dir(p.n)])}</span>${p.n?`<button class="f-more" aria-label="More">${SVG(ICN.dots)}</button>`:''}</header>
+<header class="f-ph">${avatar(a)}<span class="f-pn"><b>${ESC(a.h)}</b>${subHTML([p.st&&'♪ '+p.st,p.n&&dir(p.n)])}</span>${p.n||SPN[p.a]?`<button class="f-more" aria-label="More">${SVG(ICN.dots)}</button>`:''}</header>
 <div class="f-pb f-load">${skel()}</div>
 ${actions(p)}
 ${p.cap?`<div class="f-pc"><b>${ESC(a.h)}</b> ${hashtags(p.cap,p.ex)}</div>`:''}
@@ -87,8 +94,10 @@ function heatCap(m){const t=new Date();let n=+m[dk(t)]||0,s=0;const d=new Date(t
 function heatPost(m){const p=F.hp,a=HACC;if(!p.likes){p.likes=800+Math.random()*40000|0;p.coms=20+Math.random()*900|0}
  return `<article class="f-post" data-i="h"><header class="f-ph">${avatar(a)}<span class="f-pn"><b>${a.h}</b></span></header>
 <div class="f-hmb"><div class="f-hm">${heatGrid(m)}</div><div class="f-hmt"></div></div>${actions(p)}
-<div class="f-pc"><b>${a.h}</b> ${hashtags(heatCap(m))}</div><div class="f-pt">Today</div></article>`}
-function heat(m){ACT=m||{};const j=JSON.stringify(ACT);if(j==HJ&&$('#posts [data-i="h"]'))return;HJ=j;const old=$('#posts [data-i="h"]'),t=document.createElement('div');t.innerHTML=heatPost(ACT);const el=t.firstElementChild;
+<div class="f-pc"><b>${a.h}</b> ${hashtags(heatCap(m))}</div>
+${p.cm.length?`<div class="f-pv f-cm">View all ${fmt(p.coms)} comments</div>`:''}${p.cm.map(([u,t])=>`<div class="f-pc f-cmt"><b>${ESC(u)}</b> ${ESC(t)}</div>`).join('')}<div class="f-pt">Today</div></article>`}
+function heat(m){ACT=m||{};if(!F.acc.length){$('#posts [data-i="h"]')?.remove();HJ='';return}   /* no deck: no heatmap post */
+ const j=JSON.stringify(ACT);if(j==HJ&&$('#posts [data-i="h"]'))return;HJ=j;const old=$('#posts [data-i="h"]'),t=document.createElement('div');t.innerHTML=heatPost(ACT);const el=t.firstElementChild;
  old?old.replaceWith(el):$('#posts').prepend(el);const h=el.querySelector('.f-hm');h.scrollLeft=h.scrollWidth}
 document.addEventListener('click',e=>{const c=e.target.closest('.f-hg i[data-k]');if(!c)return;const d=new Date(c.dataset.k+'T00:00'),n=+c.dataset.c,t=c.closest('.f-post')?.querySelector('.f-hmt');
  if(t)t.textContent=d.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short',year:'numeric'})+' · '+n+' card'+(n==1?'':'s')+' done'});
@@ -115,14 +124,20 @@ let LT=0,LX=null;
 function menuClose(){document.querySelectorAll('.f-menu').forEach(m=>m.remove())}
 const plain=n=>{const d=document.createElement('div');d.innerHTML=String(n[4][0]||'').replace(/<ol class="mcq"[\s\S]*?<\/ol>/,'').replace(/\{\{c\d+::([\s\S]*?)(::[\s\S]*?)?\}\}/g,'$1').replace(/<br\s*\/?>/gi,' ');return d.textContent.replace(/\s+/g,' ').trim().slice(0,160)};
 function hidePost(p){const k=p.n[0]+':'+p.o;A_.hide(String(p.n[0]),p.o,plain(p.n),dir(p.n));
- document.querySelectorAll('.f-post').forEach(x=>{const q=postOf(x);if(!q||!q.n||!slides(q).some(c=>c.n[0]+':'+c.o==k))return;   /* any post with that card, a carousel's too */
+ dropPosts(q=>q.n&&slides(q).some(c=>c.n[0]+':'+c.o==k))}   /* any post with that card, a carousel's too */
+/* Block: the app hides the account's subjects and sends them back (R.blocked); a profile of it closes */
+function blockAcc(ai){menuClose();if(ai<0&&!SPN[ai])return;A_.block(ai);if(PF.on&&PF.a==ai)pfClose()}
+const subj=n=>(DATA.paths[n[2]]||'').split(' › ')[0];   /* a card's subject: the first part of its deck path */
+/* posts for which test(post) holds fold away */
+function dropPosts(test){document.querySelectorAll('.f-post').forEach(x=>{const q=postOf(x);if(!q||!(q.n||SPN[q.a])||!test(q))return;
   if(RM()){x.remove();return}x.style.height=x.offsetHeight+'px';x.style.overflow='hidden';void x.offsetHeight;x.classList.add('f-gone');x.style.height='0px';setTimeout(()=>x.remove(),380)})}
 /* whether the post's menu was open when the finger went down on its dots: a press can scroll a hair and close it first, and the tap
    would then open it again. a second tap on the dots closes it */
 let MENU_AT_DOWN=null;document.addEventListener('pointerdown',e=>{const mo=e.target.closest&&e.target.closest('.f-more'),el=mo&&mo.closest('.f-post');MENU_AT_DOWN=el&&el.querySelector('.f-menu')?el:null},true);
 document.addEventListener('scroll',menuClose,true);
 function postClick(e){if(!e.target.closest('.f-menu,.f-more'))menuClose();const el=e.target.closest('.f-post');if(!el)return;const p=postOf(el);if(!p)return;const a=accOf(p.a);
- const mo=e.target.closest('.f-more');if(mo){const open=MENU_AT_DOWN===el||el.querySelector('.f-menu');MENU_AT_DOWN=null;menuClose();if(!open){el.insertAdjacentHTML('beforeend',`<div class="f-menu"><button class="f-hide">${SVG(ICN.stop)}<span>Hide</span></button></div>`)}return}
+ const mo=e.target.closest('.f-more');if(mo){const open=MENU_AT_DOWN===el||el.querySelector('.f-menu');MENU_AT_DOWN=null;menuClose();if(!open){el.insertAdjacentHTML('beforeend',`<div class="f-menu">${p.n?`<button class="f-hide">${SVG(ICN.stop)}<span>Hide</span></button>`:''}${p.a>=0||SPN[p.a]?`<button class="f-hide f-block">${SVG(ICN.ban)}<span>Block</span></button>`:''}</div>`)}return}
+ if(e.target.closest('.f-block'))return blockAcc(p.a);
  if(e.target.closest('.f-hide')){menuClose();return hidePost(cardAt(el,p))}
  if(e.target.closest('.f-ph .f-av,.f-ph .f-pn b'))return openAccount(p);
  if(e.target.closest('.f-sub'))return A_.mute();
@@ -165,7 +180,7 @@ function tune(){let s='';
    next / previous story, hold to pause; each runs DUR ms). profiles' highlights play in the same viewer */
 const SV={g:0,i:0,el:0,last:0,hold:false,raf:0,on:false,DUR:8000,list:[],src:''};
 function rings(){if(!SV.on)F.groups.sort((a,b)=>a.seen-b.seen);   /* unwatched first (a stable sort keeps the rest in order) */
- $('#stories').innerHTML=F.groups.map((g,i)=>{const a=F.acc[g.a];return `<button class="f-st" data-g="${i}"><span class="f-ring${g.seen?' seen':''}">${avatar(a)}</span><span class="f-stn">${ESC(a.h)}</span></button>`}).join('');
+ $('#stories').innerHTML=F.groups.map((g,i)=>{const a=accOf(g.a);return `<button class="f-st" data-g="${i}"><span class="f-ring${g.seen?' seen':''}">${avatar(a)}</span><span class="f-stn">${ESC(a.h)}</span></button>`}).join('');
  $('#stories').hidden=!F.groups.length}
 $('#stories').addEventListener('click',e=>{const b=e.target.closest('.f-st');if(b)svOpen(+b.dataset.g,F.groups,'#stories')});
 $('#pfs').addEventListener('click',e=>{const b=e.target.closest('.f-hl .f-st');if(b)svOpen(+b.dataset.g,PF.hl,'#pfs .f-hl')});
@@ -178,7 +193,7 @@ function svShow(g,i){const G=SV.list[g];if(!G)return svClose();SV.g=g;SV.i=i;SV.
  [...$('#svp').children].forEach((s,k)=>{if(k!=g)s.querySelector('.f-sc').innerHTML=''});
  const s=page(g);s.querySelectorAll('.f-bar i').forEach((b,k)=>b.style.width=k<i?'100%':'0');
  const it=G.items[i];s.querySelector('.f-sst').innerHTML=subHTML([it.st&&'♪ '+it.st]);subs(s);
- const c=s.querySelector('.f-sc');c.innerHTML='<div class="f-si">'+reviewHTML(it.n,it.o)+'</div>';c.scrollTop=0;imgs(c);mj(c);
+ const c=s.querySelector('.f-sc');c.innerHTML='<div class="f-si">'+(it.cd!=null?cdHTML(it,' f-cds'):reviewHTML(it.n,it.o))+'</div>';c.scrollTop=0;imgs(c);mj(c);
  if(!G.seen){G.seen=true;if(!G.hl)A_.seen(G.a)}tune()}
 function svTick(t){if(!SV.on)return;const dt=SV.last?t-SV.last:0;SV.last=t;if(!SV.hold)SV.el+=dt;
  const b=page(SV.g)?.querySelectorAll('.f-bar i')[SV.i];if(b)b.style.width=Math.min(100,SV.el/SV.DUR*100)+'%';
@@ -213,9 +228,12 @@ let SVS=0;$('#svp').addEventListener('scroll',()=>{clearTimeout(SVS);SVS=setTime
 /* a tap: right 70% = next, left 30% = previous; holding pauses; the account at the top opens its profile */
 let PD=null,HT=0;
 $('#svp').addEventListener('pointerdown',e=>{if(e.target.closest('.f-sx,.f-sa'))return;PD={x:e.clientX,y:e.clientY,t:Date.now()};HT=setTimeout(()=>{SV.hold=true},180)});
-$('#svp').addEventListener('pointerup',e=>{clearTimeout(HT);const d=PD;PD=null;const held=SV.hold;SV.hold=false;
+/* the viewer acts on pointerup, and the click that follows would land on whatever is under it once it has closed (a post's account,
+   a story ring, a menu): that one click is swallowed */
+let EAT=0;document.addEventListener('click',e=>{if(Date.now()-EAT<450&&!e.target.closest('#sv.on')){EAT=0;e.stopPropagation();e.preventDefault()}},true);
+$('#svp').addEventListener('pointerup',e=>{EAT=Date.now();clearTimeout(HT);const d=PD;PD=null;const held=SV.hold;SV.hold=false;
  if(e.target.closest('.f-sx'))return svClose();
- if(e.target.closest('.f-sa')){const G=SV.list[SV.g],it=G.items[SV.i];if(G.a<0)return;svClose(true);
+ if(e.target.closest('.f-sa')){const G=SV.list[SV.g],it=G.items[SV.i];if(G.a<0&&!SPN[G.a])return;svClose(true);
   return openAccount({a:G.a,n:it.n,o:it.o,s:it.s,st:it.st,likes:120+Math.random()*60000|0,coms:4+Math.random()*900|0,cap:'',cm:[],t:G.t&&!G.hl?G.t+' ago':'just now'})}
  if(!d||held||Math.hypot(e.clientX-d.x,e.clientY-d.y)>10)return;
  e.clientX<innerWidth*.3?svPrev():svNext()});
@@ -224,15 +242,15 @@ $('#svp').addEventListener('pointercancel',()=>{clearTimeout(HT);PD=null;SV.hold
 /* ---- profiles: a page that slides in over the feed. an account's (made by the app: name, id, counts, bio, highlights, its posts with
    the card it was opened from first), daily.heatmap's (a post for every day cards were done) and saved.cards (the archive) */
 const PF={on:false,list:[],hl:[],first:null,a:0,more:false,wait:false};
-function openAccount(p){if(p.a==-1)return heatProfile();if(p.a<0)return;PF.first=p;A_.profile(p.a)}
+function openAccount(p){if(p.a==-1)return heatProfile();if(SPN[p.a]){PF.first=null;return A_.profile(p.a)}if(p.a<0)return;PF.first=p;A_.profile(p.a)}
 function pfRender(j){if(!PF.on){PF.on=true;PFE.classList.add('on');PFE.scrollTop=0;A_.pfOpen(true);void PFE.offsetWidth;PFE.classList.add('in')}else PFE.scrollTop=0;
  PF.a=j.a;PF.list=(PF.first?[PF.first]:[]).concat(j.list);PF.first=null;PF.more=j.a>=0;
  PF.hl=(j.hl||[]).map(h=>({a:j.a,t:h.t,hl:true,ic:h.ic,items:h.items,seen:true}));
  const a=accOf(j.a),st=(n,l)=>n<0?'':`<div><b>${n.toLocaleString()}</b><small>${l}</small></div>`;
- $('#pfs').innerHTML=`<header class="f-top f-pft"><button class="f-back" aria-label="Back">‹</button><b>${ESC(a.h)}</b></header>
+ $('#pfs').innerHTML=`<header class="f-top f-pft"><button class="f-back" aria-label="Back">‹</button><b>${ESC(a.h)}</b>${j.a>=0||SPN[j.a]?`<button class="f-pdots" aria-label="More">${SVG(ICN.dots)}</button>`:''}</header>
 <section class="f-prof${j.a==-2?' f-saved':''}"><div class="f-pr1">${avatar(a,' f-big')}<div class="f-stats">${st(j.posts,'posts')}${st(j.followers,'followers')}${st(j.following,'following')}</div></div>
 ${j.a==-2?'':`<div class="f-bio"><b>${ESC(j.name)}</b>${j.bio?`<p>${ESC(j.bio)}</p>`:''}</div>`}
-${j.a>=0?'<button class="nx f-follow">Follow</button>':''}
+${j.a>=0||SPN[j.a]?'<button class="nx f-follow">Follow</button>':''}
 ${PF.hl.length?`<div class="f-hl">${PF.hl.map((h,i)=>`<button class="f-st" data-g="${i}"><span class="f-ring seen"><span class="f-av f-hlc">${SVG(h.ic)}</span></span><span class="f-stn">${ESC(h.t)}</span></button>`).join('')}</div>`:''}</section>`;
  const l=$('#pfl');l.innerHTML='';pfAdd(PF.list,0);if(!PF.list.length)l.innerHTML=`<p class="f-none">${j.a==-2?'Saved cards show up here. Tap the bookmark on a post to save it.':'No posts yet.'}</p>`;
  setTimeout(tune,350)}
@@ -240,7 +258,12 @@ function pfAdd(l,at){const box=$('#pfl');box.querySelector('.f-loadmore')?.remov
  t.innerHTML=l.map((p,k)=>postHTML(p,'p'+(at+k))).join('')+(PF.more&&l.length?'<div class="f-loadmore"><i class="lg"></i></div>':'');[...t.children].forEach(e=>{box.appendChild(e);watch(e)});subs(box);PF.wait=false}
 function pfClose(now){if(!PF.on)return;PF.on=false;A_.pfOpen(false);PFE.classList.remove('in');const done=()=>{if(PF.on)return;PFE.classList.remove('on');$('#pfl').innerHTML='';$('#pfs').innerHTML='';tune()};
  if(now||RM())return done();setTimeout(done,260)}
-$('#pfs').addEventListener('click',e=>{if(e.target.closest('.f-back'))return pfClose();const f=e.target.closest('.f-follow');if(f){f.classList.toggle('on');f.textContent=f.classList.contains('on')?'Following':'Follow'}});
+$('#pfs').addEventListener('click',e=>{const pd=e.target.closest('.f-pdots'),hd=pd&&pd.closest('header');if(!e.target.closest('.f-menu'))menuClose();
+ if(pd){if(PD_OPEN!==hd)hd.insertAdjacentHTML('beforeend',`<div class="f-menu"><button class="f-hide f-block">${SVG(ICN.ban)}<span>Block</span></button></div>`);PD_OPEN=null;return}   /* the profile's ⋯ (top right) */
+ if(e.target.closest('.f-block'))return blockAcc(PF.a);
+ if(e.target.closest('.f-back'))return pfClose();const f=e.target.closest('.f-follow');if(f){f.classList.toggle('on');f.textContent=f.classList.contains('on')?'Following':'Follow'}});
+/* whether the profile's menu was open when the finger went down on its dots (a second tap closes it) */
+let PD_OPEN=null;document.addEventListener('pointerdown',e=>{const pd=e.target.closest&&e.target.closest('.f-pdots'),hd=pd&&pd.closest('header');PD_OPEN=hd&&hd.querySelector('.f-menu')?hd:null},true);
 PFE.addEventListener('scroll',()=>{if(PF.more&&!PF.wait&&PFE.clientHeight+PFE.scrollTop>PFE.scrollHeight-PFE.clientHeight*1.5){PF.wait=true;A_.pmore()}},{passive:true});
 /* daily.heatmap's profile: a post for each day cards were done, newest first: that day's count and its month with the day ringed */
 function heatProfile(){const days=Object.keys(ACT).filter(k=>+ACT[k]>0).sort().reverse(),tot=days.reduce((s,k)=>s+ +ACT[k],0);
@@ -253,7 +276,7 @@ function dayHTML(p){const d=new Date(p.day+'T00:00'),y=d.getFullYear(),mo=d.getM
 const R={
  theme(t,dark){document.documentElement.dataset.theme=t;document.body.classList.toggle('night_mode',dark);document.body.classList.toggle('nightMode',dark);
   document.body.style.setProperty('--bgc',getComputedStyle(document.body).backgroundColor)},
- feed(d){DATA.paths=d.paths;SET.source=!!d.source;SET.expl=d.expl!==false;SET.tags=!!d.tags;F.acc=d.acc;F.posts=[];F.groups=d.groups;F.saved=new Set(d.saved||[]);$('#posts').innerHTML='';svClose(true);pfClose(true);rings();
+ feed(d){DATA.paths=d.paths;SET.source=!!d.source;SET.expl=d.expl!==false;SET.tags=!!d.tags;F.acc=d.acc;F.posts=[];F.groups=d.groups;F.saved=new Set(d.saved||[]);F.hp.cm=d.hcm||[];$('#posts').innerHTML='';svClose(true);pfClose(true);rings();
   $('#empty').hidden=!!d.acc.length;HJ='';heat(d.act);addPosts(d.posts);FD.scrollTop=0},
  heat(m){heat(m)},
  refreshed(l){setTimeout(()=>{$('#posts').querySelectorAll('.f-post:not([data-i="h"]),.f-loadmore').forEach(e=>e.remove());F.posts=[];F.wait=false;addPosts(l);
@@ -265,6 +288,9 @@ const R={
  openAccount(ai,p){svClose(true);PF.first=p;A_.profile(ai)},   /* from Reels: that card's account, the card first */
  pposts(l){if(!l.length)PF.more=false;const at=PF.list.length;PF.list.push(...l);setTimeout(()=>pfAdd(l,at),400+Math.random()*700)},
  closeProfile(){pfClose()},
+ /* the hidden subjects changed (Block): posts and stories from them go */
+ blocked(names){const hs=new Set(names),hit=n=>n&&hs.has(subj(n));dropPosts(q=>SPN[q.a]?hs.has(SPN[q.a]):slides(q).some(c=>hit(c.n)));
+  const keep=l=>l.filter(g=>!(SPN[g.a]&&hs.has(SPN[g.a]))&&(g.items=g.items.filter(it=>!hit(it.n))).length);F.groups=keep(F.groups);if(F.next)F.next=keep(F.next);if(!SV.on)rings()},
  savedSet(l){F.saved=new Set(l);document.querySelectorAll('.f-post').forEach(x=>{const q=postOf(x),b=x.querySelector('.f-sv');if(q&&q.n&&b)b.classList.toggle('on',F.saved.has(q.n[0]+':'+q.o))})},   /* saved from Reels */
  opts(source,expl,tags){SET.source=!!source;SET.expl=expl!==false;SET.tags=!!tags},   /* Settings › Reviewing (cards drawn from now on) */
  fake(v){F.nofake=!v},   /* Settings › Appearance › Loading animations */

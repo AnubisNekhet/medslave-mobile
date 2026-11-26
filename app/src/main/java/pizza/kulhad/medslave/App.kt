@@ -36,7 +36,7 @@ import kotlin.math.roundToInt
 class Item(val n: Note, val rq: Boolean, val o: Int = 0)
 class Session(val notes: List<Note>, val name: String, val key: String, val q: MutableList<Item>, var i: Int, var ri: Int, var first: Int?) { var wr = 0 }
 class Cur(val n: Note, val o: Int, val again: Boolean, val json: String)
-class Fin(val name: String, val count: Int, val wr: Int)
+class Fin(val name: String, val count: Int, val wr: Int, val filtered: Int = 0)   // filtered: cards the feed filter skipped (Feed filter in reels)
 class Dlg(val text: String, val ok: String = "OK", val cancel: Boolean = false, val danger: Boolean = false, val onOk: () -> Unit = {})
 /** the leaving card's picture. top: where its first row sits in the stage (px) — after a Reels drag only the card part is kept, from there */
 class Ghost(val img: ImageBitmap, val d: Int, val top: Float = 0f) { val y = Animatable(0f) }
@@ -110,6 +110,7 @@ class Rs(val ctx: Context) {
     private var pending: Uri? = null
     fun loadDeck() {
         io.execute {
+            DeckStore.migrate(ctx)?.let { store.prefixProgress(it) }   // the single deck from before: into its own folder, its progress along
             val d = DeckStore.load(ctx)
             post { deck = d; loaded = true; web.init(d.paths, set.source, set.expl, set.tags, set.hidex); pending?.let { pending = null; importUri(it) } }
         }
@@ -134,14 +135,19 @@ class Rs(val ctx: Context) {
     /* ---------------------------------------------------------------- study (deck.js) */
     fun go(n: Node) { picker = null; study = true; store.set(RK, n.ps); begin(deck.notesFor(n), n.name, n.ps) }
     /** the home bar's middle button: back to the last card reviewed, in the deck it was in */
-    fun recent(): Node? = store.get(RK)?.let { k -> if (k == deck.all.ps) deck.all else deck.nodes.find { it.ps == k } }
+    fun recent(): Node? = store.get(RK)?.let { deck.nodeOf(it) }
     fun resetTutorial() { store.set(SEEN, null); tut = true }
 
     /** an MCQ's verdict from the option tapped (null: none tapped) */
     private var mcqOk: Boolean? = null
     init { web.onPick = { ok -> if (cur?.n?.mcq == true && stage == 0) { mcqOk = ok; advance(true) } } }
 
+    /** the feed filter for this session (Feed filter in reels), only when the deck opened has cards it lets through: a deck or subject outside
+        the filter plays in full instead of looking finished */
+    private var rf: ((Note) -> Boolean)? = null
+    private var fsk = 0   // cards the filter skipped this session (the end card says so)
     fun begin(notes: List<Note>, name: String, key: String, resume: Boolean = true) {
+        rf = feed.reelsFilter()?.takeIf { f -> notes.any(f) }; fsk = 0
         val sv = if (resume) lastOf(key) else null
         val p = if (set.ordered) Order.planOrdered(notes, sv) else {
             val seed = if (resume) store.obj(OK).optString(key, "").ifEmpty { null } else null
@@ -171,7 +177,9 @@ class Rs(val ctx: Context) {
             if (s.i >= s.q.size) return finish()
             it = s.q[s.i]
             o = if (it.rq) it.o else (s.first ?: it.n.ords[(Math.random() * it.n.ords.size).toInt()]).also { s.first = null }
-            if (!feed.isHidden(it.n.id, o)) break
+            if (feed.isHidden(it.n.id, o)) continue
+            if (rf?.invoke(it.n) == false) { if (!it.rq) fsk++; continue }   // with Feed filter in reels on: only what the filter lets through
+            break
         }
         val n = it.n
         val c = Cur(n, o, it.rq, DeckStore.noteJson(ctx, n))
@@ -193,7 +201,7 @@ class Rs(val ctx: Context) {
         store.mapSet(LK, s.key, null)
         if (!set.ordered) store.mapSet(OK, s.key, Order.planPass(s.notes, null, null, last).seed)
         progressOpen = false
-        fin = Fin(s.name, s.q.count { !it.rq }, s.wr)
+        fin = Fin(s.name, s.q.count { !it.rq } - fsk, s.wr, fsk)
         web.clear(); scope.launch { pose() }
         reels.onCard()
     }
@@ -279,6 +287,12 @@ class Rs(val ctx: Context) {
         val text = f.replace(Regex("<ol class=\"mcq\"[\\s\\S]*?</ol>"), "").replace(Regex("\\{\\{c\\d+::([\\s\\S]*?)(::[\\s\\S]*?)?\\}\\}"), "$1")
             .replace(Regex("<br\\s*/?>", RegexOption.IGNORE_CASE), " ").replace(Regex("<[^>]*>"), "").replace("&nbsp;", " ").replace("&amp;", "&").replace(Regex("\\s+"), " ").trim().take(160)
         feed.hide(c.n.id, c.o, text, deck.paths.getOrElse(c.n.p) { "" }.split(" › ").joinToString(" · "))
+        leave(-1, true)
+    }
+    /** Reels' ⋯ › Block: the card's account is blocked (its subjects hidden) and the reel moves on, nothing counted */
+    fun blockCur() {
+        val c = cur ?: return; if (leaving) return
+        feed.blockNote(c.n)
         leave(-1, true)
     }
     fun repost(after: () -> Unit) {
@@ -376,19 +390,29 @@ class Rs(val ctx: Context) {
         if (m == null || m.any { (k, v) -> !k.startsWith("medslave:") || v !is String }) return@openFile run { dialog = Dlg("That isn't a medslave progress file.") }
         val ex = j.optString("exported", "").take(10)
         dialog = Dlg("Replace all progress on this device with this file" + (if (ex.isNotEmpty()) " (exported $ex)" else "") + "?", "Replace", cancel = true) {
-            store.replaceAll(m.mapValues { it.value as String }); set.load(); last = null; S = null; cur = null; fin = null
+            store.replaceAll(m.mapValues { it.value as String }); deck.parts.singleOrNull()?.let { store.prefixProgress(it.id) }; set.load();   // a backup from before several decks: fitted to the one deck last = null; S = null; cur = null; fin = null
             settingsOpen = false; study = false; heatTick++; web.init(deck.paths, set.source, set.expl, set.tags, set.hidex); feed.show()   // the feed's heatmap post shows the imported activity
         }
     }
 
-    /* ---------------------------------------------------------------- deck import / delete (Settings › Data) */
-    fun deckPick() {
-        if (!deck.empty) { dialog = Dlg("Delete the current deck first (Settings › Data)."); return }
-        if (!busy) openFile(arrayOf("*/*")) { importUri(it) }
+    /* ---------------------------------------------------------------- deck import / delete (Settings › Decks): any number of decks */
+    var addDeck by mutableStateOf(false)   // the Add a deck window (a link or a file)
+    fun deckPick() { if (!busy) addDeck = true }
+    fun deckFile() { if (!busy) openFile(arrayOf("*/*")) { importUri(it) } }
+    /** a deck from a link: downloaded, then the same as a file */
+    fun importUrl(link: String) {
+        if (busy) return
+        if (!Regex("^https?://", RegexOption.IGNORE_CASE).containsMatchIn(link.trim())) { dialog = Dlg("That isn’t a link. Paste a link starting with https://"); return }
+        busy = true; dkMsg = "Downloading…"; impStep = "Downloading…"; impPct = null
+        val imp = Importer(ctx) { m, p -> post { if (importer != null) { dkMsg = m + (p?.let { " · ${it.roundToInt()}%" } ?: ""); impStep = m; if (p != null) impPct = p } } }
+        importer = imp
+        io.execute {
+            try { imp.fetch(link); val t = imp.scan(null); post { if (importer === imp) { dkMsg = "Choose the fields"; settingsOpen = false; importTypes = t } } }
+            catch (e: Throwable) { post { importFail(imp, if (e is java.io.IOException && e !is java.io.FileNotFoundException) ImportError("Couldn’t download that link (${e.message ?: "no connection"}).") else e) } }
+        }
     }
     fun importUri(uri: Uri) {
         if (!loaded) { pending = uri; return }
-        if (!deck.empty) { dialog = Dlg("Delete the current deck first (Settings › Data)."); return }
         if (busy) return
         busy = true; dkMsg = "Reading note types…"; impStep = "Opening the package…"; impPct = null
         val imp = Importer(ctx) { m, p -> post { if (importer != null) { dkMsg = m + (p?.let { " · ${it.roundToInt()}%" } ?: ""); impStep = m; if (p != null) impPct = p } } }
@@ -402,7 +426,7 @@ class Rs(val ctx: Context) {
         val imp = importer ?: return
         importTypes = null; dkMsg = "Importing…"; impStep = "Reading cards…"; impPct = 8f
         io.execute {
-            try { imp.build(map); imp.close(); post { if (importer === imp) { importer = null; busy = false; store.dropProgress(); last = null; dkMsg = "Imported"; loadDeck() } } }
+            try { imp.build(map, DeckStore.ids(ctx)); imp.close(); post { if (importer === imp) { importer = null; busy = false; last = null; dkMsg = "Imported"; loadDeck() } } }
             catch (e: Throwable) { post { importFail(imp, e) } }
         }
     }
@@ -420,11 +444,12 @@ class Rs(val ctx: Context) {
             is android.database.sqlite.SQLiteFullException -> "Not enough storage space on this device for this deck."; else -> e.message ?: e.toString() }
         dialog = Dlg("Import failed: $m")
     }
-    fun deleteDeck() {
-        if (busy || deck.empty) return
-        dialog = Dlg("Delete " + (deck.meta?.let { "“${it.name}”" } ?: "the current deck") + " from this device? Your place and card order in it are cleared too. Your activity history stays.", "Delete", cancel = true, danger = true) {
+    fun deleteDeck(p: DeckPart) {
+        if (busy) return
+        dialog = Dlg("Delete “${p.name}”" + " from this device? Your place and card order in it are cleared too. Your activity history stays.", "Delete", cancel = true, danger = true) {
             busy = true
-            io.execute { DeckStore.delete(ctx); post { store.dropProgress(); last = null; S = null; cur = null; fin = null; busy = false; dkMsg = ""; deck = Deck.EMPTY; web.init(emptyList(), set.source, set.expl, set.tags, set.hidex) } }
+            io.execute { DeckStore.delete(ctx, p.id); val d = DeckStore.load(ctx)
+                post { store.dropProgressOf("${p.id}/"); last = null; S = null; cur = null; fin = null; study = false; busy = false; dkMsg = ""; deck = d; web.init(d.paths, set.source, set.expl, set.tags, set.hidex) } }
         }
     }
 }

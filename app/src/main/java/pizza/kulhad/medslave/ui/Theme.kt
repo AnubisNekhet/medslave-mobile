@@ -1,5 +1,6 @@
 package pizza.kulhad.medslave.ui
 
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -159,11 +160,12 @@ fun Txt(text: String, modifier: Modifier = Modifier, size: TextUnit = 16.sp, col
 
 /** a press highlight without a ripple, like the site's :active */
 @Composable
-fun Modifier.press(enabled: Boolean = true, bg: Color? = null, pressed: Color = P.press, shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(6.dp), onClick: () -> Unit): Modifier {
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+fun Modifier.press(enabled: Boolean = true, bg: Color? = null, pressed: Color = P.press, shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(6.dp), onLong: (() -> Unit)? = null, onClick: () -> Unit): Modifier {
     val src = remember { MutableInteractionSource() }
     val down by src.collectIsPressedAsState()
     val col by animateColorAsState(if (down) pressed else bg ?: Color.Transparent, tween(if (down) 0 else 250), label = "press")
-    return this.clip(shape).background(col).clickable(src, null, enabled, onClick = onClick)
+    return this.clip(shape).background(col).let { m -> if (onLong != null) m.combinedClickable(src, null, enabled, onLongClick = onLong, onClick = onClick) else m.clickable(src, null, enabled, onClick = onClick) }
 }
 
 /** .nx: the site's button: card colour, a border, 8dp corners, bold. p = primary (text colour, inverted) */
@@ -171,9 +173,11 @@ fun Modifier.press(enabled: Boolean = true, bg: Color? = null, pressed: Color = 
 fun Btn(label: String, modifier: Modifier = Modifier, p: Boolean = false, danger: Boolean = false, enabled: Boolean = true, h: Dp = 38.dp,
         size: TextUnit = 16.sp, pad: Dp = 25.dp, onClick: () -> Unit) {
     val s = RoundedCornerShape(8.dp)
-    Box(modifier.heightIn(min = h).border(1.dp, if (p) P.hi else P.border, s).press(enabled, if (p) P.hi else P.card, if (p) P.hi.copy(alpha = .85f) else P.press, s, onClick)
+    /* a disabled primary button: a lighter mid-tone of its colour (not the full-contrast fill), its label in the card colour */
+    val hi = if (p && !enabled) androidx.compose.ui.graphics.lerp(P.card, P.hi, .42f) else P.hi
+    Box(modifier.heightIn(min = h).border(1.dp, if (p) hi else P.border, s).press(enabled, if (p) hi else P.card, if (p) hi.copy(alpha = .85f) else P.press, s, onClick = onClick)
         .padding(horizontal = pad), contentAlignment = Alignment.Center) {
-        Txt(label, size = size, bold = true, color = when { !enabled -> P.faint; p -> P.onHi; danger -> RED; else -> P.text }, lines = 1)
+        Txt(label, size = size, bold = true, color = when { p -> P.onHi; !enabled -> P.faint; danger -> RED; else -> P.text }, lines = 1)
     }
 }
 @Composable

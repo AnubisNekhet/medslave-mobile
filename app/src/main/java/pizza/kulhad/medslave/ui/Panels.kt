@@ -77,15 +77,18 @@ import pizza.kulhad.medslave.THEMES
 /* ---------------------------------------------------------------- settings (#sp): a menu of Appearance, Reviewing, Data */
 @Composable
 fun SettingsPanel(rs: Rs) {
-    val names = mapOf("ap" to "Appearance", "rv" to "Reviewing", "hd" to "Hidden cards", "da" to "Data")
-    androidx.activity.compose.BackHandler(rs.settingsSec != null) { rs.settingsSec = null }
+    val names = mapOf("ap" to "Appearance", "rv" to "Reviewing", "fd" to "Feed", "hd" to "Hidden cards", "hs" to "Hidden subjects", "ff" to "Feed filters", "dk" to "Decks", "pg" to "Progress")
+    androidx.activity.compose.BackHandler(rs.settingsSec != null) { rs.settingsSec = upOf(rs.settingsSec) }
     Popup({ SettingsTitle(rs, names) }, { rs.settingsOpen = false }) { SettingsBody(rs, names) }
 }
+
+/** where a settings section's back goes: Feed's lists back to Feed, the rest to the menu */
+private fun upOf(sec: String?) = if (sec == "hd" || sec == "hs" || sec == "ff") "fd" else null
 
 @Composable
 private fun SettingsTitle(rs: Rs, names: Map<String, String>, size: androidx.compose.ui.unit.TextUnit = 16.sp) {
     val sec = rs.settingsSec
-    if (sec != null) Box(Modifier.size(30.dp).press { rs.settingsSec = null }, contentAlignment = Alignment.Center) { Txt("‹", size = 22.sp, color = P.faint) }
+    if (sec != null) Box(Modifier.size(30.dp).press { rs.settingsSec = upOf(sec) }, contentAlignment = Alignment.Center) { Txt("‹", size = 22.sp, color = P.faint) }
     Txt(names[sec] ?: "Settings", size = size, bold = true, modifier = Modifier.padding(start = if (sec != null) 4.dp else 0.dp))
 }
 
@@ -99,13 +102,12 @@ private fun SettingsBody(rs: Rs, names: Map<String, String>) {
         val dir = if (sec != null) 1f else -1f
         Column(Modifier.graphicsLayer { translationX = (1 - a.value) * dir * 24 * density; alpha = a.value }.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp)) {
             when (sec) {
-                null -> listOf("ap" to Ic.PALETTE, "rv" to Ic.CARDS, "hd" to Ic.STOP, "da" to Ic.DB).forEachIndexed { i, (k, ic) ->
-                    Row(Modifier.fillMaxWidth().then(if (i > 0) Modifier.dashedBottom(P.divider, top = true) else Modifier).press(shape = RoundedCornerShape(10.dp)) { rs.settingsSec = k }
-                        .padding(horizontal = 3.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Icon(ic, 24.dp, P.text, 1.8f)
-                        Txt(names[k]!!, bold = true, modifier = Modifier.weight(1f))
-                        Txt("›", size = 20.sp, color = P.faint)
-                    }
+                null -> listOf("ap" to Ic.PALETTE, "rv" to Ic.CARDS, "fd" to Ic.HOME, "dk" to Ic.DB, "pg" to Ic.HISTORY).forEachIndexed { i, (k, ic) -> SecRow(rs, names, i, k, ic) }
+                "fd" -> {
+                    rs.feed.hiddenTick   // the counts follow the lists
+                    SecRow(rs, names, 0, "ff", Ic.FILTER, rs.feed.filters.size)
+                    SecRow(rs, names, 1, "hd", Ic.STOP, rs.feed.hidden().size)
+                    SecRow(rs, names, 2, "hs", Ic.BAN, rs.feed.hiddenSubjects().size)
                 }
                 "ap" -> Appearance(rs)
                 "rv" -> {
@@ -117,6 +119,7 @@ private fun SettingsBody(rs: Rs, names: Map<String, String>) {
                         Switch(rs.set.hidex) { rs.set.hidex = it; rs.web.hidex(it); opts() } }
                     Row2("Show tags", "At the bottom of each card") { Switch(rs.set.tags) { rs.set.tags = it; opts() } }
                     if (rs.set.reels) Row2("Red likes", "Likes in Instagram red instead of the accent") { Switch(rs.set.redlike) { rs.set.redlike = it; rs.set.save() } }
+                    if (rs.set.reels) Row2("Feed filter in reels", "Reels show only the subjects of the feed filter that’s on") { Switch(rs.set.ffreels) { rs.set.ffreels = it; rs.set.save() } }
                     Row2("Volume keys", "Down if you knew it, up if you didn’t") { Switch(rs.set.volkeys) { rs.set.volkeys = it; rs.set.save() } }
                     var tdone by remember { mutableStateOf(false) }
                     LaunchedEffect(tdone) { if (tdone) { delay(1500); tdone = false } }
@@ -125,13 +128,133 @@ private fun SettingsBody(rs: Rs, names: Map<String, String>) {
                     }
                 }
                 "hd" -> HiddenSec(rs)
-                "da" -> DataSec(rs)
+                "hs" -> HiddenSubjSec(rs)
+                "ff" -> FiltersSec(rs)
+                "dk" -> DecksSec(rs)
+                "pg" -> ProgressSec(rs)
             }
         }
     }
 }
 
-/** Settings › Hidden cards: the cards hidden from a post's menu; Unhide lets one come up again */
+/** a row of the settings menu (or of Feed) that opens section k; n: a count shown before the chevron */
+@Composable
+private fun SecRow(rs: Rs, names: Map<String, String>, i: Int, k: String, ic: String, n: Int = -1) {
+    Row(Modifier.fillMaxWidth().then(if (i > 0) Modifier.dashedBottom(P.divider, top = true) else Modifier).press(shape = RoundedCornerShape(10.dp)) { rs.settingsSec = k }
+        .padding(horizontal = 3.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+        Icon(ic, 24.dp, P.text, 1.8f)
+        Txt(names[k]!!, bold = true, modifier = Modifier.weight(1f))
+        if (n > 0) Txt(n.toString(), size = 14.sp, color = P.faint)
+        Txt("›", size = 20.sp, color = P.faint)
+    }
+}
+
+/** Settings › Feed › Feed filters: None and each filter (tap one to turn it on; a check marks the one that's on), the pencil edits one,
+    × deletes it; Add a filter. a filter is a name and the decks the feed draws from while it's on */
+@Composable
+private fun FiltersSec(rs: Rs) {
+    val f = rs.feed
+    var editing by remember { mutableStateOf<pizza.kulhad.medslave.Feed.Filter?>(null) }; var adding by remember { mutableStateOf(false) }
+    Txt("With a filter on, the feed’s posts and stories come only from its subjects. Long press Home to switch filters.", size = 13.6.sp, color = P.faint, modifier = Modifier.padding(vertical = 6.dp))
+    FilterRow(0, "None", "Every deck", f.active == null || f.filters.none { it.id == f.active }) { f.useFilter(null) }
+    f.filters.forEachIndexed { i, x ->
+        FilterRow(i + 1, x.name, null, f.active == x.id, { editing = x }, { f.dropFilter(x.id) }) { f.useFilter(x.id) }
+    }
+    Btn("Add a filter", Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 8.dp), p = true, h = 38.dp, size = 14.4.sp, enabled = rs.deck.parts.isNotEmpty()) { adding = true }
+    if (rs.deck.parts.isEmpty()) Txt("Add a deck first (Settings › Decks).", size = 12.8.sp, color = P.faint)
+    if (adding) FilterEdit(rs, null) { adding = false }
+    editing?.let { x -> FilterEdit(rs, x) { editing = null } }
+}
+
+/** a filter's subjects as a line, by main deck ("Deck: A, B · Other deck: all"); decks no longer here are left out */
+fun filterDecks(rs: Rs, x: pizza.kulhad.medslave.Feed.Filter): String =
+    rs.deck.parts.mapNotNull { p -> val s = if (p.id in x.decks) listOf("all") else x.decks.filter { it.startsWith(p.id + "/") }.map { it.substringAfter('/') }
+        if (s.isEmpty()) null else "${p.name}: ${s.joinToString(", ")}" }.joinToString(" · ").ifEmpty { "Nothing of it is here" }
+
+@Composable
+private fun FilterRow(i: Int, name: String, sub: String?, on: Boolean, edit: (() -> Unit)? = null, drop: (() -> Unit)? = null, pick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().then(if (i > 0) Modifier.dashedBottom(P.divider, top = true) else Modifier).press(shape = RoundedCornerShape(10.dp), onClick = pick).padding(horizontal = 3.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Box(Modifier.size(22.dp), contentAlignment = Alignment.Center) { if (on) Icon(Ic.CHECK, 20.dp, P.text, 2.4f) }
+        Column(Modifier.weight(1f)) { Txt(name, size = 14.4.sp, bold = on, lines = 1); sub?.let { Txt(it, size = 12.sp, color = P.faint, lines = 2) } }
+        if (edit != null) Box(Modifier.size(32.dp).clip(androidx.compose.foundation.shape.CircleShape).clickable(onClick = edit), contentAlignment = Alignment.Center) { Txt("✎", size = 16.sp, color = P.faint) }
+        if (drop != null) Box(Modifier.size(32.dp).clip(androidx.compose.foundation.shape.CircleShape).clickable(onClick = drop), contentAlignment = Alignment.Center) { Txt("×", size = 20.sp, color = P.faint) }
+    }
+}
+
+/** a new filter or one being edited: a name, then a page per main deck (swiped sideways, dots and its name on top) with a switch for all of
+    it and one per subject (its first subdecks). entries are "<deck id>/<subject>" */
+@Composable
+private fun FilterEdit(rs: Rs, x: pizza.kulhad.medslave.Feed.Filter?, close: () -> Unit) {
+    var name by remember { mutableStateOf(x?.name ?: "") }
+    val parts = rs.deck.parts
+    /* an older filter's whole deck becomes each of its subjects */
+    val on = remember { androidx.compose.runtime.mutableStateListOf<String>().apply { x?.decks?.forEach { k ->
+        if ('/' in k) add(k) else parts.find { it.id == k }?.let { p -> addAll(p.tree.subjects.map { "${p.id}/${it.name}" }) } } } }
+    androidx.compose.ui.window.Dialog(close, androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
+        Column(Modifier.padding(horizontal = 16.dp).widthIn(max = 560.dp).fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(P.card).border(1.dp, P.border, RoundedCornerShape(8.dp)).padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Txt(if (x != null) "Edit filter" else "Add a filter", bold = true)
+            Field(name, { name = it }, "Name", Modifier.fillMaxWidth())
+            val st = androidx.compose.foundation.pager.rememberPagerState { parts.size }
+            if (parts.size > 1) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                    parts.indices.forEach { i -> val cur = i == st.currentPage
+                        Box(Modifier.padding(horizontal = 3.dp).size(if (cur) 7.dp else 6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(if (cur) P.text else P.border)) }
+                }
+            }
+            Txt(parts.getOrNull(st.currentPage)?.name ?: "", size = 14.4.sp, bold = true, lines = 1, align = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.fillMaxWidth())
+            androidx.compose.foundation.pager.HorizontalPager(st, Modifier.fillMaxWidth().height(300.dp), pageSpacing = 16.dp, verticalAlignment = Alignment.Top) { i ->
+                val p = parts[i]; val keys = p.tree.subjects.map { "${p.id}/${it.name}" }
+                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                    Row2("All of ${p.name}", labelColor = P.accent) { Switch(keys.isNotEmpty() && keys.all { it in on }) { v -> if (v) keys.forEach { k -> if (k !in on) on.add(k) } else on.removeAll(keys) } }
+                    p.tree.subjects.forEach { s -> val k = "${p.id}/${s.name}"
+                        Row2(s.name) { Switch(k in on) { v -> if (v) on.add(k) else on.remove(k) } } }
+                }
+            }
+            Row(Modifier.align(Alignment.End), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Btn("Cancel", h = 36.dp, size = 14.4.sp, pad = 16.dp, onClick = close)
+                Btn(if (x != null) "Save" else "Add", p = true, h = 36.dp, size = 14.4.sp, pad = 16.dp, enabled = on.isNotEmpty()) {
+                    rs.feed.putFilter(x?.id, name.ifBlank { on.map { it.substringAfter('/') }.distinct().let { l -> l.take(3).joinToString(" + ") + if (l.size > 3) " +${l.size - 3}" else "" } }, on.toList()); close() }
+            }
+        }
+    }
+}
+
+/** Home's long press: pick a feed filter (or none). managing them is in Settings › Feed › Feed filters */
+@Composable
+fun FilterPick(rs: Rs) {
+    val f = rs.feed; val close = { f.pickOpen = false }
+    androidx.compose.ui.window.Dialog(close, androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
+        Column(Modifier.padding(horizontal = 16.dp).widthIn(max = 480.dp).fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(P.card).border(1.dp, P.border, RoundedCornerShape(8.dp)).padding(horizontal = 16.dp, vertical = 14.dp)) {
+            Txt("Feed filter", bold = true, modifier = Modifier.padding(bottom = 6.dp))
+            Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+                FilterRow(0, "None", "Every deck", f.active == null || f.filters.none { it.id == f.active }) { f.useFilter(null); close() }
+                f.filters.forEachIndexed { i, x -> FilterRow(i + 1, x.name, null, f.active == x.id) { f.useFilter(x.id); close() } }
+            }
+            if (f.filters.isEmpty()) Txt("No filters yet. Make one in Settings › Feed › Feed filters.", size = 12.8.sp, color = P.faint, modifier = Modifier.padding(top = 6.dp))
+        }
+    }
+}
+
+/** Settings › Feed › Hidden subjects: the subjects hidden by blocking an account; Unhide brings a subject's cards back */
+@Composable
+private fun HiddenSubjSec(rs: Rs) {
+    rs.feed.hiddenTick   // re-read when the list changes
+    val l = rs.feed.hiddenSubjects()
+    if (l.isEmpty()) { Txt("Blocking an account hides every subject it posts, and they show up here. Their cards don\u2019t come up in posts, stories or reels.", size = 14.sp, color = P.faint, modifier = Modifier.padding(vertical = 8.dp)); return }
+    l.forEachIndexed { i, h ->
+        Row(Modifier.fillMaxWidth().then(if (i > 0) Modifier.dashedBottom(P.divider, top = true) else Modifier).padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.weight(1f)) {
+                Txt(h.name, size = 14.4.sp)
+                Txt(listOfNotNull(h.by.takeIf { it.isNotEmpty() }?.let { "Blocked @$it" }, if (h.cards > 0) "${h.cards} card${if (h.cards == 1) "" else "s"}" else if (h.by == pizza.kulhad.medslave.CD_HANDLE || h.by == pizza.kulhad.medslave.HY_HANDLE) null else "Not in this deck").joinToString(" · "), size = 12.sp, color = P.faint)
+            }
+            Btn("Unhide", h = 34.dp, size = 13.6.sp, pad = 14.dp) { rs.feed.unhideSubject(h.name) }
+        }
+    }
+}
+
+/** Settings › Feed › Hidden cards: the cards hidden from a post's menu; Unhide lets one come up again */
 @Composable
 private fun HiddenSec(rs: Rs) {
     rs.feed.hiddenTick   // re-read when the list changes
@@ -357,17 +480,47 @@ private fun RevealDemo(k: String) {
 }
 
 @Composable
-private fun DataSec(rs: Rs) {
-    val has = !rs.deck.empty
-    Head("Deck")
-    Row2(if (has) rs.deck.meta?.name ?: "Current deck" else "Import deck",
-        if (rs.busy && rs.dkMsg.isNotEmpty()) rs.dkMsg else if (has) rs.deck.meta?.let { "%,d cards · %,d notes".format(it.cards, it.notes) } else "An Anki deck (.apkg)") {
-        if (has) Btn("Delete", danger = true, enabled = !rs.busy, h = 37.dp, size = 14.4.sp, pad = 18.dp) { rs.deleteDeck() }
-        else Btn("Import", enabled = !rs.busy, h = 37.dp, size = 14.4.sp, pad = 18.dp) { rs.deckPick() }
+private fun DecksSec(rs: Rs) {
+    /* every deck imported, oldest first (like Your playlists): name, counts and size; × deletes one */
+    if (rs.deck.parts.isEmpty()) Txt("No decks yet. Add an Anki deck (.apkg) from a link or a file.", size = 14.sp, color = P.faint, modifier = Modifier.padding(vertical = 8.dp))
+    rs.deck.parts.forEachIndexed { i, p ->
+        Row(Modifier.fillMaxWidth().then(if (i > 0) Modifier.dashedBottom(P.divider, top = true) else Modifier).padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Icon(Ic.CARDS, 22.dp, P.text, 1.8f)
+            Column(Modifier.weight(1f)) {
+                Txt(p.name, size = 14.4.sp, bold = true, lines = 1)
+                Txt((p.meta?.let { "%,d cards · %,d notes · ".format(it.cards, it.notes) } ?: "") + "%.1f MB".format(p.bytes / 1048576.0), size = 12.sp, color = P.faint)
+            }
+            Box(Modifier.size(32.dp).clip(androidx.compose.foundation.shape.CircleShape).clickable(enabled = !rs.busy) { rs.deleteDeck(p) }, contentAlignment = Alignment.Center) { Txt("×", size = 20.sp, color = P.faint) }
+        }
     }
-    val mb = remember(rs.deck) { DeckStore.bytes(rs.ctx) / 1048576.0 }
-    Row2("Storage", "Kept: the deck is stored inside the app, and Android won’t clear it on its own" + if (has) " · %.1f MB".format(mb) else "")
-    Head("Progress")
+    if (rs.busy && rs.dkMsg.isNotEmpty()) Txt(rs.dkMsg, size = 13.sp, color = P.faint, modifier = Modifier.padding(top = 4.dp))
+    Btn("Add a deck", Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 6.dp), p = true, h = 38.dp, size = 14.4.sp, enabled = !rs.busy) { rs.deckPick() }
+    Txt("Decks are stored inside the app, and Android won’t clear them on its own.", size = 12.8.sp, color = P.faint, modifier = Modifier.padding(bottom = 8.dp))
+}
+
+/** Add a deck: paste a link to an .apkg, or choose one from your files */
+@Composable
+fun AddDeck(rs: Rs) {
+    var link by remember { mutableStateOf("") }
+    val close = { rs.addDeck = false }
+    androidx.compose.ui.window.Dialog(close, androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
+        Column(Modifier.padding(horizontal = 16.dp).widthIn(max = 560.dp).fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(P.card).border(1.dp, P.border, RoundedCornerShape(8.dp)).padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Txt("Add a deck", bold = true)
+            Field(link, { link = it }, "Paste a link to an .apkg", Modifier.fillMaxWidth(), androidx.compose.ui.text.input.ImeAction.Go) { if (link.isNotBlank()) { close(); rs.importUrl(link) } }
+            Txt("A direct download link, or a Google Drive or Dropbox share link. Each deck you add sits next to the others.", size = 12.8.sp, color = P.faint)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Btn("Choose a file", h = 36.dp, size = 14.4.sp, pad = 16.dp) { close(); rs.deckFile() }
+                Box(Modifier.weight(1f))
+                Btn("Cancel", h = 36.dp, size = 14.4.sp, pad = 16.dp, onClick = close)
+                Btn("Import", p = true, h = 36.dp, size = 14.4.sp, pad = 16.dp, enabled = link.isNotBlank()) { close(); rs.importUrl(link) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProgressSec(rs: Rs) {
     Row2("Back up progress")
     Row(Modifier.fillMaxWidth().padding(bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Btn("Export", Modifier.weight(1f), h = 37.dp, size = 14.4.sp) { rs.exportProgress() }

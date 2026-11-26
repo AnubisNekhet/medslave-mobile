@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -185,7 +186,8 @@ fun ReelOverlay(rs: Rs) {
                     val t = drop.value; val dy = with(androidx.compose.ui.platform.LocalDensity.current) { (-8f * (1 - t)).dp.toPx() }
                     Icon(Ic.SAVE, 25.dp, P.text, fill = r.saved, modifier = Modifier.graphicsLayer { translationY = dy; scaleX = .85f + .15f * t; scaleY = scaleX })
                 }
-                /* ⋯: a small menu with Hide (like a feed post's), which keeps the card out of Reels, posts and stories */
+                /* ⋯: a small menu with Hide (like a feed post's), which keeps the card out of Reels, posts and stories, and Block, which
+                   hides every subject the card's account posts */
                 var menu by remember { mutableStateOf(false) }
                 var shutAt by remember { mutableStateOf(0L) }   // when a touch outside closed it: that touch landing on the dots mustn't reopen it
                 LaunchedEffect(rs.cur) { menu = false }
@@ -194,9 +196,13 @@ fun ReelOverlay(rs: Rs) {
                     if (menu) androidx.compose.ui.window.Popup(alignment = Alignment.CenterEnd, offset = androidx.compose.ui.unit.IntOffset(with(androidx.compose.ui.platform.LocalDensity.current) { -40.dp.roundToPx() }, 0),
                         onDismissRequest = { menu = false; shutAt = System.currentTimeMillis() }) {
                         val sh = RoundedCornerShape(8.dp)
-                        Row(Modifier.clip(sh).background(P.card).border(1.dp, P.border, sh).clickable { menu = false; rs.hideCur() }.padding(horizontal = 14.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(Ic.STOP, 20.dp, HEART); Txt("Hide", size = 14.4.sp, bold = true)
+                        Column(Modifier.width(androidx.compose.foundation.layout.IntrinsicSize.Max).clip(sh).background(P.card).border(1.dp, P.border, sh)) {
+                            listOf(Triple(Ic.STOP, "Hide") { rs.hideCur() }, Triple(Ic.BAN, "Block") { rs.blockCur() }).forEach { (ic, t, go) ->
+                                Row(Modifier.fillMaxWidth().clickable { menu = false; go() }.padding(horizontal = 14.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Icon(ic, 20.dp, HEART); Txt(t, size = 14.4.sp, bold = true)
+                                }
+                            }
                         }
                     }
                 }
@@ -475,7 +481,7 @@ private fun AddPlaylist(rs: Rs, edit: pizza.kulhad.medslave.Reels.Playlist?, clo
     }
 }
 
-/** the QR pop-up over the share sheet: the app's GitHub page, dark on white so it scans in any theme */
+/** the QR pop-up over the share sheet: the latest release's APK (a straight download), dark on white so it scans in any theme */
 @Composable
 private fun QrPopup(rs: Rs) {
     val r = rs.reels
@@ -490,7 +496,7 @@ private fun QrPopup(rs: Rs) {
                 Box(Modifier.size(216.dp).clip(RoundedCornerShape(10.dp)).background(Color.White)) {
                     Canvas(Modifier.fillMaxSize()) { val k = size.width / r.qrSize; scale(k, k, Offset.Zero) { drawPath(path, Color.Black, style = Stroke(1f, cap = StrokeCap.Butt)) } }
                 }
-                Txt(r.qrUrl.removePrefix("https://"), size = 12.8.sp, color = P.faint)
+                Txt("Downloads the latest medslave APK", size = 12.8.sp, color = P.faint)
             }
         }
     }

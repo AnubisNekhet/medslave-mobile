@@ -17,6 +17,9 @@ const val SK = "medslave:settings"
 const val AK = "medslave:activity"    // answers revealed per day {yyyy-mm-dd: n}
 const val SEEN = "medslave:seen"
 const val HIDDEN = "medslave:hidden"   // hidden cards [[note id, ordinal, text, deck path], …] (a post's menu › Hide)
+const val HIDSUB = "medslave:hiddenSubjects"   // hidden subjects [[subject name, the handle blocked for it], …] (Block on an account)
+const val FILTERS = "medslave:filters"   // feed filters [{id, name, decks: [deck folder ids]}] (Settings › Feed › Feed filters)
+const val FACTIVE = "medslave:filter"    // the feed filter that's on (its id; none: no filter)
 const val SAVED = "medslave:saved"     // saved cards [[note id, ordinal], …] (the feed's save button)
 const val PLAYLISTS = "medslave:playlists"   // the user's playlists [{name, songs: [[title, artist, preview, art]]}]
 const val RK = "medslave:recent"      // the deck reviewed last (its path), for the home bar's resume button
@@ -34,6 +37,18 @@ class Store(ctx: Context) {
     /** progress import: every medslave:* key replaced by the file's */
     fun replaceAll(data: Map<String, String>) {
         val e = p.edit(); keys().forEach { e.remove(it) }; data.forEach { (k, v) -> e.putString(k, v) }; e.commit()
+    }
+    /** the one deck from before there could be several moved into folder id: its saved places, orders, missed cards and recent deck
+        get the id in front of their keys, like every deck's now ("<id>/Anatomy"; All decks is "<id>/" then a star) */
+    fun prefixProgress(id: String) {
+        val mine = Regex("^\\d+/")   // already a deck's key
+        listOf(LK, OK, AGK).forEach { k -> val o = obj(k); val n = JSONObject(); o.keys().forEach { n.put(if (mine.containsMatchIn(it)) it else "$id/$it", o.get(it)) }; if (o.length() > 0) set(k, n.toString()) }
+        get(RK)?.let { if (!mine.containsMatchIn(it)) set(RK, "$id/$it") }
+    }
+    /** one deck's saved places, orders and missed cards (keys starting with pre) go */
+    fun dropProgressOf(pre: String) {
+        listOf(LK, OK, AGK).forEach { k -> val o = obj(k); o.keys().asSequence().toList().filter { it.startsWith(pre) }.forEach { o.remove(it) }; set(k, o.toString()) }
+        if (get(RK)?.startsWith(pre) == true) set(RK, null)
     }
     fun dropProgress() { val e = p.edit(); e.remove(LK); e.remove(OK); e.remove(AGK); e.remove(RK); e.apply() }
 
@@ -61,6 +76,7 @@ class Settings(private val st: Store) {
     var tags by mutableStateOf(false)            // show a card's tags at its bottom (Settings › Reviewing)
     var hidex by mutableStateOf(true)           // an MCQ's explanation on the back of its answer card, on by default (Settings › Reviewing; stored as exback)
     var volkeys by mutableStateOf(false)         // the volume keys answer cards (Settings › Reviewing)
+    var ffreels by mutableStateOf(false)         // Reels Mode: the feed filter that's on also limits reels (Settings › Reviewing)
     var avatar by mutableStateOf("waves")        // Reels Mode's account avatars: waves | solid (Settings › Appearance › Profile style)
 
     init { load() }
@@ -73,12 +89,13 @@ class Settings(private val st: Store) {
         fakeload = o.optBoolean("fakeload", true)
         mode = o.optString("mode", "auto").let { if (it in listOf("auto", "light", "dark")) it else "auto" }
         reels = o.optBoolean("reels", true); source = o.optBoolean("source", false); nocom = o.optBoolean("nocom", false); expl = true; tags = o.optBoolean("tags", false); volkeys = o.optBoolean("volkeys", false); hidex = o.optBoolean("exback", true)
+        ffreels = o.optBoolean("ffreels", false)
         avatar = o.optString("avatar", "waves").let { if (it == "solid") it else "waves" }
         goff = o.optJSONArray("goff")?.let { a -> (0 until a.length()).map { a.optString(it) }.toSet() } ?: emptySet()
     }
     fun save() {
         st.set(SK, JSONObject().put("ordered", ordered).put("style", style).put("reveal", reveal).put("theme", theme).put("mode", mode).put("fakeload", fakeload).put("likered", redlike).put("accent", accent)
-            .put("reels", reels).put("source", source).put("nocom", nocom).put("expl", expl).put("tags", tags).put("volkeys", volkeys).put("exback", hidex).put("avatar", avatar).put("goff", JSONArray(goff.toList())).toString())
+            .put("reels", reels).put("source", source).put("nocom", nocom).put("expl", expl).put("tags", tags).put("volkeys", volkeys).put("exback", hidex).put("avatar", avatar).put("ffreels", ffreels).put("goff", JSONArray(goff.toList())).toString())
     }
     /** Reels Mode forces Flip + Scroll up */
     val flip get() = reels || style == "flip" || style == "doom"

@@ -225,10 +225,23 @@ class Reels(private val rs: Rs) {
     }
     val genres by lazy { j.getJSONArray("genres").let { a -> List(a.length()) { a.getJSONArray(it).let { g -> g.getString(0) to g.getString(1) } } } }
     internal val comments by lazy { strs("comments") }
+    /** the special accounts' own comments (daily.heatmap, countdown.timer, hydration.break); the rest share `comments` */
+    private val acomments by lazy { j.optJSONObject("acomments")?.let { o -> o.keys().asSequence().associateWith { k -> o.getJSONArray(k).let { a -> List(a.length()) { a.getString(it) } } } }.orEmpty() }
+    /** a subject account's handle → its subject's own comments (reels.json scomments, by the subj group's name) */
+    private val scomments by lazy {
+        val sc = j.optJSONObject("scomments") ?: return@lazy emptyMap<String, List<String>>()
+        val g = j.getJSONArray("subj"); val m = HashMap<String, List<String>>()
+        for (i in 0 until g.length()) { val o = g.getJSONObject(i); val l = sc.optJSONArray(o.optString("name")) ?: continue
+            val c = List(l.length()) { l.getString(it) }; val hs = o.getJSONArray("handles"); for (k in 0 until hs.length()) m[hs.getJSONArray(k).getString(0)] = c }
+        m
+    }
+    /** an account's comments: the special accounts' own; a subject account's 20% its subject's, 80% everyone's (1 to 4); the rest everyone's */
+    fun commentsFor(handle: String): List<String> = acomments[handle] ?: scomments[handle]?.let { s -> val k = minOf(s.size, comments.size / 4)
+        s.shuffled().take(k) + comments.shuffled().take(k * 4) } ?: comments
     internal val names by lazy { strs("names") }
     internal val suffixes by lazy { strs("suffixes") }
     internal val times by lazy { strs("times") }
-    val qrUrl by lazy { j.getString("qrUrl") }       // the share sheet's QR Code contact: the app's GitHub page
+    val qrUrl by lazy { j.getString("qrUrl") }       // the share sheet's QR Code contact: the latest release's medslave-Universal.apk (qrPath is drawn from it, 4-module border)
     val qrPath by lazy { j.getString("qrPath") }
     val qrSize by lazy { j.getInt("qrSize") }
     val share by lazy { j.getJSONArray("share").let { a -> List(a.length()) { a.getJSONArray(it).let { s -> Triple(s.getString(0), s.getString(1), s.getString(2)) } } } }
@@ -397,7 +410,7 @@ class Reels(private val rs: Rs) {
         sheet = kind
         if (kind == "com") {
             val g = ++gen; list.clear(); loading = true
-            val q = comments.shuffled().take(40); var i = 0
+            val q = commentsFor(name).shuffled().take(40); var i = 0
             fun more() {
                 if (g != gen) return
                 loading = false

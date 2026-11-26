@@ -38,6 +38,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -70,6 +71,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -104,50 +106,79 @@ fun Home(rs: Rs) {
 /** the deck list (Reels Mode: the Menu view) */
 @Composable
 private fun Menu(rs: Rs) {
-    val listW = remember { mutableStateOf(0) }
     Box(Modifier.fillMaxSize()) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
-            val vh = maxHeight; val vw = maxWidth
-            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                Column(Modifier.fillMaxWidth().heightIn(min = vh).padding(start = 10.dp, end = 10.dp, top = 16.dp, bottom = 24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                    if (!rs.loaded) { Spinner(72.dp); return@Column }
-                    /* logo + name: tapping opens the credits; they squish in while pressed and pop out while the credits are open */
-                    val src = remember { MutableInteractionSource() }; val down by src.collectIsPressedAsState()
-                    val sc by animateFloatAsState(if (down) .94f else if (rs.creditsOpen) 1.08f else 1f, tween(if (down) 100 else 350), label = "ttl")
-                    Row(Modifier.padding(top = 26.dp, bottom = 19.dp).scale(sc).clickable(src, null) { rs.creditsOpen = true }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Logo(26.dp)
-                        Txt("medslave", size = 32.sp, bold = true, spacing = (-.64).sp)
-                    }
-                    /* phones: the list spans the screen (up to 30em); wider screens: at least 42% of the width */
-                    Column(Modifier.width(IntrinsicSize.Max).widthIn(min = if (vw < 600.dp) minOf(vw - 20.dp, 480.dp) else vw * .42f, max = vw - 20.dp).onSizeChanged { listW.value = it.width }) {
-                        if (rs.deck.empty) Empty(rs, vw)
-                        else Row(Modifier.fillMaxWidth().padding(bottom = 5.dp)) {   /* All decks: every card in the deck */
-                            val sh = RoundedCornerShape(6.dp)
-                            Box(Modifier.weight(1f).border(1.dp, P.border, sh).press(bg = P.card, shape = sh) { rs.go(rs.deck.all) }.padding(10.dp), contentAlignment = Alignment.Center) {
-                                Txt("All decks", bold = true, align = TextAlign.Center)
-                            }
-                        }
-                        rs.deck.subjects.forEach { s ->
-                            val n = rs.deck.top.find { it.name == s.name } ?: return@forEach
-                            Row(Modifier.fillMaxWidth().padding(bottom = 5.dp), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-                                val sh = RoundedCornerShape(6.dp)
-                                Box(Modifier.weight(1f).border(1.dp, P.border, sh).press(bg = P.card, shape = sh) { rs.go(n) }.padding(10.dp), contentAlignment = Alignment.Center) {
-                                    Txt(s.name, bold = true, align = TextAlign.Center)
-                                }
-                                if (n.kids.isNotEmpty()) Box(Modifier.size(35.dp).border(1.dp, P.border, sh).press(bg = P.card, shape = sh) { rs.picker = n }, contentAlignment = Alignment.Center) {
-                                    Icon(Ic.DOWN, 18.dp, P.faint, 2.4f)
-                                }
-                            }
-                        }
-                    }
-                    /* the heatmap is hidden for now (Heatmap() is kept to be placed later) */
+            val vw = maxWidth
+            /* the logo, the deck's dots and name, and All decks stay put; only the subjects scroll (inside the pages). short lists sit in the
+               middle as before */
+            Column(Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp, top = 16.dp, bottom = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                if (!rs.loaded) { Spinner(72.dp); return@Column }
+                /* logo + name: tapping opens the credits; they squish in while pressed and pop out while the credits are open */
+                val src = remember { MutableInteractionSource() }; val down by src.collectIsPressedAsState()
+                val sc by animateFloatAsState(if (down) .94f else if (rs.creditsOpen) 1.08f else 1f, tween(if (down) 100 else 350), label = "ttl")
+                Row(Modifier.padding(top = 26.dp, bottom = 19.dp).scale(sc).clickable(src, null) { rs.creditsOpen = true }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Logo(26.dp)
+                    Txt("medslave", size = 32.sp, bold = true, spacing = (-.64).sp)
                 }
+                /* phones: the list spans the screen (up to 30em); wider screens: 42% of the width (a fixed width: the pager can't be measured intrinsically) */
+                val w = if (vw < 600.dp) minOf(vw - 20.dp, 480.dp) else vw * .42f
+                if (rs.deck.empty) Column(Modifier.width(w).verticalScroll(rememberScrollState())) { Empty(rs, vw) } else DeckPages(rs, w)
             }
         }
         /* settings: a round button in the top right */
         Box(Modifier.align(Alignment.TopEnd).padding(12.dp).size(42.dp).border(1.dp, P.border, CircleShape).press(bg = P.card, shape = CircleShape) { rs.settingsSec = null; rs.settingsOpen = true },
             contentAlignment = Alignment.Center) { Icon(Ic.GEAR, 19.dp, P.text) }
+    }
+}
+
+/** the Menu's decks: a page per imported deck, swiped sideways. on top (fixed): the dots and the deck's name (its parent deck) when there are
+    several, and All decks (that deck's every card). each page: its subjects, scrolling inside the page; a subject with subdecks has the
+    picker button. a page's rows study only that deck's cards */
+@Composable
+private fun ColumnScope.DeckPages(rs: Rs, w: Dp) {
+    val parts = rs.deck.parts
+    val st = androidx.compose.foundation.pager.rememberPagerState { parts.size }
+    Column(Modifier.width(w)) {
+        if (parts.size > 1) {
+            Row(Modifier.fillMaxWidth().padding(bottom = 6.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                parts.indices.forEach { i ->
+                    val on = i == st.currentPage
+                    Box(Modifier.padding(horizontal = 3.dp).size(if (on) 7.dp else 6.dp).clip(CircleShape).background(if (on) P.text else P.border))
+                }
+            }
+            Txt(parts.getOrNull(st.currentPage)?.name ?: "Deck", size = 14.4.sp, color = P.faint, bold = true, lines = 1, align = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp))
+        }
+        /* All subjects: every card in the deck on show; All decks: every card in every deck (one deck: just All decks, they're the same) */
+        Row(Modifier.fillMaxWidth().padding(bottom = 5.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            val sh = RoundedCornerShape(6.dp)
+            @Composable fun btn(label: String, go: () -> Unit) =
+                Box(Modifier.weight(1f).border(1.dp, P.border, sh).press(bg = P.card, shape = sh, onClick = go).padding(10.dp), contentAlignment = Alignment.Center) {
+                    Txt(label, bold = true, align = TextAlign.Center, lines = 1)
+                }
+            if (parts.size > 1) btn("All subjects") { parts.getOrNull(st.currentPage)?.let { rs.go(it.tree.all) } }
+            btn("All decks") { if (parts.size > 1) rs.go(rs.deck.all) else parts.firstOrNull()?.let { rs.go(it.tree.all) } }
+        }
+    }
+    /* every page as tall as the tallest (all are composed and measured, up to the room left), so nothing moves while swiping */
+    var tall by remember(parts) { mutableIntStateOf(0) }
+    val dn = LocalDensity.current
+    androidx.compose.foundation.pager.HorizontalPager(st, Modifier.width(w).weight(1f, fill = false), pageSpacing = 16.dp, verticalAlignment = Alignment.Top, beyondViewportPageCount = parts.size) { i ->
+        val t = parts[i].tree
+        Column(Modifier.fillMaxWidth().onSizeChanged { if (it.height > tall) tall = it.height }.heightIn(min = with(dn) { tall.toDp() }).verticalScroll(rememberScrollState())) {
+            t.subjects.forEach { s ->
+                val n = t.top.find { it.name == s.name } ?: return@forEach
+                Row(Modifier.fillMaxWidth().padding(bottom = 5.dp), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                    val sh = RoundedCornerShape(6.dp)
+                    Box(Modifier.weight(1f).border(1.dp, P.border, sh).press(bg = P.card, shape = sh) { rs.go(n) }.padding(10.dp), contentAlignment = Alignment.Center) {
+                        Txt(s.name, bold = true, align = TextAlign.Center)
+                    }
+                    if (n.kids.isNotEmpty()) Box(Modifier.size(35.dp).border(1.dp, P.border, sh).press(bg = P.card, shape = sh) { rs.picker = n }, contentAlignment = Alignment.Center) {
+                        Icon(Ic.DOWN, 18.dp, P.faint, 2.4f)
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -181,13 +212,14 @@ fun NavBar(rs: Rs, current: String) {
     val back = rs.recent()
     /* the other views: a solid mid-tone (the text colour mixed into the background), never transparency */
     val off = androidx.compose.ui.graphics.lerp(P.bg, P.text.copy(alpha = 1f), .45f)
-    @Composable fun item(svg: String, on: Boolean, enabled: Boolean = true, stroke: Float = 2f, go: () -> Unit) =
-        Box(Modifier.size(51.dp, 42.dp).press(enabled, shape = RoundedCornerShape(8.dp), onClick = go), contentAlignment = Alignment.Center) {
+    @Composable fun item(svg: String, on: Boolean, enabled: Boolean = true, stroke: Float = 2f, long: (() -> Unit)? = null, go: () -> Unit) =
+        Box(Modifier.size(51.dp, 42.dp).press(enabled, shape = RoundedCornerShape(8.dp), onLong = long, onClick = go), contentAlignment = Alignment.Center) {
             Icon(svg, 24.dp, if (on) P.text else off, if (on) stroke + .4f else stroke)
         }
     Row(Modifier.fillMaxWidth().solidLine(P.divider, true).padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceAround) {
         item(Ic.LIST, current == "menu") { if (rs.study) rs.home(); rs.tab = "menu" }
-        item(Ic.HOME, current == "feed") { if (rs.study) rs.home(); rs.tab = "feed"; if (current == "feed") rs.feed.web.top() }
+        /* Home: a long press (with a buzz) picks a feed filter */
+        item(Ic.HOME, current == "feed", long = { rs.reels.buzz(); rs.feed.pickOpen = true }) { if (rs.study) rs.home(); rs.tab = "feed"; if (current == "feed") rs.feed.web.top() }
         /* Reels: back to the last card reviewed; the first time, All decks */
         item(Ic.REELS, current == "reels", enabled = current == "reels" || !rs.deck.empty) { if (current != "reels") rs.go(back ?: rs.deck.all) }
     }
@@ -279,6 +311,36 @@ fun Heatmap(rs: Rs, w: Dp) {
     }
 }
 
+/** one deck's page in the credits: the pie (a slice per subject, by its number of questions; solid colours, no outlines), its name, the
+    total, and the legend (colour, subject, questions and share) */
+@Composable
+private fun CreditPage(d: pizza.kulhad.medslave.Deck, cols: List<Pair<Color, Color>>, dark: Boolean, name: String?) {
+    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        val decks = d.top.filter { it.cnt > 0 }
+        val tot = decks.sumOf { it.cnt }.coerceAtLeast(1)
+        val colOf = { i: Int -> cols[i % cols.size].let { if (dark) it.second else it.first } }
+        androidx.compose.foundation.Canvas(Modifier.size(170.dp)) {
+            var start = -90f
+            decks.forEachIndexed { i, n ->
+                val sweep = 360f * n.cnt / tot
+                drawArc(colOf(i), start, sweep, useCenter = true)
+                start += sweep
+            }
+        }
+        Gap(10.dp)
+        name?.takeIf { it.isNotBlank() }?.let { Txt(it, size = 13.6.sp, color = P.faint, lines = 1) }   // the deck these questions come from
+        Txt("%,d questions".format(decks.sumOf { it.cnt }), bold = true)
+        Gap(10.dp)
+        decks.forEachIndexed { i, n ->
+            Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(Modifier.size(12.dp).clip(CircleShape).background(colOf(i)))
+                Txt(n.name, size = 14.4.sp, modifier = Modifier.weight(1f), lines = 1)
+                Txt("%,d".format(n.cnt) + "  ·  " + "%.0f%%".format(java.util.Locale.US, 100f * n.cnt / tot), size = 13.6.sp, color = P.faint)
+            }
+        }
+    }
+}
+
 /* ---------------------------------------------------------------- the subdeck picker (#pop): the subject's tree, each row opens that deck */
 @Composable
 fun Picker(rs: Rs, n: Node) {
@@ -325,29 +387,16 @@ fun Credits(rs: Rs) {
             val ver = remember { runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull().orEmpty() }
             if (ver.isNotEmpty()) Txt("v$ver", size = 13.sp, color = P.faint, modifier = Modifier.padding(top = 2.dp))
             Gap(16.dp)
-            val decks = rs.deck.top.filter { it.cnt > 0 }
-            val tot = decks.sumOf { it.cnt }.coerceAtLeast(1)
-            val colOf = { i: Int -> cols[i % cols.size].let { if (dark) it.second else it.first } }
-            /* the pie: a slice per top-level deck, by its number of questions; solid colours, no outlines */
-            androidx.compose.foundation.Canvas(Modifier.size(170.dp)) {
-                var start = -90f
-                decks.forEachIndexed { i, n ->
-                    val sweep = 360f * n.cnt / tot
-                    drawArc(colOf(i), start, sweep, useCenter = true)
-                    start += sweep
+            /* a page per deck (swiped sideways, dots under them when there are several): its pie and legend */
+            val parts = rs.deck.parts
+            if (parts.size <= 1) CreditPage(parts.firstOrNull()?.tree ?: rs.deck, cols, dark, parts.firstOrNull()?.name)
+            else {
+                val st = androidx.compose.foundation.pager.rememberPagerState { parts.size }
+                Row(Modifier.padding(bottom = 12.dp), horizontalArrangement = Arrangement.Center) {
+                    parts.indices.forEach { i -> val on = i == st.currentPage
+                        Box(Modifier.padding(horizontal = 3.dp).size(if (on) 7.dp else 6.dp).clip(CircleShape).background(if (on) P.text else P.border)) }
                 }
-            }
-            Gap(10.dp)
-            rs.deck.meta?.name?.takeIf { it.isNotBlank() }?.let { Txt(it, size = 13.6.sp, color = P.faint, lines = 1) }   // the deck these questions come from
-            Txt("%,d questions".format(decks.sumOf { it.cnt }), bold = true)
-            Gap(10.dp)
-            /* the legend: colour, deck, questions and share */
-            decks.forEachIndexed { i, n ->
-                Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box(Modifier.size(12.dp).clip(CircleShape).background(colOf(i)))
-                    Txt(n.name, size = 14.4.sp, modifier = Modifier.weight(1f), lines = 1)
-                    Txt("%,d".format(n.cnt) + "  ·  " + "%.0f%%".format(java.util.Locale.US, 100f * n.cnt / tot), size = 13.6.sp, color = P.faint)
-                }
+                androidx.compose.foundation.pager.HorizontalPager(st, Modifier.fillMaxWidth(), pageSpacing = 16.dp, verticalAlignment = Alignment.Top) { i -> CreditPage(parts[i].tree, cols, dark, parts[i].name) }
             }
         }
     }

@@ -49,7 +49,7 @@ button:active,button:hover{background:none;color:inherit}
 .f-post{position:relative}
 .f-more{margin-left:auto;flex:none;width:34px;height:34px;margin-right:-8px;display:grid;place-items:center;background:none;border:0;color:var(--text-fg);border-radius:50%;-webkit-tap-highlight-color:transparent}
 .f-more svg{width:20px;height:20px;display:block}.f-more:active{background:var(--pdiv)}
-.f-menu{position:absolute;top:50px;right:10px;z-index:5;background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;box-shadow:var(--card-box-shadow) 0 7px 14px 0,var(--card-box-shadow) 0 3px 6px 0;padding:4px;animation:fmenu .16s cubic-bezier(.2,.8,.2,1)}
+.f-menu{display:flex;flex-direction:column;position:absolute;top:50px;right:10px;z-index:5;background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;box-shadow:var(--card-box-shadow) 0 7px 14px 0,var(--card-box-shadow) 0 3px 6px 0;padding:4px;animation:fmenu .16s cubic-bezier(.2,.8,.2,1)}
 @keyframes fmenu{from{transform:translateY(-4px) scale(.96);opacity:0}}
 .f-hide{display:flex;align-items:center;gap:10px;padding:9px 16px 9px 12px;background:none;border:0;color:var(--text-fg);font:inherit;font-size:15px;font-weight:700;border-radius:7px;-webkit-tap-highlight-color:transparent}
 .f-hide:active{background:var(--pdiv)}.f-hide svg{width:20px;height:20px;display:block;color:#ff3040}
@@ -164,6 +164,9 @@ body.nocom .f-cm,body.nocom .f-cmt{display:none!important}
 #pf{transform:translateX(100%);transition:transform .26s cubic-bezier(.2,.8,.2,1)}#pf.in{transform:none}   /* slides in from the right */
 @media(prefers-reduced-motion:reduce){#pf{transition:none}}
 .f-pft{justify-content:center}.f-pft b{font-size:17px}
+.f-pdots{position:absolute;right:6px;top:calc(14px + var(--st,0px));width:34px;height:34px;display:grid;place-items:center;background:none;border:0;color:var(--text-fg);border-radius:50%;-webkit-tap-highlight-color:transparent}
+.f-pdots svg{width:20px;height:20px;display:block}.f-pdots:active{background:var(--pdiv)}
+.f-pft .f-menu{top:calc(50px + var(--st,0px))}   /* the profile's ⋯ menu, under the dots */
 .f-back{position:absolute;left:8px;top:calc(8px + var(--st,0px));width:44px;height:44px;font-size:34px;line-height:1;color:var(--text-fg)}
 .f-prof{max-width:var(--card-max-width);margin:0 auto;padding:4px 16px 14px;border-bottom:1px dashed var(--pdiv)}
 .f-pr1{display:flex;align-items:center;gap:22px}
@@ -180,6 +183,12 @@ body.nocom .f-cm,body.nocom .f-cmt{display:none!important}
 #pfl{max-width:var(--card-max-width);margin:0 auto;padding:12px 10px 16px}   /* the bottom bar already sits above the navigation bar: no extra gap over its line */
 .f-none{text-align:center;color:var(--text-fg-faint);font-size:14px;padding:40px 20px}
 /* daily.heatmap's posts: the day's count, and its month with the day ringed */
+.f-cd{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:240px;padding:28px 12px}   /* countdown.timer's post */
+.f-cd>b{font-size:96px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}.f-cd>small{margin-top:8px;font-size:15px;color:var(--text-fg-faint)}
+.f-hy{gap:12px;text-align:center;padding:36px 28px}.f-hy>b{font-size:44px}.f-hy>span{font-size:19px;font-weight:700;line-height:1.35;max-width:22ch}   /* hydration.break */
+.f-cds{min-height:60vh}
+.f-wave{background-size:100% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;padding:0 .06em}   /* text filled with an avatar's waves */
+body.av-solid .f-wave{background-image:none!important;color:var(--c);-webkit-text-fill-color:var(--c)}   /* Profile style › solid */   /* countdown.timer's story */
 .f-day{display:flex;flex-direction:column;align-items:center;padding:18px 12px 16px}
 .f-day>b{font-size:40px;line-height:1.1}.f-day>small{font-size:13px;color:var(--text-fg-faint);margin-bottom:12px}
 .f-dayhm{padding:0;--hm:var(--acc,var(--accent,var(--text-fg)))}

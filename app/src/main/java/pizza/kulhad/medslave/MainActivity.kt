@@ -24,6 +24,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalConfiguration
+import pizza.kulhad.medslave.ui.AddDeck
 import pizza.kulhad.medslave.ui.Credits
 import pizza.kulhad.medslave.ui.accented
 import pizza.kulhad.medslave.ui.DialogBox
@@ -104,6 +105,8 @@ class MainActivity : ComponentActivity() {
                     if (rs.progressOpen) ProgressPanel(rs)
                     Sheets(rs)
                     if (rs.tutorial) Tutorial(rs)
+                    if (rs.addDeck) AddDeck(rs)
+                    if (rs.feed.pickOpen) pizza.kulhad.medslave.ui.FilterPick(rs)
                     rs.importTypes?.let { ImportPanel(rs, it) }
                     if (rs.importing) pizza.kulhad.medslave.ui.ImportProgress(rs)
                     rs.dialog?.let { DialogBox(rs, it) }

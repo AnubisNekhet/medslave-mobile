@@ -190,6 +190,8 @@ private fun FinCard(rs: Rs, f: pizza.kulhad.medslave.Fin) {
             Txt("Deck finished", size = 22.sp, bold = true, align = TextAlign.Center)
             Gap(10.dp)
             Txt("You’ve been through all ${f.count} cards in ${f.name}" + (if (f.wr > 0) ", and went back over ${f.wr} you missed" else "") + ".", align = TextAlign.Center, lh = 22.sp)
+            if (f.filtered > 0) Txt("%,d more card%s hidden by the feed filter (Settings › Reviewing › Feed filter in reels).".format(f.filtered, if (f.filtered == 1) " was" else "s were"),
+                size = 13.6.sp, color = P.faint, align = TextAlign.Center, lh = 20.sp)
             Gap(20.dp)
             Row(horizontalArrangement = Arrangement.spacedBy(11.dp)) {
                 Btn("Home", h = 42.dp) { rs.home() }

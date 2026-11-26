@@ -86,8 +86,8 @@ open class Page(protected val ctx: Context, file: String, transparent: Boolean, 
         return try {
             if (path.startsWith("media/")) {
                 val key = path.removePrefix("media/")   // WebView hands the path over already decoded
-                val f = File(DeckStore.mediaDir(ctx), DeckStore.mediaName(key))
-                if (f.exists()) WebResourceResponse(type, null, FileInputStream(f)) else WebResourceResponse(type, null, 404, "Not found", emptyMap(), null)
+                val f = DeckStore.mediaFile(key)   // from whichever deck has it
+                if (f != null) WebResourceResponse(type, null, FileInputStream(f)) else WebResourceResponse(type, null, 404, "Not found", emptyMap(), null)
             } else WebResourceResponse(type, if (type.startsWith("text")) "utf-8" else null, ctx.assets.open("web/$path"))
         } catch (e: Exception) { null }
     }

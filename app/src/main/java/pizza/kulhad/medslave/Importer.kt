@@ -135,16 +135,47 @@ class Importer(private val ctx: Context, private val say: (String, Float?) -> Un
 
     private fun rows(sql: String, args: Array<String>? = null, f: (android.database.Cursor) -> Unit) = bigQuery(col!!, sql, args).use { c -> while (c.moveToNext()) { f(c) } }
 
-    fun scan(uri: Uri): List<ImportType> {
+    private var fetched = false
+    /** a deck from a link: downloaded into the package file (redirects followed; Google Drive and Dropbox share links made direct) */
+    fun fetch(link: String) {
+        say("Downloading…", null)
+        val drive = Regex("drive\\.google\\.com/(?:file/d/|open\\?id=|uc\\?(?:export=download&)?id=)([\\w-]+)").find(link)?.groupValues?.get(1)
+        var u = java.net.URL(when { drive != null -> "https://drive.usercontent.google.com/download?id=$drive&export=download&confirm=t"
+            "dropbox.com" in link -> link.replace(Regex("([?&])dl=0"), "$1dl=1").let { if ("dl=1" in it) it else it + (if ('?' in it) "&" else "?") + "dl=1" }
+            else -> link.trim() })
+        var c: java.net.HttpURLConnection; var hops = 0
+        while (true) {
+            c = u.openConnection() as java.net.HttpURLConnection
+            c.instanceFollowRedirects = false; c.connectTimeout = 20_000; c.readTimeout = 60_000; c.setRequestProperty("User-Agent", "medslave")
+            val code = c.responseCode
+            if (code in 300..399 && hops++ < 10) { val loc = c.getHeaderField("Location"); c.disconnect(); if (loc == null) throw ImportError("Couldn’t download that link."); u = java.net.URL(u, loc); continue }
+            if (code !in 200..299) { c.disconnect(); throw ImportError("Couldn’t download that link (HTTP $code).") }
+            break
+        }
+        val cd = c.getHeaderField("Content-Disposition").orEmpty()
+        fileName = (Regex("filename\\*=(?:UTF-8'')?\"?([^\";]+)", RegexOption.IGNORE_CASE).find(cd)?.groupValues?.get(1)?.let { java.net.URLDecoder.decode(it, "UTF-8") }
+            ?: Regex("filename=\"?([^\";]+)", RegexOption.IGNORE_CASE).find(cd)?.groupValues?.get(1)
+            ?: java.net.URLDecoder.decode(u.path.substringAfterLast('/'), "UTF-8")).trim().ifEmpty { "deck.apkg" }
+        val total = c.contentLengthLong
+        try { c.inputStream.use { i -> pkg.outputStream().use { o ->
+            val b = ByteArray(1 shl 16); var n: Int; var t = 0L
+            while (i.read(b).also { n = it } >= 0) { o.write(b, 0, n); t += n
+                if (t % (2L shl 20) < n) { check(); say(if (total > 0) "Downloading… ${t shr 20} / ${total shr 20} MB" else "Downloading… ${t shr 20} MB", null) } }
+        } } } finally { c.disconnect() }
+        fetched = true
+    }
+
+    /** uri: a file picked; null after fetch() */
+    fun scan(uri: Uri?): List<ImportType> {
         say("Opening the package…", 0f)
-        ctx.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c -> if (c.moveToFirst()) c.getString(0)?.let { fileName = it } }
+        if (uri != null) runCatching { ctx.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c -> if (c.moveToFirst()) c.getString(0)?.let { fileName = it } } }
         if (Regex("\\.colpkg$", RegexOption.IGNORE_CASE).containsMatchIn(fileName))
             throw ImportError("That’s a whole Anki collection (.colpkg). medslave imports single decks: in Anki, use Export › Anki Deck Package (.apkg).")
-        (ctx.contentResolver.openInputStream(uri) ?: throw ImportError("Couldn’t open that file.")).use { i -> pkg.outputStream().use { o ->
+        if (uri != null) (ctx.contentResolver.openInputStream(uri) ?: throw ImportError("Couldn’t open that file.")).use { i -> pkg.outputStream().use { o ->
             val b = ByteArray(1 shl 16); var n: Int; var t = 0L
             while (i.read(b).also { n = it } >= 0) { o.write(b, 0, n); t += n; if (t % (8L shl 20) < n) { check(); say("Copying the package… ${t shr 20} MB", null) } }
         } }
-        zip = try { ZipFile(pkg) } catch (e: Exception) { throw ImportError("This isn’t an Anki package (no zip directory found).") }
+        zip = try { ZipFile(pkg) } catch (e: Exception) { throw ImportError(if (fetched) "That link didn’t give an Anki package. Use a direct download link to the .apkg file." else "This isn’t an Anki package (no zip directory found).") }
         val cn = listOf("collection.anki21b", "collection.anki21", "collection.anki2").find { zip!!.getEntry(it) != null }
             ?: throw ImportError("No Anki collection inside this file. Export the deck from Anki as a .apkg.")
         say("Unpacking cards…", 3f)
@@ -195,7 +226,8 @@ class Importer(private val ctx: Context, private val say: (String, Float?) -> Un
         return types
     }
 
-    fun build(map: Map<String, Choice>): Meta {
+    /** existing: the note ids of the decks already here (a deck mostly made of them is one that's already imported) */
+    fun build(map: Map<String, Choice>, existing: Set<Long> = emptySet()): Meta {
         say("Reading cards…", 8f)
         class CD(val o: ArrayList<Int> = ArrayList(), val id: ArrayList<Long> = ArrayList(), var did: Long = 0)
         val cd = HashMap<Long, CD>()
@@ -257,6 +289,8 @@ class Importer(private val ctx: Context, private val say: (String, Float?) -> Un
             out.setTransactionSuccessful(); out.endTransaction()
             col?.close(); col = null; colFile.delete()
             if (nn == 0) throw ImportError("No cards to import with these settings.")
+            if (existing.isNotEmpty()) { var dup = 0; out.rawQuery("SELECT id FROM notes", null).use { c -> while (c.moveToNext()) if (c.getLong(0) in existing) dup++ }
+                if (dup * 2 > nn) throw ImportError("This deck is already imported (Settings › Decks).") }
 
             /* media: name ↔ zip entry, then only the images the cards use */
             val mm = ArrayList<Pair<String, String>>()
@@ -287,10 +321,11 @@ class Importer(private val ctx: Context, private val say: (String, Float?) -> Un
             val meta = Meta(fileName.replace(Regex("\\.apkg$", RegexOption.IGNORE_CASE), ""), nn, nc, want.size, bytes, Instant.now().toString())
             fun info(k: String, v: String) = out.execSQL("INSERT OR REPLACE INTO info(k, v) VALUES (?, ?)", arrayOf(k, v))
             info("paths", JSONArray(np).toString()); info("pc", JSONArray(pc.toList()).toString()); info("subjects", JSONArray(names).toString()); info("meta", meta.json())
+            if (root != null) info("root", root)   // the parent deck that was dropped: the deck's name on the Menu
             out.setTransactionSuccessful(); out.endTransaction(); out.close()
             check()
-            DeckStore.delete(ctx)
-            if (!tmpDb.renameTo(DeckStore.dbFile(ctx)) || !tmpMedia.renameTo(DeckStore.mediaDir(ctx))) throw ImportError("Couldn’t save the deck.")
+            val dir = DeckStore.newDir(ctx); dir.mkdirs()   // a deck of its own, next to the others
+            if (!tmpDb.renameTo(java.io.File(dir, "deck.db")) || !tmpMedia.renameTo(java.io.File(dir, "media"))) { dir.deleteRecursively(); throw ImportError("Couldn’t save the deck.") }
             return meta
         } catch (e: Throwable) {
             runCatching { if (out.inTransaction()) out.endTransaction(); out.close() }

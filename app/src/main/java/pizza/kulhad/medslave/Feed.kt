@@ -35,6 +35,7 @@ class FeedBridge(private val f: Feed) {
     @JavascriptInterface fun saved() = h.post { f.savedProfile() }
     @JavascriptInterface fun save(id: String, o: Int, on: Boolean) = h.post { f.save(id.toLong(), o, on) }
     @JavascriptInterface fun hide(id: String, o: Int, text: String, path: String) = h.post { f.hide(id.toLong(), o, text, path) }
+    @JavascriptInterface fun block(ai: Int) = h.post { f.block(ai) }
     @JavascriptInterface fun play(k: String) = h.post { f.playSong(k) }
     @JavascriptInterface fun mute() = h.post { f.rs.reels.tapMusic() }
 }
@@ -60,9 +61,19 @@ class FeedWeb(ctx: Context, f: Feed) : Page(ctx, "feed.html", false, { FeedBridg
     fun openAccount(ai: Int, post: String) = js("R.openAccount($ai,$post)")
     fun profilePosts(j: String) = js("R.pposts($j)")
     fun closeProfile() = js("R.closeProfile()")
+    /** the hidden subjects (names) changed: posts and stories from them leave the page */
+    fun blocked(j: String) = js("R.blocked($j)")
     /** the status and navigation bar heights (CSS px): the page runs behind the status bar and pads itself */
     fun insets(top: Float, bottom: Float) = js("R.insets($top,$bottom)")
 }
+
+/** countdown.timer: its handle, and its entry in the hidden subjects when blocked */
+const val CD_HANDLE = "countdown.timer"
+const val CD_NAME = "Countdown timer"
+const val AK_HANDLE = "daily.heatmap"
+/** hydration.break: the same for the water reminder */
+const val HY_HANDLE = "hydration.break"
+const val HY_NAME = "Hydration break"
 
 class Feed(val rs: Rs) {
     private var made: FeedWeb? = null
@@ -77,7 +88,44 @@ class Feed(val rs: Rs) {
 /** exam tags: NEET, AIIMS or INICET anywhere in a tag's full name */
 private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
 
-    private class Acc(val h: String, val ic: String, val c: String) { val subs = ArrayList<Int>() }
+    /** an account: handle, icon, colour, the subjects it posts (its niche) and, for a subject's account given one deck, that deck (-1: any) */
+    private class Acc(val h: String, val ic: String, val c: String, var src: Int = -1) { val subs = ArrayList<Int>() }
+    private val bySrc = java.util.concurrent.ConcurrentHashMap<Long, List<Note>>()   // a subject's notes from one deck (or any), "subject * 4096 + deck + 1"
+    /** a subject's notes for the feed: one deck's (src) or any, and only what the feed filter that's on lets through */
+    private fun notesOf(d: Deck, s: Int, src: Int): List<Note> { val f = fsrc; val name = d.subjects[s].name
+        if (src < 0 && f == null) return d.subjects[s].notes
+        return bySrc.getOrPut(s * 4096L + src + 1) { d.subjects[s].notes.filter { (src < 0 || it.src == src) && (f == null || f.ok(it.src, name)) } } }
+
+    /* ---- feed filters (Settings › Feed › Feed filters; a long press on Home picks one): named sets of decks; with one on, the feed's posts,
+       stories and profiles come only from its decks. kept by deck folder id */
+    class Filter(val id: String, val name: String, val decks: List<String>)
+    var filters by mutableStateOf(loadFilters())
+    var active by mutableStateOf(rs.store.get(FACTIVE))   // the filter that's on (null: none)
+    var pickOpen by mutableStateOf(false)                 // the Home long press's picker
+    @Volatile private var fsrc: Sel? = null               // what the filter that's on lets through (null: everything)
+    /** what a filter lets through: whole decks (Note.src; filters made before subjects could be picked) and single subjects ("src/subject") */
+    class Sel(val whole: Set<Int>, val subs: Set<String>) { fun ok(src: Int, subject: String) = src in whole || "$src/$subject" in subs }
+    private fun loadFilters(): List<Filter> = runCatching { JSONArray(rs.store.get(FILTERS) ?: "[]").let { a -> List(a.length()) { a.getJSONObject(it).let { o ->
+        Filter(o.getString("id"), o.optString("name"), o.optJSONArray("decks")?.let { d -> List(d.length()) { d.getString(it) } }.orEmpty()) } } } }.getOrDefault(emptyList())
+    private fun saveFilters() { rs.store.set(FILTERS, JSONArray(filters.map { f -> JSONObject().put("id", f.id).put("name", f.name).put("decks", JSONArray(f.decks)) }).toString()) }
+    /** what the active filter lets through in the loaded deck (null when none is on or nothing of it is still here). a filter's entries are
+        "<deck id>/<subject>" (a subject: a first subdeck of that deck) or a bare "<deck id>" (the whole deck) */
+    private fun filterSrcs(d: Deck): Sel? { val f = filters.find { it.id == active } ?: return null
+        val idx = d.parts.withIndex().associate { it.value.id to it.index }; val whole = HashSet<Int>(); val subs = HashSet<String>()
+        f.decks.forEach { k -> val i = idx[k.substringBefore('/')] ?: return@forEach; if ('/' in k) subs.add("$i/${k.substringAfter('/')}") else whole.add(i) }
+        return if (whole.isEmpty() && subs.isEmpty()) null else Sel(whole, subs) }
+    /** Settings › Reviewing › Feed filter in reels: whether a card's deck is in the filter that's on (always, with the option off or no filter) */
+    fun reelsFilter(): ((Note) -> Boolean)? { if (!rs.set.reels || !rs.set.ffreels) return null; val f = filterSrcs(rs.deck) ?: return null
+        return { n -> val name = subIx(n.id)?.let { rs.deck.subjects.getOrNull(it)?.name }; name == null || f.ok(n.src, name) } }
+    fun putFilter(id: String?, name: String, decks: List<String>) {
+        val nf = Filter(id ?: System.currentTimeMillis().toString(), name.trim().ifEmpty { "Filter" }, decks)
+        filters = if (id != null && filters.any { it.id == id }) filters.map { if (it.id == id) nf else it } else filters + nf
+        saveFilters(); if (active == nf.id) refilter()
+    }
+    fun dropFilter(id: String) { filters = filters.filter { it.id != id }; saveFilters(); if (active == id) useFilter(null) }
+    fun useFilter(id: String?) { if (active == id) return; active = id; rs.store.set(FACTIVE, id); refilter() }
+    /** the filter changed: the feed is made again (from the top) */
+    private fun refilter() { if (made != null && deck != null) build() }
     private var deck: Deck? = null
     private var acc = listOf<Acc>()
     private var seed = 0L
@@ -99,7 +147,7 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
     }
 
     private fun build() {
-        val d = rs.deck; deck = d; page = 0; salt = System.currentTimeMillis(); subOf = null
+        val d = rs.deck; deck = d; page = 0; salt = System.currentTimeMillis(); subOf = null; fsrc = filterSrcs(d); bySrc.clear()
         seed = (d.meta?.imported ?: "").hashCode().toLong()
         val hs = rs.reels.handles; val sj = rs.reels.subj
         /* a subject named like one of the 19 MBBS subjects (first match, General Medicine last) gets that subject's accounts; subjects
@@ -107,18 +155,29 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
         val byS = LinkedHashMap<Int, ArrayList<Int>>(); val rest = ArrayList<Int>()
         d.subjects.forEachIndexed { i, sb -> val g = sj.indexOfFirst { it.first.containsMatchIn(sb.name) }; if (g >= 0) byS.getOrPut(g) { ArrayList() }.add(i) else rest.add(i) }
         val l = ArrayList<Acc>()
-        byS.forEach { (g, subs) -> sj[g].second.forEach { (h, ic) -> l.add(Acc(h, ic, "").also { it.subs.addAll(subs) }) } }
+        /* a subject in several decks: its accounts go to the decks first, one each (in deck order); the ones left post from any deck. with
+           more decks than accounts, the last account stays on every deck so none is left without */
+        byS.forEach { (g, subs) ->
+            val hl = sj[g].second
+            val srcs = subs.flatMap { s -> d.subjects[s].notes.asSequence().map { it.src }.distinct().toList() }.distinct().sorted()
+            val ded = if (srcs.size <= 1) 0 else if (srcs.size <= hl.size) srcs.size else hl.size - 1
+            hl.forEachIndexed { k, (h, ic) ->
+                val a = Acc(h, ic, "")
+                if (k < ded) { a.src = srcs[k]; a.subs.addAll(subs.filter { s -> d.subjects[s].notes.any { it.src == a.src } }) } else a.subs.addAll(subs)
+                l.add(a)
+            }
+        }
         if (rest.isNotEmpty()) {
             val gen = hs.indices.shuffled(Random(seed)).map { Acc(hs[it].first, hs[it].second, "") }; val s = rest.size
             if (s <= gen.size) gen.forEachIndexed { i, a -> a.subs.add(rest[i % s]) } else rest.forEachIndexed { j, x -> gen[j % gen.size].subs.add(x) }
             l.addAll(gen)
         }
-        acc = l.mapIndexed { i, a -> Acc(a.h, a.ic, hex(DCOL[i % DCOL.size].second.toArgb())).also { it.subs.addAll(a.subs) } }
+        acc = l.mapIndexed { i, a -> Acc(a.h, a.ic, hex(DCOL[i % DCOL.size].second.toArgb()), a.src).also { it.subs.addAll(a.subs) } }
         val b = slot()
         io.execute {
             val j = JSONObject().put("paths", JSONArray(d.paths)).put("source", rs.set.source).put("expl", rs.set.expl).put("tags", rs.set.tags)
                 .put("acc", JSONArray(acc.map { a -> JSONObject().put("h", a.h).put("ic", a.ic).put("c", a.c) }))
-                .put("posts", posts(0)).put("groups", stories(b)).put("act", JSONObject(act())).put("saved", saved())
+                .put("posts", posts(0)).put("hcm", cms(Random(System.nanoTime()), AK_HANDLE)).put("groups", stories(b)).put("act", JSONObject(act())).put("saved", saved())
             main.post { if (deck === d) { bucket = b; web.feed(j.toString()); web.nocom(rs.set.nocom) } }
         }
     }
@@ -145,7 +204,7 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
 
     fun comments(handle: String) { rs.reels.name = handle; rs.reels.open("com") }
     /** a story was watched (by account: the page re-sorts the row, unwatched first) */
-    fun seen(ai: Int) { acc.getOrNull(ai)?.let { seen.add("$bucket:${it.h}") } }
+    fun seen(ai: Int) { (if (ai == -3) CD_HANDLE else acc.getOrNull(ai)?.h)?.let { seen.add("$bucket:$it") } }
 
     private fun hex(c: Int) = "#%06X".format(c and 0xFFFFFF)
     private val CAPS = listOf("high yield 🔥", "save this for exam day", "you WILL see this again", "tag someone who got this wrong", "remember this one",
@@ -154,7 +213,10 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
     /** a random card from one of the account's niches: [note json, ordinal, subject] */
     private var lastMcq = false   // whether card() just picked an MCQ (carousels never have one)
     private fun card(r: Random, a: Acc, noMcq: Boolean = false, sub: Int = -1): Triple<JSONArray, Int, Int>? {
-        val d = deck ?: return null; val s = if (sub >= 0) sub else a.subs[r.nextInt(a.subs.size)]; val notes = d.subjects[s].notes
+        val d = deck ?: return null
+        val live = a.subs.filter { !subHidden(it) && notesOf(d, it, a.src).isNotEmpty() }   // never a hidden subject, nor one with nothing in the filter
+        val s = (if (sub >= 0) sub.takeIf { !subHidden(it) } else live.getOrNull(r.nextInt(maxOf(1, live.size)))) ?: return null
+        val notes = notesOf(d, s, a.src)   // an account given one deck posts only that deck's cards
         if (notes.isEmpty()) return null
         var n: Note; var o: Int; var k = 0
         do { n = notes[r.nextInt(notes.size)]; o = n.ords[r.nextInt(n.ords.size)] } while ((isHidden(n.id, o) || noMcq && n.mcq) && ++k < 12)   // never a hidden card
@@ -165,7 +227,7 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
 
     /** one post: a random card from account ai's niche, with counts, a caption from the card's tags and two comments */
     private fun post(r: Random, ai: Int): JSONObject? {
-        val (n, o, _) = card(r, acc[ai]) ?: return null; val reels = rs.reels; val mcq = lastMcq
+        val (n, o, _) = card(r, acc[ai]) ?: return null; val mcq = lastMcq
         val tags = n.optJSONArray(5)?.let { t -> (0 until t.length()).map { t.getString(it).split("::").last().replace(Regex("[^\\p{L}\\p{N}_]"), "") } }.orEmpty().filter { it.isNotEmpty() }
         val hash = tags.take(3).joinToString(" ") { "#" + it.lowercase() }   // the card's own tags; no deck paths in the feed
         /* exam tags (NEET, AIIMS anywhere in the full tag): their hashtags get a slight accent tint */
@@ -173,7 +235,7 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
             .map { "#" + it.split("::").last().replace(Regex("[^\\p{L}\\p{N}_]"), "").lowercase() }
         return JSONObject().put("a", ai).put("n", n).put("o", o).put("likes", r.nextInt(120, 98000)).put("coms", r.nextInt(4, 2400))
             .put("cap", (CAPS[r.nextInt(CAPS.size)] + " " + hash).trim()).put("ex", JSONArray(ex))
-            .put("cm", JSONArray(List(2) { JSONArray().put(reels.names[r.nextInt(reels.names.size)] + reels.suffixes[r.nextInt(reels.suffixes.size)]).put(reels.comments[r.nextInt(reels.comments.size)]) }))
+            .put("cm", cms(r, acc[ai].h))
             .put("t", listOf("2 minutes ago", "18 minutes ago", "1 hour ago", "3 hours ago", "7 hours ago", "yesterday", "2 days ago")[r.nextInt(7)])
             .also { song(r, it) }
             .also { o ->   /* a carousel: 10% of posts have 3 cards, another 23% have 2 (the page drops it if a card would need 'more'); never with MCQs */
@@ -185,8 +247,54 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
     private fun posts(p: Int): JSONArray {
         val out = JSONArray(); if (acc.isEmpty()) return out
         val r = Random(seed * 31 + salt + p * 7919L)
-        repeat(8) { post(r, r.nextInt(acc.size))?.let { out.put(it) } }
+        val d = deck ?: return out
+        val live = acc.indices.filter { ai -> acc[ai].subs.any { !subHidden(it) && notesOf(d, it, acc[ai].src).isNotEmpty() } }; if (live.isEmpty()) return out   // a blocked account (or one outside the filter) doesn't post
+        repeat(8) { val roll = r.nextFloat()   // 1% countdown.timer, 1% hydration.break
+            ((if (roll < .01f) countdown(r) else if (roll < .02f) hydration(r) else null) ?: post(r, live[r.nextInt(live.size)]))?.let { out.put(it) } }
         return out
+    }
+
+    /* ---- countdown.timer (account -3): about 1 post in 100 is the days left to the nearest NEET-PG or INICET. blockable like an
+       account (its entry in the hidden subjects is CD_NAME). dates: INICET (July 2027 session) per the published notice; NEET-PG
+       2027 isn't announced yet, the end of August is the expected date (update these when NBEMS / AIIMS publish them) */
+    private val EXAMS = listOf("2027-05-22" to "INICET", "2027-08-29" to "NEET-PG", "2027-11-07" to "INICET")
+    /** the exams still to come, nearest first: (days left, name). named with the year, INICET by its session: "NEET-PG 2027", "INICET-May 2027" */
+    private fun upcoming(): List<Pair<Long, String>> { val today = java.time.LocalDate.now()
+        return EXAMS.map { java.time.LocalDate.parse(it.first) to it.second }.filter { it.first.isAfter(today) }.sortedBy { it.first }
+            .map { (d, ex) -> java.time.temporal.ChronoUnit.DAYS.between(today, d) to
+                if (ex == "INICET") "INICET-${if (d.monthValue <= 7) "May" else "Nov"} ${d.year}" else "$ex ${d.year}" } }
+    private fun countdown(r: Random): JSONObject? {
+        if (CD_NAME in hiddenNames()) return null
+        val (days, ex) = upcoming().firstOrNull() ?: return null
+        return cdPost(r, days, ex, "today")
+    }
+    private fun cdPost(r: Random, days: Long, ex: String, t: String) =
+        JSONObject().put("a", -3).put("cd", days).put("exam", ex).put("likes", r.nextInt(400, 60000)).put("coms", r.nextInt(10, 1800))
+            .put("cap", listOf("it's closer than you think ⏳", "the clock doesn't stop", "one more card today", "make every day count")[r.nextInt(4)] + " #" + ex.substringBefore(' ').lowercase().replace("-", "").removeSuffix("may").removeSuffix("nov") + " #countdown")
+            .put("cm", cms(r, CD_HANDLE)).put("t", t).also { song(r, it) }
+    /* ---- hydration.break (account -4): about 1 post in 100 is a reminder to drink water; its profile has just that one post */
+    private fun hydration(r: Random): JSONObject? {
+        if (HY_NAME in hiddenNames()) return null
+        return JSONObject().put("a", -4).put("hy", 1).put("likes", r.nextInt(800, 90000)).put("coms", r.nextInt(20, 2400))
+            .put("cap", listOf("a gentle reminder 💧", "your kidneys will thank you", "cards can wait 30 seconds", "sip sip 💧")[r.nextInt(4)] + " #hydrate #selfcare")
+            .put("cm", cms(r, HY_HANDLE)).put("t", "just now").also { song(r, it) }
+    }
+    /** two comments for a post, from the account's own comments (the special accounts) or everyone's */
+    private fun cms(r: Random, handle: String = ""): JSONArray { val reels = rs.reels; val pool = reels.commentsFor(handle)
+        return JSONArray(List(2) { JSONArray().put(reels.names[r.nextInt(reels.names.size)] + reels.suffixes[r.nextInt(reels.suffixes.size)]).put(pool[r.nextInt(pool.size)]) }) }
+    /** the special accounts' profiles: countdown.timer has a post per exam still to come (3), hydration.break the one reminder */
+    private fun specialProfile(ai: Int) {
+        pfAi = ai; pfLeft = 0
+        val r = Random(System.nanoTime()); val st = Random(seed * 977 + ai)
+        val cd = ai == -3
+        val list = JSONArray()
+        if (cd) upcoming().take(3).forEachIndexed { i, (days, ex) -> list.put(cdPost(r, days, ex, listOf("today", "2 days ago", "last week")[i])) }
+        else hydration(r)?.let { list.put(it) } ?: list.put(JSONObject().put("a", -4).put("hy", 1).put("likes", r.nextInt(800, 90000)).put("coms", r.nextInt(20, 2400)).put("cap", "").put("cm", JSONArray()).put("t", ""))
+        val j = JSONObject().put("a", ai).put("name", if (cd) "Countdown Timer" else "Hydration Break")
+            .put("bio", if (cd) "every day counts ⏳ NEET-PG · INICET" else "your reminder to drink water 💧")
+            .put("posts", list.length()).put("followers", st.nextInt(40_000, 900_000)).put("following", if (cd) 2 else 1)
+            .put("hl", JSONArray()).put("list", list)
+        web.profile(j.toString())
     }
 
     /* ---- an account's profile (tapping an account in a post or a story; a facsimile, not a real account).
@@ -201,12 +309,17 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
 
     /* ---- Reels uses the feed's accounts: a card shows the account that posts its subject, and tapping it opens that profile here */
     private var subOf: Map<Long, Int>? = null
-    private fun accIndex(n: Note): Int {
+    private var subOfD: Deck? = null
+    /** a note's subject (an index into the deck's subjects) */
+    private fun subIx(id: Long): Int? {
         val d = deck ?: rs.deck
-        val m = subOf ?: HashMap<Long, Int>().also { m -> d.subjects.forEachIndexed { i, s -> s.notes.forEach { m[it.id] = i } } }.also { subOf = it }
-        val s = m[n.id] ?: return -1
+        val m = subOf?.takeIf { subOfD === d } ?: HashMap<Long, Int>().also { m -> d.subjects.forEachIndexed { i, s -> s.notes.forEach { m[it.id] = i } } }.also { subOf = it; subOfD = d }
+        return m[id]
+    }
+    private fun accIndex(n: Note): Int {
+        val s = subIx(n.id) ?: return -1
         /* any of the accounts that post this subject, picked by the card (so a card always shows the same one, and its profile matches) */
-        val l = acc.indices.filter { s in acc[it].subs }; if (l.isEmpty()) return -1
+        val l = acc.indices.filter { s in acc[it].subs && (acc[it].src < 0 || acc[it].src == n.src) }; if (l.isEmpty()) return -1   // not another deck's account
         return l[Math.floorMod(n.id.hashCode(), l.size)]
     }
     /** the feed account for a card: handle, icon, colour (#hex); null before the feed is built */
@@ -219,15 +332,16 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
         val ai = accIndex(n); if (ai < 0) return
         rs.home(); rs.tab = "feed"; fromReels = true
         io.execute {
-            val r = Random(System.nanoTime()); val reels = rs.reels
+            val r = Random(System.nanoTime())
             val p = JSONObject().put("a", ai).put("n", JSONArray(DeckStore.noteJson(rs.ctx, n))).put("o", o).put("likes", r.nextInt(120, 98000)).put("coms", r.nextInt(4, 2400))
                 .put("cap", CAPS[r.nextInt(CAPS.size)])
-                .put("cm", JSONArray(List(2) { JSONArray().put(reels.names[r.nextInt(reels.names.size)] + reels.suffixes[r.nextInt(reels.suffixes.size)]).put(reels.comments[r.nextInt(reels.comments.size)]) }))
+                .put("cm", cms(r, acc[ai].h))
                 .put("t", "just now")
             main.post { web.openAccount(ai, p.toString()) }
         }
     }
     fun profile(ai: Int) {
+        if (ai == -3 || ai == -4) return specialProfile(ai)
         if (ai !in acc.indices) return
         val d = deck ?: return; pfAi = ai
         io.execute {
@@ -237,7 +351,7 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
             val icons = rs.reels.handles.map { it.second }.distinct()
             val hl = JSONArray()
             kids.take(3 + r.nextInt(4)).forEach { k ->
-                val notes = d.notesFor(k); if (notes.isEmpty()) return@forEach
+                val f = fsrc; val notes = d.notesFor(k).filter { (a.src < 0 || it.src == a.src) && (f == null || f.ok(it.src, k.segs[0])) }; if (notes.isEmpty()) return@forEach
                 val items = JSONArray()
                 repeat(2 + r.nextInt(4)) { val n = notes[r.nextInt(notes.size)]; val o = n.ords[r.nextInt(n.ords.size)]; if (isHidden(n.id, o) || n.mcq) return@repeat   // highlights are stories: no MCQs
                     items.put(JSONObject().put("n", JSONArray(DeckStore.noteJson(rs.ctx, n))).put("o", o).also { song(r, it) }) }
@@ -274,7 +388,7 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
     var hiddenTick by androidx.compose.runtime.mutableIntStateOf(0)   // bumps when the list changes
     fun isHidden(id: Long, o: Int): Boolean {
         val k = hiddenKeys ?: hiddenList().let { a -> (0 until a.length()).map { a.getJSONArray(it).let { e -> "${e.getLong(0)}:${e.getInt(1)}" } }.toSet() }.also { hiddenKeys = it }
-        return "$id:$o" in k
+        return "$id:$o" in k || subIx(id)?.let { subHidden(it) } == true   // a hidden subject hides all its cards
     }
     fun hidden(): List<Hidden> = hiddenList().let { a -> (0 until a.length()).map { a.getJSONArray(it).let { e -> Hidden(e.getLong(0), e.getInt(1), e.optString(2), e.optString(3)) } } }
     private fun setHidden(l: List<JSONArray>) { rs.store.set(HIDDEN, JSONArray(l).toString()); hiddenKeys = null; hiddenTick++ }
@@ -283,6 +397,31 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
         l.add(0, JSONArray().put(id).put(o).put(text).put(path)); setHidden(l)
     }
     fun unhide(id: Long, o: Int) { val a = hiddenList(); setHidden((0 until a.length()).map { a.getJSONArray(it) }.filter { !(it.getLong(0) == id && it.getInt(1) == o) }) }
+    /* ---- hidden subjects (Block on an account: a profile's ⋯, a post's or a reel's menu): every subject the account posts is hidden,
+       which works like hiding each of its cards. kept by name; listed in Settings › Feed › Hidden subjects */
+    class HiddenSubj(val name: String, val by: String, val cards: Int)
+    private fun subjList(): JSONArray = runCatching { JSONArray(rs.store.get(HIDSUB) ?: "[]") }.getOrDefault(JSONArray())
+    @Volatile private var subjNames: Set<String>? = null
+    private fun hiddenNames(): Set<String> = subjNames ?: subjList().let { a -> (0 until a.length()).map { a.getJSONArray(it).getString(0) }.toSet() }.also { subjNames = it }
+    fun subHidden(s: Int): Boolean { val d = deck ?: rs.deck; return d.subjects.getOrNull(s)?.name?.let { it in hiddenNames() } == true }
+    fun hiddenSubjects(): List<HiddenSubj> = subjList().let { a -> (0 until a.length()).map { a.getJSONArray(it).let { e ->
+        HiddenSubj(e.getString(0), e.optString(1), rs.deck.subjects.find { it.name == e.getString(0) }?.notes?.sumOf { it.ords.size } ?: 0) } } }
+    private fun setSubj(l: List<JSONArray>) {
+        rs.store.set(HIDSUB, JSONArray(l).toString()); subjNames = null; hiddenKeys = null; hiddenTick++
+        made?.blocked(JSONArray(hiddenNames().toList()).toString())
+    }
+    private fun hideSubjects(names: List<String>, by: String) {
+        val a = subjList(); val l = (0 until a.length()).map { a.getJSONArray(it) }.filter { it.getString(0) !in names }.toMutableList()
+        names.reversed().forEach { l.add(0, JSONArray().put(it).put(by)) }; setSubj(l)
+    }
+    /** Block: the account's subjects are hidden */
+    fun block(ai: Int) { if (ai == -3) return hideSubjects(listOf(CD_NAME), CD_HANDLE); if (ai == -4) return hideSubjects(listOf(HY_NAME), HY_HANDLE); val a = acc.getOrNull(ai) ?: return; val d = deck ?: return; hideSubjects(a.subs.mapNotNull { d.subjects.getOrNull(it)?.name }, a.h) }
+    /** Block from Reels: the card's account (or, before the feed exists, just the card's subject) */
+    fun blockNote(n: Note) {
+        val ai = accIndex(n); if (ai >= 0) return block(ai)
+        subIx(n.id)?.let { rs.deck.subjects.getOrNull(it) }?.let { hideSubjects(listOf(it.name), "") }
+    }
+    fun unhideSubject(name: String) { val a = subjList(); setSubj((0 until a.length()).map { a.getJSONArray(it) }.filter { it.getString(0) != name }) }
     fun isSaved(id: Long, o: Int): Boolean { val a = savedList(); return (0 until a.length()).any { a.getJSONArray(it).let { e -> e.getLong(0) == id && e.getInt(1) == o } } }
     /** saved from Reels: the feed's bookmarks follow */
     fun saveFromReels(id: Long, o: Int, on: Boolean) { save(id, o, on); made?.savedSet(saved().toString()) }
@@ -313,7 +452,7 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
         val r = Random(seed * 131 + b)
         /* every subject on the home page has a story: one of its accounts each (its cards from that subject), then random accounts up to 12 */
         val sh = acc.indices.shuffled(r); val pick = LinkedHashMap<Int, Int>()   // account → the subject its story is drawn from (-1: any of its niche)
-        deck?.subjects?.indices?.shuffled(r)?.forEach { s -> if (deck!!.subjects[s].notes.isNotEmpty() && pick.values.none { it == s }) sh.firstOrNull { it !in pick && s in acc[it].subs }?.let { pick[it] = s } }
+        deck?.subjects?.indices?.shuffled(r)?.forEach { s -> if (notesOf(deck!!, s, -1).isNotEmpty() && !subHidden(s) && pick.values.none { it == s }) sh.firstOrNull { it !in pick && s in acc[it].subs }?.let { pick[it] = s } }
         sh.forEach { if (pick.size < 12 && it !in pick) pick[it] = -1 }
         val times = listOf("1m", "4m", "12m", "38m", "1h", "2h", "3h", "5h", "9h", "14h", "20h")
         val g = ArrayList<Int>()
@@ -322,6 +461,11 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
             if (items.length() == 0) return@forEach
             g.add(ai)
             out.put(JSONObject().put("a", ai).put("t", times[r.nextInt(times.size)]).put("items", items).put("seen", "$b:${acc[ai].h}" in seen))
+        }
+        /* countdown.timer's story: always there (unless blocked), at the back of the row; the page puts the watched ones after it */
+        if (CD_NAME !in hiddenNames()) upcoming().take(3).takeIf { it.isNotEmpty() }?.let { l ->
+            out.put(JSONObject().put("a", -3).put("t", "1h").put("items", JSONArray(l.map { (days, ex) -> JSONObject().put("cd", days).put("exam", ex).also { song(r, it) } }))
+                .put("seen", "$b:$CD_HANDLE" in seen))
         }
         groups = g
         return out
