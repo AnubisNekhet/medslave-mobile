@@ -99,6 +99,9 @@ fun kfmt(n: Int): String = when {
 /** text over the card keeps a soft glow in the card colour, like the site's drop-shadow */
 @Composable private fun glowStyle() = Shadow(P.card, Offset.Zero, 8f)
 
+/** room for a label under a button that has none, so the column keeps its rhythm */
+@Composable
+private fun NoLabel() = ActLabel(" ", Color.Transparent)
 @Composable
 private fun ActLabel(t: String, color: Color = P.text) =
     androidx.compose.foundation.text.BasicText(t, style = TextStyle(color = color, fontSize = 12.sp, fontFamily = Carlito, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, shadow = glowStyle()))
@@ -143,14 +146,15 @@ fun ReelOverlay(rs: Rs) {
                         Icon(Ic.REPOST, 25.dp, if (red) HEART else P.text, modifier = Modifier.rotate(if (red) turn.value else 0f))
                         if (red) Icon(Ic.CROSS, 25.dp, HEART, 2.6f, modifier = Modifier.scale(x.value))
                     }
+                    NoLabel()
                 }
-                Act(onClick = { r.open("share") }) { Icon(Ic.SEND, 25.dp, P.text) }
+                Act(onClick = { r.open("share") }) { Icon(Ic.SEND, 25.dp, P.text); NoLabel() }
                 /* Save: the card goes into saved.cards (the feed's archive), a pop when it turns on */
                 val sp = remember { Animatable(1f) }
                 LaunchedEffect(r.savePop) { if (r.savePop > 0) sp.animateTo(1f, keyframes { durationMillis = 350; .6f at 0; 1.25f at 210; 1f at 350 }) }
                 Act(onClick = {
                     rs.cur?.let { c -> r.saved = !r.saved; if (r.saved) r.savePop++; rs.feed.saveFromReels(c.n.id, c.o, r.saved) }
-                }) { Icon(Ic.SAVE, 25.dp, P.text, fill = r.saved, modifier = Modifier.scale(sp.value)) }
+                }) { Icon(Ic.SAVE, 25.dp, P.text, fill = r.saved, modifier = Modifier.scale(sp.value)); NoLabel() }
                 /* music: a tap mutes, a long press opens the genre switches */
                 var art by remember { mutableStateOf<ImageBitmap?>(null) }
                 LaunchedEffect(r.song) { art = null; r.song?.let { s -> r.art(s.art) { if (r.song === s) art = it } } }
