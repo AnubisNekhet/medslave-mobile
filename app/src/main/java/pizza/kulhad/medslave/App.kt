@@ -210,7 +210,7 @@ class Rs(val ctx: Context) {
         val ok = if (stage == 1 && ok0 && c.n.mcq && mcqOk != null) mcqOk!! else ok0
         if (stage == 1) {
             if (!ok) { requeue(c); S?.let { it.wr++ } }
-            return if (set.flip) leave(if (ok) -1 else 1, ok) else next()
+            return if (set.flip) leave(if (ok || set.reels) -1 else 1, ok) else next()   // Reels Mode: an answer always scrolls up, missed or not
         }
         if (!sw && web.seqLeft > web.seqN) { web.step(); return }
         stage = 1; store.actBump(); heatTick++
