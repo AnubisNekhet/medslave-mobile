@@ -219,6 +219,7 @@ private fun Appearance(rs: Rs) {
     }
     val lock = rs.set.reels
     /* the accent: the theme's own colours as circles (its blue by default); it fills full-contrast buttons and switches */
+    Head("Accent")
     val list = pizza.kulhad.medslave.ui.accents(rs.set.theme).map { if (P.dark) it.second else it.first }
     val now = pizza.kulhad.medslave.ui.accentOf(rs.set.theme, rs.set.accent, P.dark)
     val acs = rememberScrollState()
