@@ -112,10 +112,9 @@ private fun Menu(rs: Rs) {
                 Column(Modifier.fillMaxWidth().heightIn(min = vh).padding(start = 10.dp, end = 10.dp, top = 16.dp, bottom = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                     if (!rs.loaded) { Spinner(72.dp); return@Column }
-                    /* logo + name: tapping opens the credits; they squish in while pressed and pop out while the credits are open */
-                    val src = remember { MutableInteractionSource() }; val down by src.collectIsPressedAsState()
-                    val sc by animateFloatAsState(if (down) .94f else if (rs.creditsOpen) 1.08f else 1f, tween(if (down) 100 else 350), label = "ttl")
-                    Row(Modifier.padding(top = 26.dp, bottom = 19.dp).scale(sc).clickable(src, null) { rs.creditsOpen = true }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    /* logo + name: tapping opens the credits (they stay their size) */
+                    val src = remember { MutableInteractionSource() }
+                    Row(Modifier.padding(top = 26.dp, bottom = 19.dp).clickable(src, null) { rs.creditsOpen = true }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Logo(26.dp)
                         Txt("medslave", size = 32.sp, bold = true, spacing = (-.64).sp)
                     }
