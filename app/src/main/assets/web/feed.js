@@ -17,7 +17,7 @@ const fmt=n=>n>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':n>=1e4?Math.round(
 const cap1=t=>String(t).charAt(0).toUpperCase()+String(t).slice(1);   /* "3 hours ago": a capital first letter, no all-caps */
 const RM=()=>matchMedia('(prefers-reduced-motion:reduce)').matches;
 /* accounts: the deck's (0…), daily.heatmap (-1), saved.cards (-2) */
-const HACC={h:'daily.heatmap',c:'#a6e3a1',ic:ICN.cal},SACC={h:'saved.cards',c:'#b4befe',ic:ICN.save};
+const HACC={h:'daily.heatmap',c:'#a6e3a1',ic:ICN.cal},SACC={h:'Saved Cards',c:'#b4befe',ic:ICN.save};
 const accOf=a=>a==-1?HACC:a==-2?SACC:F.acc[a];
 const avatar=a=>`<span class="f-av" style="background:${a.c}">${SVG(a.ic)}</span>`;
 function reviewHTML(n,o){cur={n,o};stage=1;FL=false;return `<div class="wrap"><div class="tinder-swipe tinder-swipe--answer">${face(true)}</div></div>`}   /* a story: as the reviewer draws it */
@@ -205,8 +205,8 @@ function pfRender(j){if(!PF.on){PF.on=true;PFE.classList.add('on');PFE.scrollTop
  PF.hl=(j.hl||[]).map(h=>({a:j.a,t:h.t,hl:true,ic:h.ic,items:h.items,seen:true}));
  const a=accOf(j.a),st=(n,l)=>n<0?'':`<div><b>${n.toLocaleString()}</b><small>${l}</small></div>`;
  $('#pfs').innerHTML=`<header class="f-top f-pft"><button class="f-back" aria-label="Back">‹</button><b>${ESC(a.h)}</b></header>
-<section class="f-prof"><div class="f-pr1"><span class="f-av f-big" style="background:${a.c}">${SVG(a.ic)}</span><div class="f-stats">${st(j.posts,'posts')}${st(j.followers,'followers')}${st(j.following,'following')}</div></div>
-<div class="f-bio"><b>${ESC(j.name)}</b>${j.bio?`<p>${ESC(j.bio)}</p>`:''}</div>
+<section class="f-prof${j.a==-2?' f-saved':''}"><div class="f-pr1"><span class="f-av f-big" style="background:${a.c}">${SVG(a.ic)}</span><div class="f-stats">${st(j.posts,'posts')}${st(j.followers,'followers')}${st(j.following,'following')}</div></div>
+${j.a==-2?'':`<div class="f-bio"><b>${ESC(j.name)}</b>${j.bio?`<p>${ESC(j.bio)}</p>`:''}</div>`}
 ${j.a>=0?'<button class="nx f-follow">Follow</button>':''}
 ${PF.hl.length?`<div class="f-hl">${PF.hl.map((h,i)=>`<button class="f-st" data-g="${i}"><span class="f-ring seen"><span class="f-av f-hlc">${SVG(h.ic)}</span></span><span class="f-stn">${ESC(h.t)}</span></button>`).join('')}</div>`:''}</section>`;
  const l=$('#pfl');l.innerHTML='';pfAdd(PF.list,0);if(!PF.list.length)l.innerHTML=`<p class="f-none">${j.a==-2?'Saved cards show up here. Tap the bookmark on a post to save it.':'No posts yet.'}</p>`;

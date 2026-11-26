@@ -1527,4 +1527,4 @@ button.rp .rp-x{animation:rpX .26s .14s cubic-bezier(.3,1.7,.5,1) both}
 @media (prefers-reduced-motion:reduce){.mcq-rot{transition:none}}
 
 /* exam tags (NEET, AIIMS, INICET): a very slight tint of the app's accent (--acc, sent by the app), background and text */
-.prettify-tag.exam{background-color:color-mix(in srgb,var(--tag-bg) 82%,var(--acc,var(--tag-bg)));color:color-mix(in srgb,var(--tag-fg) 80%,var(--acc,var(--tag-fg)))}
+.prettify-tag.exam{background-color:color-mix(in srgb,var(--tag-bg) 82%,var(--acc,var(--tag-bg)));color:color-mix(in srgb,var(--tag-fg) 68%,var(--acc,var(--tag-fg)))}

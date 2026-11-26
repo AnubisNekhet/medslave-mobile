@@ -304,7 +304,7 @@ fun Picker(rs: Rs, n: Node) {
     }
 }
 
-/* ---------------------------------------------------------------- credits (#cr): logo, name, and a pill per top-level deck */
+/* ---------------------------------------------------------------- credits (#cr): logo, name, and the decks as a pie chart with a legend */
 @Composable
 fun Credits(rs: Rs) {
     val cols = remember { DCOL.shuffled() }
@@ -317,22 +317,32 @@ fun Credits(rs: Rs) {
             Txt("your own Anki decks, on your phone", color = P.faint)
             Gap(6.dp)
             Txt("bring any Anki deck; it stays on your device", size = 14.sp, color = P.faint, align = TextAlign.Center)
-            Gap(14.dp)
-            val tot = rs.deck.top.sumOf { it.cnt }
-            Pill(Ic.ALL, "All decks", "%,d questions".format(tot), null, dark)
-            rs.deck.top.forEachIndexed { i, n ->
-                val k = cols[i % cols.size]; val ic = DICO.first { it.first.containsMatchIn(n.name.lowercase()) }.second
-                Pill(ic, n.name, "%,d questions".format(n.cnt), if (dark) k.second else k.first, dark)
+            Gap(16.dp)
+            val decks = rs.deck.top.filter { it.cnt > 0 }
+            val tot = decks.sumOf { it.cnt }.coerceAtLeast(1)
+            val colOf = { i: Int -> cols[i % cols.size].let { if (dark) it.second else it.first } }
+            /* the pie: a slice per top-level deck, by its number of questions, with a thin gap in the card colour between slices */
+            val gap = P.card
+            androidx.compose.foundation.Canvas(Modifier.size(170.dp)) {
+                var start = -90f
+                decks.forEachIndexed { i, n ->
+                    val sweep = 360f * n.cnt / tot
+                    drawArc(colOf(i), start, sweep, useCenter = true)
+                    if (decks.size > 1) drawArc(gap, start, sweep, useCenter = true, style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
+                    start += sweep
+                }
+            }
+            Gap(10.dp)
+            Txt("%,d questions".format(decks.sumOf { it.cnt }), bold = true)
+            Gap(10.dp)
+            /* the legend: colour, deck, questions and share */
+            decks.forEachIndexed { i, n ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Box(Modifier.size(12.dp).clip(CircleShape).background(colOf(i)))
+                    Txt(n.name, size = 14.4.sp, modifier = Modifier.weight(1f), lines = 1)
+                    Txt("%,d".format(n.cnt) + "  ·  " + "%.0f%%".format(java.util.Locale.US, 100f * n.cnt / tot), size = 13.6.sp, color = P.faint)
+                }
             }
         }
-    }
-}
-@Composable
-private fun Pill(icon: String, name: String, sub: String, c: Color?, dark: Boolean) {
-    val bg = c ?: P.press; val fg = if (c == null) P.text else if (dark) Color(0xFF1E1E2E) else Color.White
-    Row(Modifier.padding(vertical = 4.dp).fillMaxWidth().clip(RoundedCornerShape(30.dp)).background(bg).padding(horizontal = 14.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Icon(icon, 19.dp, fg, 2f)
-        Column { Txt(name, bold = true, color = fg); Txt(sub, size = 12.sp, color = fg.copy(alpha = .8f)) }
     }
 }

@@ -287,7 +287,7 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
 
     /** a song on about 80% of posts and stories: its index and "title · artist" (from the genres that are on) */
     private fun song(r: Random, o: JSONObject) {
-        if (r.nextFloat() >= .8f) return
+        if (r.nextFloat() >= .93f) return   // 7% of posts and stories have no song
         val ok = rs.reels.songs.withIndex().filter { (_, s) -> !s.dead && s.genre !in rs.set.goff }; if (ok.isEmpty()) return
         val s = ok[r.nextInt(ok.size)].value; o.put("s", rs.reels.key(s)).put("st", rs.reels.key(s))   // a song is known by "title · artist" (indexes move when playlists change)
     }
