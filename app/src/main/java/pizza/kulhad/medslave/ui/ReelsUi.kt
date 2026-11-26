@@ -156,6 +156,20 @@ fun ReelOverlay(rs: Rs) {
                 Act(onClick = {
                     rs.cur?.let { c -> r.saved = !r.saved; if (r.saved) r.savePop++; rs.feed.saveFromReels(c.n.id, c.o, r.saved) }
                 }) { Icon(Ic.SAVE, 25.dp, P.text, fill = r.saved, modifier = Modifier.scale(sp.value)) }
+                /* ⋯: a small menu with Hide (like a feed post's), which keeps the card out of Reels, posts and stories */
+                var menu by remember { mutableStateOf(false) }
+                LaunchedEffect(rs.cur) { menu = false }
+                Box {
+                    Act(onClick = { menu = !menu }) { Icon(Ic.DOTS, 25.dp, P.text, 2.6f) }
+                    if (menu) androidx.compose.ui.window.Popup(alignment = Alignment.CenterEnd, offset = androidx.compose.ui.unit.IntOffset(with(androidx.compose.ui.platform.LocalDensity.current) { -40.dp.roundToPx() }, 0),
+                        onDismissRequest = { menu = false }) {
+                        val sh = RoundedCornerShape(8.dp)
+                        Row(Modifier.clip(sh).background(P.card).border(1.dp, P.border, sh).clickable { menu = false; rs.hideCur() }.padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(Ic.STOP, 20.dp, HEART); Txt("Hide", size = 14.4.sp, bold = true)
+                        }
+                    }
+                }
                 /* music: a tap mutes, a long press opens the genre switches */
                 var art by remember { mutableStateOf<ImageBitmap?>(null) }
                 LaunchedEffect(r.song) { art = null; r.song?.let { s -> r.art(s.art) { if (r.song === s) art = it } } }
@@ -318,10 +332,10 @@ private fun MusicSheet(rs: Rs) {
         if (keys.all { it in off }) { msg = "Keep at least one genre or playlist on"; return }
         msg = ""; rs.set.goff = off; rs.set.save(); r.genreChanged()
     }
-    @Composable fun row(icon: String, label: String, small: String, k: String, enabled: Boolean, long: (() -> Unit)? = null, trailing: (@Composable () -> Unit)? = null) {
+    @Composable fun row(icon: String, label: String, small: String, k: String, enabled: Boolean, long: (() -> Unit)? = null, lead: (@Composable () -> Unit)? = null, trailing: (@Composable () -> Unit)? = null) {
         val on = k !in rs.set.goff
         Row(Modifier.fillMaxWidth().then(if (long != null) Modifier.pointerInput(Unit) { detectTapGestures(onLongPress = { long() }) } else Modifier), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Icon(icon, 22.dp, if (on && enabled) P.text else dim, 2f)
+            if (lead != null) lead() else Icon(icon, 22.dp, if (on && enabled) P.text else dim, 2f)
             Row2(label, small, Modifier.weight(1f)) { trailing?.invoke(); if (enabled) Switch(on) { toggle(k, it) } }
         }
     }
@@ -345,7 +359,8 @@ private fun MusicSheet(rs: Rs) {
                 if (r.lists.isNotEmpty()) Txt("Press and hold a playlist to edit it", size = 12.8.sp, color = P.faint)
                 r.lists.toList().forEach { p ->
                     val n = p.songs.size
-                    row(Ic.NOTE, p.name, p.status.ifEmpty { "$n song${if (n == 1) "" else "s"}" }, p.key, n > 0, long = { r.buzz(); editing = p }) {   // a long press edits it, with a small buzz
+                    row(Ic.NOTE, p.name, p.status.ifEmpty { "$n song${if (n == 1) "" else "s"}" }, p.key, n > 0, long = { r.buzz(); editing = p },
+                        lead = if (p.covers.isEmpty()) null else ({ PlCover(r, p.covers.map { it.second }, p.key !in rs.set.goff && n > 0) })) {   // a long press edits it, with a small buzz
                         Box(Modifier.size(32.dp).clip(CircleShape).clickable { r.removePlaylist(p) }, contentAlignment = Alignment.Center) { Txt("×", size = 20.sp, color = P.faint) }
                     }
                 }
@@ -465,3 +480,21 @@ private val GENRE_IC = mapOf(
     "punjabi" to "<path d=\"m2 2 8 8M22 2l-8 8\"/><ellipse cx=\"12\" cy=\"9\" rx=\"10\" ry=\"5\"/><path d=\"M7 13.4v7.9M12 14v8M17 13.4v7.9M2 9v8a10 5 0 0 0 20 0V9\"/>",
     "lofi" to "<path d=\"M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z\"/>",
     "rock" to "<path d=\"M4.9 19.1C1 15.2 1 8.8 4.9 4.9M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5M19.1 4.9C23 8.8 23 15.1 19.1 19\"/><circle cx=\"12\" cy=\"12\" r=\"2\"/>")
+
+/** a playlist's cover from its albums' covers: 1 whole; 2 side by side, half of each; 3 and 4 in a 2×2 grid, clockwise from the top
+    left (3: 1st, 2nd, 1st, 3rd; 4: each in turn) */
+@Composable
+private fun PlCover(r: pizza.kulhad.medslave.Reels, urls: List<String>, on: Boolean) {
+    val bm = remember(urls) { mutableStateMapOf<String, ImageBitmap>() }
+    LaunchedEffect(urls) { urls.forEach { u -> r.art(u) { bm[u] = it } } }
+    @Composable fun pic(u: String, m: Modifier) = Box(m.background(P.text.copy(alpha = .08f))) { bm[u]?.let { Image(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) } }
+    val sh = RoundedCornerShape(5.dp)
+    Box(Modifier.size(30.dp).clip(sh).border(1.dp, P.border, sh).graphicsLayer { alpha = if (on) 1f else .45f }) {
+        when (urls.size) {
+            1 -> pic(urls[0], Modifier.fillMaxSize())
+            2 -> Row(Modifier.fillMaxSize()) { pic(urls[0], Modifier.weight(1f).fillMaxHeight()); pic(urls[1], Modifier.weight(1f).fillMaxHeight()) }
+            else -> { val g = if (urls.size == 3) listOf(0, 1, 2, 0) else listOf(0, 1, 3, 2)   // top left, top right, bottom left, bottom right
+                Column(Modifier.fillMaxSize()) { for (row in 0..1) Row(Modifier.weight(1f).fillMaxWidth()) { for (c in 0..1) pic(urls[g[row * 2 + c]], Modifier.weight(1f).fillMaxHeight()) } } }
+        }
+    }
+}

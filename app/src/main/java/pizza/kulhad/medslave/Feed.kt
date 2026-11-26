@@ -100,11 +100,19 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
     private fun build() {
         val d = rs.deck; deck = d; page = 0; salt = System.currentTimeMillis(); subOf = null
         seed = (d.meta?.imported ?: "").hashCode().toLong()
-        val hs = rs.reels.handles; val s = d.subjects.size
-        val order = hs.indices.shuffled(Random(seed))
-        acc = order.mapIndexed { i, hi -> Acc(hs[hi].first, hs[hi].second, hex(DCOL[i % DCOL.size].second.toArgb())) }
-        if (s > 0) { if (s <= acc.size) acc.forEachIndexed { i, a -> a.subs.add(i % s) } else for (j in 0 until s) acc[j % acc.size].subs.add(j) }
-        if (s == 0) acc = emptyList()
+        val hs = rs.reels.handles; val sj = rs.reels.subj
+        /* a subject named like one of the 19 MBBS subjects (first match, General Medicine last) gets that subject's accounts; subjects
+           matching the same one share them. the rest share the general handles equally, as before */
+        val byS = LinkedHashMap<Int, ArrayList<Int>>(); val rest = ArrayList<Int>()
+        d.subjects.forEachIndexed { i, sb -> val g = sj.indexOfFirst { it.first.containsMatchIn(sb.name) }; if (g >= 0) byS.getOrPut(g) { ArrayList() }.add(i) else rest.add(i) }
+        val l = ArrayList<Acc>()
+        byS.forEach { (g, subs) -> sj[g].second.forEach { (h, ic) -> l.add(Acc(h, ic, "").also { it.subs.addAll(subs) }) } }
+        if (rest.isNotEmpty()) {
+            val gen = hs.indices.shuffled(Random(seed)).map { Acc(hs[it].first, hs[it].second, "") }; val s = rest.size
+            if (s <= gen.size) gen.forEachIndexed { i, a -> a.subs.add(rest[i % s]) } else rest.forEachIndexed { j, x -> gen[j % gen.size].subs.add(x) }
+            l.addAll(gen)
+        }
+        acc = l.mapIndexed { i, a -> Acc(a.h, a.ic, hex(DCOL[i % DCOL.size].second.toArgb())).also { it.subs.addAll(a.subs) } }
         val b = slot()
         io.execute {
             val j = JSONObject().put("paths", JSONArray(d.paths)).put("source", rs.set.source).put("expl", rs.set.expl).put("tags", rs.set.tags)

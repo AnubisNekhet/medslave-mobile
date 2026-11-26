@@ -35,6 +35,8 @@ class Reels(private val rs: Rs) {
     private val j by lazy { JSONObject(rs.ctx.assets.open("reels.json").use { String(it.readBytes()) }) }
     private fun strs(k: String) = j.getJSONArray(k).let { a -> List(a.length()) { a.getString(it) } }
     private val ico by lazy { j.getJSONObject("ico") }
+    /** the MBBS subjects' own accounts, in match order (General Medicine last): a deck subject whose name matches re gets these handles */
+    val subj by lazy { j.getJSONArray("subj").let { a -> List(a.length()) { a.getJSONObject(it).let { o -> Regex(o.getString("re"), RegexOption.IGNORE_CASE) to o.getJSONArray("handles").let { h -> List(h.length()) { h.getJSONArray(it).let { x -> x.getString(0) to ico.optString(x.getString(1)) } } } } } } }
     val handles by lazy { j.getJSONArray("handles").let { a -> List(a.length()) { a.getJSONArray(it).let { h -> h.getString(0) to ico.optString(h.getString(1)) } } } }
     private val base by lazy { j.getJSONArray("songs").let { a -> List(a.length()) { a.getJSONArray(it).let { s -> Song(s.getString(0), s.getString(1), s.getString(2), s.getString(3), s.getString(4)) } } } }
     /** every song: the built-in ones, then the user's playlists' (genre "pl:<name>"); the user's are appended so indexes stay put */
@@ -45,7 +47,12 @@ class Reels(private val rs: Rs) {
        (Apple's search allows about 20 lookups a minute). kept under medslave:playlists as [{name, songs: [[title, artist, url, art]]}];
        switched off like a genre (its key "pl:<name>" in goff) */
     inner class Playlist(name: String) { var name by mutableStateOf(name); val songs = mutableStateListOf<Song>(); var status by mutableStateOf(""); val key get() = "pl:$name"
-        var added = System.currentTimeMillis(); var lastOn = 0L }   // lastOn: when it was last seen switched on (its songs' cache is kept until a week after)
+        var added = System.currentTimeMillis(); var lastOn = 0L
+        /** its cover: the covers of the first 4 albums loaded into it ([album id, artwork url]), each album once; set only as albums are added */
+        val covers = mutableStateListOf<Pair<String, String>>()
+        fun cover(a: Album) { if (a.cover.isNotEmpty() && covers.size < 4 && covers.none { it.first == a.id }) covers.add(a.id to a.cover) } }
+    /** an album read from Apple: its songs, and what the playlist cover needs */
+    class Album(val name: String, val id: String, val cover: String, val songs: List<Song>)   // lastOn: when it was last seen switched on (its songs' cache is kept until a week after)
     fun key(s: Song) = "${s.title} · ${s.artist}"
     fun byKey(k: String) = songs.firstOrNull { key(it) == k && !it.dead }
     private fun changed() = genreChanged()
@@ -53,10 +60,11 @@ class Reels(private val rs: Rs) {
     private fun loadLists() = runCatching {
         val a = JSONArray(rs.store.get(PLAYLISTS) ?: "[]")
         for (i in 0 until a.length()) { val o = a.getJSONObject(i); val p = Playlist(o.getString("name")); val ss = o.getJSONArray("songs"); p.added = o.optLong("added", System.currentTimeMillis()); p.lastOn = o.optLong("on", 0L)
+            o.optJSONArray("covers")?.let { c -> for (k in 0 until c.length()) c.getJSONArray(k).let { p.covers.add(it.getString(0) to it.getString(1)) } }
             for (k in 0 until ss.length()) ss.getJSONArray(k).let { p.songs.add(Song(it.getString(0), it.getString(1), it.getString(2), it.getString(3), p.key)) }
             lists.add(p) }
     }
-    private fun saveLists() = rs.store.set(PLAYLISTS, JSONArray(lists.map { p -> JSONObject().put("name", p.name).put("added", p.added).put("on", p.lastOn).put("songs", JSONArray(p.songs.map { JSONArray().put(it.title).put(it.artist).put(it.url).put(it.art) })) }).toString())
+    private fun saveLists() = rs.store.set(PLAYLISTS, JSONArray(lists.map { p -> JSONObject().put("name", p.name).put("added", p.added).put("on", p.lastOn).put("covers", JSONArray(p.covers.map { JSONArray().put(it.first).put(it.second) })).put("songs", JSONArray(p.songs.map { JSONArray().put(it.title).put(it.artist).put(it.url).put(it.art) })) }).toString())
     /** notes which playlists are switched on now (called as the app opens and before a switch changes) */
     fun markLists() { val now = System.currentTimeMillis(); var ch = false; lists.forEach { if (it.key !in rs.set.goff) { it.lastOn = now; ch = true } }; if (ch) saveLists() }
     fun removePlaylist(p: Playlist) { lists.remove(p); rs.set.goff = rs.set.goff - p.key; rs.set.save(); saveLists(); changed() }
@@ -75,7 +83,7 @@ class Reels(private val rs: Rs) {
         thread {
             val link = Regex("https?://").containsMatchIn(t)
             val al = if (link) runCatching { albumSongs(t, p.key) }.getOrNull() else null
-            if (!al.isNullOrEmpty()) { h.post { al.forEach(::add); p.status = ""; saveLists(); changed() }; return@thread }
+            if (al != null && al.songs.isNotEmpty()) { h.post { p.cover(al); al.songs.forEach(::add); p.status = ""; saveLists(); changed() }; return@thread }
             val tracks = runCatching { tracksOf(t) }.getOrDefault(emptyList())
             if (tracks.isEmpty()) { h.post { p.status = if (p.songs.isEmpty()) "Couldn't read any songs from that" else "" }; return@thread }
             tracks.forEachIndexed { i, (ti, ar) ->
@@ -92,13 +100,12 @@ class Reels(private val rs: Rs) {
         val p = Playlist(name); p.status = "Reading the list…"; lists.add(p)
         thread {
             /* an album link: its songs straight from Apple, all at once */
-            lastAlbum = ""
             val al = runCatching { albumSongs(text.trim(), p.key) }.getOrNull()
-            val albumName = lastAlbum
-            if (!al.isNullOrEmpty()) { h.post {
+            val albumName = al?.name.orEmpty()
+            if (al != null && al.songs.isNotEmpty()) { h.post { p.cover(al)
                 /* no name typed: the playlist takes the album's name */
                 if (name0.isBlank() && albumName.isNotBlank()) p.name = albumName.trim().let { n -> var x = n; var k = 2; while (lists.any { it !== p && it.name == x }) x = "$n ${k++}"; x }
-                p.songs.addAll(al.map { Song(it.title, it.artist, it.url, it.art, p.key) }); p.status = ""; saveLists(); changed() }; return@thread }
+                p.songs.addAll(al.songs.map { Song(it.title, it.artist, it.url, it.art, p.key) }); p.status = ""; saveLists(); changed() }; return@thread }
             val tracks = runCatching { tracksOf(text.trim()) }.getOrDefault(emptyList())
             if (tracks.isEmpty()) { h.post { p.status = "Couldn't read any songs from that" }; return@thread }
             tracks.forEachIndexed { i, (t, ar) ->
@@ -129,7 +136,7 @@ class Reels(private val rs: Rs) {
     }
     /** an album link's songs, straight from Apple in one request: an Apple Music album as it is, a Spotify album matched to Apple by its
         name, artist and track count. null: not an album link, or no Apple album clearly matches (the songs are then searched one by one) */
-    private fun albumSongs(t: String, key: String): List<Song>? {
+    private fun albumSongs(t: String, key: String): Album? {
         val am = Regex("music\\.apple\\.com/(\\w\\w)/album/(?:[^/?\\s]+/)?(\\d+)").find(t)
         if (am != null) return appleAlbum(am.groupValues[2], am.groupValues[1], key)
         val sp = Regex("open\\.spotify\\.com/(?:intl-\\w+/)?album/(\\w+)").find(t) ?: return null
@@ -149,13 +156,13 @@ class Reels(private val rs: Rs) {
         return appleAlbum(best.optLong("collectionId").toString(), "us", key)
     }
     /** an Apple album's songs with previews, in album order */
-    @Volatile private var lastAlbum = ""   // the album appleAlbum last read (a new playlist with no name takes it)
-    private fun appleAlbum(id: String, cc: String, key: String): List<Song> {
+    private fun appleAlbum(id: String, cc: String, key: String): Album {
         val r = JSONObject(get("https://itunes.apple.com/lookup?entity=song&id=$id&country=$cc")).getJSONArray("results")
-        lastAlbum = (0 until r.length()).map { r.getJSONObject(it) }.firstOrNull { it.optString("wrapperType") == "collection" }?.optString("collectionName").orEmpty()
-        return (0 until r.length()).map { r.getJSONObject(it) }.filter { it.optString("wrapperType") == "track" && it.has("previewUrl") }
+        val col = (0 until r.length()).map { r.getJSONObject(it) }.firstOrNull { it.optString("wrapperType") == "collection" }
+        val cover = col?.optString("artworkUrl100").orEmpty().replace("100x100bb", "300x300bb")
+        return Album(col?.optString("collectionName").orEmpty(), id, cover, (0 until r.length()).map { r.getJSONObject(it) }.filter { it.optString("wrapperType") == "track" && it.has("previewUrl") }
             .sortedWith(compareBy({ it.optInt("discNumber") }, { it.optInt("trackNumber") }))
-            .map { Song(it.optString("trackName"), it.optString("artistName"), it.getString("previewUrl"), it.optString("artworkUrl100"), key) }
+            .map { Song(it.optString("trackName"), it.optString("artistName"), it.getString("previewUrl"), it.optString("artworkUrl100"), key) })
     }
     /** track names (title, artist) from pasted lines or a playlist link */
     private fun tracksOf(t: String): List<Pair<String, String>> {

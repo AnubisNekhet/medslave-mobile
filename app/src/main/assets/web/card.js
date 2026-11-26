@@ -7,7 +7,9 @@ const A_=window.App||{st(){},tap(){},h(){},sc(){},ready(){},pick(){},ex(){},mv()
 /* an MCQ's option tapped on the question side: that's the answer. the answer side is redrawn with it marked, and the app is told
    whether it was right (App.pick), which it uses as the verdict when the card moves on */
 document.addEventListener('click',e=>{const l=e.target.closest('#stage .option-group label[data-o]');if(!l||stage||!cur)return;e.preventDefault();
- MQ.picked=+l.dataset.o;const m=mcqOf(cur.n[4].map(trimF));if(!m)return;const b=document.querySelector('#stage .flip-back,#stage .fade-back');if(b){b.innerHTML=face(1);imgs(b);mj(b);fitX();watchSz()}   /* the redrawn answer side's images and maths */
+ MQ.picked=+l.dataset.o;const m=mcqOf(cur.n[4].map(trimF));if(!m)return;
+ {const w=document.querySelector('#stage .flip-wrap');if(w){w.classList.replace('flip-wrap','fade-wrap');w.querySelector(':scope>.flip-front').className='fade-front';w.querySelector(':scope>.flip-back').className='fade-back'}}   /* a picked option fades to the answer rather than flipping */
+ const b=document.querySelector('#stage .flip-back,#stage .fade-back');if(b){b.innerHTML=face(1);imgs(b);mj(b);fitX();watchSz()}   /* the redrawn answer side's images and maths */
  l.classList.add(MQ.picked==m.right?'highlight-correct':'highlight-wrong');A_.pick(MQ.picked==m.right)},true);
 function render(){if(!FL){const A=stage==1;return `<div class="tinder-swipe${A?' tinder-swipe--answer':''}" id="swipe">${face(A)}</div>`}
 const m=cur.n[1]=='b'?'flip':'fade';   /* basic cards flip; cloze + image-occlusion fade in place */

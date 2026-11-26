@@ -272,6 +272,15 @@ class Rs(val ctx: Context) {
         }
     }
 
+    /** Reels' ⋯ › Hide: the card on show goes on the hidden list (like a feed post's Hide) and the reel moves on, nothing counted */
+    fun hideCur() {
+        val c = cur ?: return; if (leaving) return
+        val f = runCatching { org.json.JSONArray(c.json).getJSONArray(4).optString(0) }.getOrDefault("")
+        val text = f.replace(Regex("<ol class=\"mcq\"[\\s\\S]*?</ol>"), "").replace(Regex("\\{\\{c\\d+::([\\s\\S]*?)(::[\\s\\S]*?)?\\}\\}"), "$1")
+            .replace(Regex("<br\\s*/?>", RegexOption.IGNORE_CASE), " ").replace(Regex("<[^>]*>"), "").replace("&nbsp;", " ").replace("&amp;", "&").replace(Regex("\\s+"), " ").trim().take(160)
+        feed.hide(c.n.id, c.o, text, deck.paths.getOrElse(c.n.p) { "" }.split(" › ").joinToString(" · "))
+        leave(-1, true)
+    }
     fun repost(after: () -> Unit) {
         if (cur == null || leaving) return
         scope.launch {

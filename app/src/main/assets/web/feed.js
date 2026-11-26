@@ -129,7 +129,7 @@ function postClick(e){if(!e.target.closest('.f-menu,.f-more'))menuClose();const 
  const now=Date.now();if(now-LT<320&&LX===el){LT=0;const h=document.createElement('i');h.className='f-burst';h.innerHTML=SVG(ICN.heart);b.appendChild(h);setTimeout(()=>h.remove(),900);if(!p.liked)like(el,p,true)}else{LT=now;LX=el}}
 $('#posts').addEventListener('click',postClick);$('#pfl').addEventListener('click',postClick);
 FD.addEventListener('scroll',()=>{if(!F.wait&&F.posts.length&&FD.clientHeight+FD.scrollTop>FD.scrollHeight-FD.clientHeight*1.5){F.wait=true;F.asked=Date.now();A_.more()}},{passive:true});
-$('#eimp').onclick=()=>A_.imp();$('#wm').onclick=()=>A_.credits();$('#gear').onclick=()=>A_.settings();$('#arch').onclick=()=>{PF.first=null;A_.saved()};
+$('#eimp').onclick=()=>A_.imp();$('#wm').onclick=()=>A_.credits();{const w=$('#wm');w.addEventListener('pointerdown',()=>w.classList.add('pr'));['pointerup','pointercancel','pointerleave'].forEach(t=>w.addEventListener(t,()=>w.classList.remove('pr')))}$('#gear').onclick=()=>A_.settings();$('#arch').onclick=()=>{PF.first=null;A_.saved()};
 
 /* ---- pull to refresh: dragging down from the top pulls the stories and posts down with a circular arrow that turns as it comes;
    let go past PULL and it spins while a new set of posts loads (the stories and the heatmap post stay) */

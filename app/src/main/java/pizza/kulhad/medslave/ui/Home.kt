@@ -337,6 +337,7 @@ fun Credits(rs: Rs) {
                 }
             }
             Gap(10.dp)
+            rs.deck.meta?.name?.takeIf { it.isNotBlank() }?.let { Txt(it, size = 13.6.sp, color = P.faint, lines = 1) }   // the deck these questions come from
             Txt("%,d questions".format(decks.sumOf { it.cnt }), bold = true)
             Gap(10.dp)
             /* the legend: colour, deck, questions and share */

@@ -21,6 +21,7 @@ button:active,button:hover{background:none;color:inherit}
 .f-gear{position:absolute;right:12px;top:calc(10px + var(--st,0px));width:42px;height:42px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--card-border);background:var(--card-bg)}
 .f-gear:active{background:var(--press-bg)}.f-gear svg{width:19px;height:19px}
 .f-wm .lg{width:21px;height:21px;align-self:center}
+.f-wm{transition:transform .12s ease}.f-wm:active,.f-wm.pr{transform:scale(.92)}
 #stories,#posts,.f-emp2{max-width:var(--card-max-width);margin:0 auto}
 
 /* stories: avatars in a ring, the ring greys out once seen */
