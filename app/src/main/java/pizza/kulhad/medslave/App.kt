@@ -205,10 +205,9 @@ class Rs(val ctx: Context) {
     /** question side: reveal (or the next sequential cloze step). answer side: ok false = missed it (requeued) */
     fun advance(sw: Boolean = false, ok0: Boolean = true) {
         val c = cur ?: return; if (leaving) return
-        /* an MCQ: the picked option decides (a wrong pick comes back later; swiping down or Repost still means missed). swiping past
-           the question without picking counts as right and moves on */
+        /* an MCQ: the picked option decides (a wrong pick comes back later; swiping down or Repost still means missed). a swipe on the
+           question reveals the answer like any card */
         val ok = if (stage == 1 && ok0 && c.n.mcq && mcqOk != null) mcqOk!! else ok0
-        if (stage == 0 && sw && c.n.mcq && mcqOk == null) { store.actBump(); heatTick++; return if (set.flip) leave(-1, true) else next() }
         if (stage == 1) {
             if (!ok) { requeue(c); S?.let { it.wr++ } }
             return if (set.flip) leave(if (ok) -1 else 1, ok) else next()
