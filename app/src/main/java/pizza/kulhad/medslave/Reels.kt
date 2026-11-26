@@ -120,11 +120,11 @@ class Reels(private val rs: Rs) {
     }
     /** a 30-second Apple preview for "title artist": [title, artist, preview, artwork] */
     private fun lookup(q: String): List<String>? = runCatching {
-        val c = URL("https://itunes.apple.com/search?entity=song&limit=3&term=" + URLEncoder.encode(q.take(120), "UTF-8")).openConnection() as HttpURLConnection
+        val c = URL("https://itunes.apple.com/search?entity=song&limit=8&term=" + URLEncoder.encode(q.take(120), "UTF-8")).openConnection() as HttpURLConnection
         c.connectTimeout = 8000; c.readTimeout = 8000
         if (c.responseCode != 200) return null
         val r = JSONObject(c.inputStream.use { String(it.readBytes()) }).getJSONArray("results")
-        (0 until r.length()).map { r.getJSONObject(it) }.firstOrNull { it.has("previewUrl") }?.let { listOf(it.optString("trackName"), it.optString("artistName"), it.getString("previewUrl"), it.optString("artworkUrl100")) }
+        uncut((0 until r.length()).map { r.getJSONObject(it) })?.let { listOf(it.optString("trackName"), it.optString("artistName"), it.getString("previewUrl"), it.optString("artworkUrl100")) }
     }.getOrNull()
     private fun get(u: String) = (URL(u).openConnection() as HttpURLConnection).apply { connectTimeout = 10000; readTimeout = 15000
         setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/124 Mobile Safari/537.36"); setRequestProperty("Accept-Language", "en") }.inputStream.use { String(it.readBytes()) }
@@ -134,6 +134,14 @@ class Reels(private val rs: Rs) {
         val js = Regex("<script id=\"__NEXT_DATA__\" type=\"application/json\">(.*?)</script>", RegexOption.DOT_MATCHES_ALL).find(html)?.groupValues?.get(1) ?: return null
         return JSONObject(js).getJSONObject("props").getJSONObject("pageProps").getJSONObject("state").getJSONObject("data").getJSONObject("entity")
     }
+    /** Apple lists clean (censored) editions beside the originals: 1 for a clean one, so sorting by this puts the uncensored first */
+    /** Apple's best match with a preview, or the uncensored edition of that same song (same title and artist) when the best is the clean one */
+    private fun uncut(l: List<JSONObject>): JSONObject? {
+        val p = l.filter { it.has("previewUrl") }; val top = p.firstOrNull() ?: return null
+        fun id(x: JSONObject) = (x.optString("trackName") + "|" + x.optString("artistName")).lowercase()
+        return if (clean(top) == 1) p.firstOrNull { id(it) == id(top) && clean(it) == 0 } ?: top else top
+    }
+    private fun clean(x: JSONObject) = if (x.optString("trackExplicitness", x.optString("collectionExplicitness")) == "cleaned") 1 else 0
     /** every album and song link in the text, each straight from Apple (as albumSongs / songOf): null when there are none, so the text is
         read as a playlist or lines instead. a song link brings that one song, and its album's cover for the playlist like an album does */
     private fun linkSongs(t: String, key: String): List<Album>? {
@@ -156,7 +164,7 @@ class Reels(private val rs: Rs) {
         val artist = e.optString("subtitle").ifEmpty { e.optJSONArray("artists")?.optJSONObject(0)?.optString("name").orEmpty() }
         fun norm(s: String) = s.lowercase().replace(Regex("\\s*[\\(\\[].*?[\\)\\]]"), "").replace(Regex(" - .*$"), "").replace(Regex("[^\\p{L}\\p{N}]"), "")
         val nn = norm(name); val na = norm(artist.split(",").first())
-        val hits = json("https://itunes.apple.com/search?entity=song&limit=15&term=" + URLEncoder.encode("$artist $name".take(120), "UTF-8")).filter { it.has("previewUrl") }
+        val hits = json("https://itunes.apple.com/search?entity=song&limit=15&term=" + URLEncoder.encode("$artist $name".take(120), "UTF-8")).filter { it.has("previewUrl") }.sortedBy(::clean)
         return (hits.firstOrNull { norm(it.optString("trackName")) == nn && norm(it.optString("artistName")).let { a -> a.isNotEmpty() && (a == na || a in na || na in a) } }
             ?: hits.firstOrNull { norm(it.optString("trackName")) == nn })?.let(::album)
     }
@@ -172,7 +180,7 @@ class Reels(private val rs: Rs) {
         val nn = norm(name); val na = norm(artist)
         fun pick(r: JSONArray) = (0 until r.length()).map { r.getJSONObject(it) }
             .filter { it.has("collectionId") && norm(it.optString("collectionName")) == nn && norm(it.optString("artistName")).let { a -> a.isNotEmpty() && (a == na || a in na || na in a) } }
-            .maxByOrNull { if (it.optInt("trackCount") == n) 1 else 0 }
+            .maxByOrNull { (if (it.optInt("trackCount") == n) 2 else 0) + (if (clean(it) == 0) 1 else 0) }   // the right length, then not the clean edit
         fun json(u: String) = JSONObject(get(u)).getJSONArray("results")
         /* Apple's album search first; it misses some albums, so then the artist's own album list */
         val best = pick(json("https://itunes.apple.com/search?entity=album&limit=15&term=" + URLEncoder.encode("$artist $name".take(120), "UTF-8")))
@@ -377,7 +385,7 @@ class Reels(private val rs: Rs) {
                 val c = URL("https://itunes.apple.com/search?entity=song&limit=5&term=" + URLEncoder.encode(s.title + " " + s.artist, "UTF-8")).openConnection() as HttpURLConnection
                 c.connectTimeout = 8000; c.readTimeout = 8000
                 val r = JSONObject(c.inputStream.use { String(it.readBytes()) }).getJSONArray("results")
-                (0 until r.length()).map { r.getJSONObject(it) }.firstOrNull { it.has("previewUrl") }?.getString("previewUrl")
+                uncut((0 until r.length()).map { r.getJSONObject(it) })?.getString("previewUrl")
             } catch (e: Exception) { null }
             h.post { if (u == null) dead(s) else if (song === s) { s.url = u; set(s) } }
         }
