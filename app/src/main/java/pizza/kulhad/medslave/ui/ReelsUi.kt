@@ -372,12 +372,13 @@ private fun AddPlaylist(rs: Rs, edit: pizza.kulhad.medslave.Reels.Playlist?, clo
     var name by remember { mutableStateOf(edit?.name ?: "") }; var text by remember { mutableStateOf("") }
     val kept = remember { androidx.compose.runtime.mutableStateListOf<pizza.kulhad.medslave.Song>().apply { edit?.let { addAll(it.songs) } } }
     val acc = pizza.kulhad.medslave.ui.accents(rs.set.theme).map { if (P.dark) it.second else it.first }   // the pills' colours
-    androidx.compose.ui.window.Dialog(close) {
-        Column(Modifier.widthIn(max = 420.dp).fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(P.card).border(1.dp, P.border, RoundedCornerShape(8.dp)).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    /* wider than a platform dialog: nearly the screen's width, 16dp from each side */
+    androidx.compose.ui.window.Dialog(close, androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
+        Column(Modifier.padding(horizontal = 16.dp).widthIn(max = 560.dp).fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(P.card).border(1.dp, P.border, RoundedCornerShape(8.dp)).padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Txt(if (edit != null) "Edit playlist" else "Add a playlist", bold = true)
             Field(name, { name = it }, "Name", Modifier.fillMaxWidth())
-            if (kept.isNotEmpty()) Box(Modifier.fillMaxWidth().heightIn(max = 180.dp).verticalScroll(rememberScrollState())) {
+            if (kept.isNotEmpty()) Box(Modifier.fillMaxWidth().heightIn(max = 300.dp).verticalScroll(rememberScrollState())) {
                 androidx.compose.foundation.layout.FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     kept.toList().forEach { s ->
                         /* one of the theme's accents (picked by the song, so it stays put), the text the opposite of the normal text colour */
@@ -390,7 +391,7 @@ private fun AddPlaylist(rs: Rs, edit: pizza.kulhad.medslave.Reels.Playlist?, clo
                     }
                 }
             }
-            BasicTextField(text, { text = it }, Modifier.fillMaxWidth().heightIn(min = if (edit != null) 90.dp else 140.dp, max = 260.dp).clip(RoundedCornerShape(8.dp)).background(P.text.copy(alpha = .07f)).padding(12.dp),
+            BasicTextField(text, { text = it }, Modifier.fillMaxWidth().heightIn(min = if (edit != null) 120.dp else 200.dp, max = 340.dp).clip(RoundedCornerShape(8.dp)).background(P.text.copy(alpha = .07f)).padding(12.dp),
                 textStyle = TextStyle(color = P.text, fontSize = 14.sp, fontFamily = Carlito), cursorBrush = SolidColor(P.text),
                 decorationBox = { inner -> Box { if (text.isEmpty()) Txt(if (edit != null) "Add more songs, one per line (Song – Artist),\nor a playlist link" else "Paste songs, one per line (Song – Artist),\nor a Spotify, Apple Music or YouTube playlist link", size = 14.sp, color = P.faint); inner() } })
             Txt("Each song plays its 30-second preview. Finding them takes a couple of seconds a song.", size = 12.8.sp, color = P.faint)
