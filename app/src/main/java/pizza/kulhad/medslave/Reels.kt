@@ -16,6 +16,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import org.json.JSONArray
 import org.json.JSONObject
 import pizza.kulhad.medslave.ui.DCOL
 import java.net.HttpURLConnection
@@ -35,7 +36,77 @@ class Reels(private val rs: Rs) {
     private fun strs(k: String) = j.getJSONArray(k).let { a -> List(a.length()) { a.getString(it) } }
     private val ico by lazy { j.getJSONObject("ico") }
     val handles by lazy { j.getJSONArray("handles").let { a -> List(a.length()) { a.getJSONArray(it).let { h -> h.getString(0) to ico.optString(h.getString(1)) } } } }
-    val songs by lazy { j.getJSONArray("songs").let { a -> List(a.length()) { a.getJSONArray(it).let { s -> Song(s.getString(0), s.getString(1), s.getString(2), s.getString(3), s.getString(4)) } } } }
+    private val base by lazy { j.getJSONArray("songs").let { a -> List(a.length()) { a.getJSONArray(it).let { s -> Song(s.getString(0), s.getString(1), s.getString(2), s.getString(3), s.getString(4)) } } } }
+    /** every song: the built-in ones, then the user's playlists' (genre "pl:<name>"); the user's are appended so indexes stay put */
+    val songs: List<Song> get() = base + lists.flatMap { it.songs }
+
+    /* ---- the user's playlists (Settings: the music sheet). made from pasted "Song – Artist" lines or a public Spotify / Apple Music /
+       YouTube playlist link: the track names are read, then each is matched to its 30-second Apple preview, a couple of seconds apart
+       (Apple's search allows about 20 lookups a minute). kept under medslave:playlists as [{name, songs: [[title, artist, url, art]]}];
+       switched off like a genre (its key "pl:<name>" in goff) */
+    inner class Playlist(val name: String) { val songs = mutableStateListOf<Song>(); var status by mutableStateOf(""); val key get() = "pl:$name" }
+    val lists = mutableStateListOf<Playlist>()
+    private fun loadLists() = runCatching {
+        val a = JSONArray(rs.store.get(PLAYLISTS) ?: "[]")
+        for (i in 0 until a.length()) { val o = a.getJSONObject(i); val p = Playlist(o.getString("name")); val ss = o.getJSONArray("songs")
+            for (k in 0 until ss.length()) ss.getJSONArray(k).let { p.songs.add(Song(it.getString(0), it.getString(1), it.getString(2), it.getString(3), p.key)) }
+            lists.add(p) }
+    }
+    private fun saveLists() = rs.store.set(PLAYLISTS, JSONArray(lists.map { p -> JSONObject().put("name", p.name).put("songs", JSONArray(p.songs.map { JSONArray().put(it.title).put(it.artist).put(it.url).put(it.art) })) }).toString())
+    fun removePlaylist(p: Playlist) { lists.remove(p); rs.set.goff = rs.set.goff - p.key; rs.set.save(); saveLists() }
+    fun addPlaylist(name0: String, text: String) {
+        val name = name0.trim().ifEmpty { "My playlist" }.let { n -> var x = n; var k = 2; while (lists.any { it.name == x }) x = "$n ${k++}"; x }
+        val p = Playlist(name); p.status = "Reading the list…"; lists.add(p)
+        thread {
+            val tracks = runCatching { tracksOf(text.trim()) }.getOrDefault(emptyList())
+            if (tracks.isEmpty()) { h.post { p.status = "Couldn't read any songs from that" }; return@thread }
+            tracks.forEachIndexed { i, (t, ar) ->
+                h.post { p.status = "Finding songs… ${i + 1} / ${tracks.size}" }
+                var hit = lookup("$t $ar")
+                if (hit == null) { Thread.sleep(60_000); hit = lookup("$t $ar") }   // rate-limited: wait a minute, try once more
+                hit?.let { (tt, aa, url, art) -> h.post { p.songs.add(Song(tt, aa, url, art, p.key)); saveLists() } }
+                Thread.sleep(2600)
+            }
+            h.post { p.status = if (p.songs.isEmpty()) "No previews found" else ""; saveLists() }
+        }
+    }
+    /** a 30-second Apple preview for "title artist": [title, artist, preview, artwork] */
+    private fun lookup(q: String): List<String>? = runCatching {
+        val c = URL("https://itunes.apple.com/search?entity=song&limit=3&term=" + URLEncoder.encode(q.take(120), "UTF-8")).openConnection() as HttpURLConnection
+        c.connectTimeout = 8000; c.readTimeout = 8000
+        if (c.responseCode != 200) return null
+        val r = JSONObject(c.inputStream.use { String(it.readBytes()) }).getJSONArray("results")
+        (0 until r.length()).map { r.getJSONObject(it) }.firstOrNull { it.has("previewUrl") }?.let { listOf(it.optString("trackName"), it.optString("artistName"), it.getString("previewUrl"), it.optString("artworkUrl100")) }
+    }.getOrNull()
+    /** track names (title, artist) from pasted lines or a playlist link */
+    private fun tracksOf(t: String): List<Pair<String, String>> {
+        fun get(u: String) = (URL(u).openConnection() as HttpURLConnection).apply { connectTimeout = 10000; readTimeout = 15000
+            setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/124 Mobile Safari/537.36"); setRequestProperty("Accept-Language", "en") }.inputStream.use { String(it.readBytes()) }
+        val sp = Regex("open\\.spotify\\.com/(?:intl-\\w+/)?(playlist|album)/(\\w+)").find(t)
+        if (sp != null) {   // Spotify: the public embed page carries the track list
+            val html = get("https://open.spotify.com/embed/${sp.groupValues[1]}/${sp.groupValues[2]}")
+            val js = Regex("<script id=\"__NEXT_DATA__\" type=\"application/json\">(.*?)</script>", RegexOption.DOT_MATCHES_ALL).find(html)?.groupValues?.get(1) ?: return emptyList()
+            val tl = JSONObject(js).getJSONObject("props").getJSONObject("pageProps").getJSONObject("state").getJSONObject("data").getJSONObject("entity").getJSONArray("trackList")
+            return (0 until tl.length()).map { tl.getJSONObject(it).let { x -> x.optString("title") to x.optString("subtitle") } }
+        }
+        if (Regex("music\\.apple\\.com/").containsMatchIn(t)) {   // Apple Music: the page's structured data lists the tracks
+            val u = Regex("https?://music\\.apple\\.com/\\S+").find(t)!!.value; val html = get(u)
+            return Regex("<script[^>]*type=\"application/ld\\+json\"[^>]*>(.*?)</script>", RegexOption.DOT_MATCHES_ALL).findAll(html).flatMap { m ->
+                runCatching { val o = JSONObject(m.groupValues[1]); val tr = o.optJSONArray("track") ?: JSONArray()
+                    (0 until tr.length()).map { tr.getJSONObject(it).let { x -> x.optString("name") to (x.optJSONObject("byArtist")?.optString("name") ?: "") } } }.getOrDefault(emptyList()).asSequence()
+            }.toList()
+        }
+        val yt = Regex("[?&]list=([\\w-]+)").find(t)
+        if (yt != null && t.contains("youtu")) {   // YouTube: the playlist page's video titles (usually "Artist - Song (…)")
+            val html = get("https://www.youtube.com/playlist?list=${yt.groupValues[1]}")
+            return Regex("\"playlistVideoRenderer\":\\{\"videoId\":\"[^\"]+\".*?\"title\":\\{\"runs\":\\[\\{\"text\":\"(.*?)\"\\}", RegexOption.DOT_MATCHES_ALL).findAll(html).map { m ->
+                val x = m.groupValues[1].replace(Regex("\\s*[\\(\\[].*?[\\)\\]]"), "").replace("\\u0026", "&")
+                x.split(" - ", " – ").let { if (it.size > 1) it[1].trim() to it[0].trim() else x to "" } }.toList()
+        }
+        /* pasted lines: "Song – Artist", "Song - Artist", "Song by Artist" or just a song */
+        return t.lines().map { it.trim().trimStart('-', '•', '*', ' ').replace(Regex("^\\d+[.)]\\s*"), "") }.filter { it.isNotEmpty() && !it.startsWith("http") }.map { l ->
+            Regex("\\s+(?:[-–—]|by)\\s+").split(l, 2).let { if (it.size > 1) it[0] to it[1] else l to "" } }
+    }
     val genres by lazy { j.getJSONArray("genres").let { a -> List(a.length()) { a.getJSONArray(it).let { g -> g.getString(0) to g.getString(1) } } } }
     internal val comments by lazy { strs("comments") }
     internal val names by lazy { strs("names") }
@@ -85,6 +156,7 @@ class Reels(private val rs: Rs) {
         setOnErrorListener { _, _, _ -> prepared = false; onError(); true }
     }
 
+    init { loadLists() }
     fun on() = rs.set.reels && rs.cur != null && rs.study
 
     /** a new card: a new account, counts and song; the same card: keep playing */

@@ -297,26 +297,60 @@ private fun ShareSheet(rs: Rs) {
 
 @Composable
 private fun MusicSheet(rs: Rs) {
-    val r = rs.reels; var msg by remember { mutableStateOf("") }
+    val r = rs.reels; var msg by remember { mutableStateOf("") }; var adding by remember { mutableStateOf(false) }
+    val dim = androidx.compose.ui.graphics.lerp(P.card, P.text.copy(alpha = 1f), .45f)   // a switched-off row's icon: a solid mid-tone
+    /* every group that has songs (the genres and the user's playlists); at least one stays on */
+    val keys = r.genres.map { it.first }.filter { g -> r.songs.any { it.genre == g && !it.dead } } + r.lists.filter { it.songs.isNotEmpty() }.map { it.key }
+    fun toggle(k: String, on: Boolean) {
+        val off = if (on) rs.set.goff - k else rs.set.goff + k
+        if (keys.all { it in off }) { msg = "Keep at least one genre or playlist on"; return }
+        msg = ""; rs.set.goff = off; rs.set.save(); r.genreChanged()
+    }
+    @Composable fun row(icon: String, label: String, small: String, k: String, enabled: Boolean, trailing: (@Composable () -> Unit)? = null) {
+        val on = k !in rs.set.goff
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Icon(icon, 22.dp, if (on && enabled) P.text else dim, 2f)
+            Row2(label, small, Modifier.weight(1f)) { trailing?.invoke(); if (enabled) Switch(on) { toggle(k, it) } }
+        }
+    }
     Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 6.dp)) {
-        Txt("Songs only play from the genres that are on.", size = 14.sp, color = P.faint, modifier = Modifier.padding(vertical = 6.dp))
+        Txt("Songs only play from the genres and playlists that are on.", size = 14.sp, color = P.faint, modifier = Modifier.padding(vertical = 6.dp))
         r.genres.forEach { (g, label) ->
             val n = r.songs.count { it.genre == g && !it.dead }; if (n == 0) return@forEach
-            /* each genre's icon on the left; a switched-off genre's icon in the solid mid-tone */
-            val on = g !in rs.set.goff
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Icon(GENRE_IC[g] ?: Ic.NOTE, 22.dp, if (on) P.text else androidx.compose.ui.graphics.lerp(P.card, P.text.copy(alpha = 1f), .45f), 2f)
-            Row2(label, "$n songs", Modifier.weight(1f)) {
-                Switch(g !in rs.set.goff) { on ->
-                    val off = if (on) rs.set.goff - g else rs.set.goff + g
-                    if (off.size >= r.genres.count { (k, _) -> r.songs.any { it.genre == k && !it.dead } }) { msg = "Keep at least one genre on"; return@Switch }
-                    msg = ""; rs.set.goff = off; rs.set.save(); r.genreChanged()
-                }
-            }
+            row(GENRE_IC[g] ?: Ic.NOTE, label, "$n songs", g, true)
+        }
+        Txt("Your playlists", bold = true, modifier = Modifier.padding(top = 14.dp, bottom = 2.dp))
+        r.lists.toList().forEach { p ->
+            val n = p.songs.size
+            row(Ic.NOTE, p.name, p.status.ifEmpty { "$n song${if (n == 1) "" else "s"}" }, p.key, n > 0) {
+                Box(Modifier.size(32.dp).clip(CircleShape).clickable { r.removePlaylist(p) }, contentAlignment = Alignment.Center) { Txt("×", size = 20.sp, color = P.faint) }
             }
         }
-        if (msg.isNotEmpty()) Txt(msg, size = 13.sp, color = RED, modifier = Modifier.padding(bottom = 6.dp))
+        Btn("Add a playlist", Modifier.fillMaxWidth().padding(top = 6.dp), h = 38.dp, size = 14.4.sp) { adding = true }
+        if (msg.isNotEmpty()) Txt(msg, size = 13.sp, color = RED, modifier = Modifier.padding(vertical = 6.dp))
         Gap(10.dp)
+    }
+    if (adding) AddPlaylist(rs) { adding = false }
+}
+
+/** a new playlist: a name, and the songs pasted as lines or a playlist link */
+@Composable
+private fun AddPlaylist(rs: Rs, close: () -> Unit) {
+    var name by remember { mutableStateOf("") }; var text by remember { mutableStateOf("") }
+    androidx.compose.ui.window.Dialog(close) {
+        Column(Modifier.widthIn(max = 420.dp).fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(P.card).border(1.dp, P.border, RoundedCornerShape(8.dp)).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Txt("Add a playlist", bold = true)
+            Field(name, { name = it }, "Name", Modifier.fillMaxWidth())
+            BasicTextField(text, { text = it }, Modifier.fillMaxWidth().heightIn(min = 140.dp, max = 260.dp).clip(RoundedCornerShape(8.dp)).background(P.text.copy(alpha = .07f)).padding(12.dp),
+                textStyle = TextStyle(color = P.text, fontSize = 14.sp, fontFamily = Carlito), cursorBrush = SolidColor(P.text),
+                decorationBox = { inner -> Box { if (text.isEmpty()) Txt("Paste songs, one per line (Song – Artist),\nor a Spotify, Apple Music or YouTube playlist link", size = 14.sp, color = P.faint); inner() } })
+            Txt("Each song plays its 30-second preview. Finding them takes a couple of seconds a song.", size = 12.8.sp, color = P.faint)
+            Row(Modifier.align(Alignment.End), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Btn("Cancel", h = 36.dp, size = 14.4.sp, pad = 16.dp, onClick = close)
+                Btn("Add", p = true, h = 36.dp, size = 14.4.sp, pad = 16.dp, enabled = text.isNotBlank()) { rs.reels.addPlaylist(name, text); close() }
+            }
+        }
     }
 }
 
