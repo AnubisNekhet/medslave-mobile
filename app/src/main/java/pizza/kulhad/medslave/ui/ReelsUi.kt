@@ -1,6 +1,8 @@
 package pizza.kulhad.medslave.ui
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.runtime.withFrameMillis
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -332,7 +334,15 @@ private fun MusicSheet(rs: Rs) {
             }
         }
         Btn("Add a playlist", Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 12.dp), h = 38.dp, size = 14.4.sp) { adding = true }
-        Txt("Genres", bold = true, modifier = Modifier.padding(bottom = 2.dp))
+        /* the genres all at once: only while one of your playlists is on, so something can still play */
+        val gk = r.genres.map { it.first }.filter { g -> r.songs.any { it.genre == g && !it.dead } }
+        val listOn = r.lists.any { it.songs.isNotEmpty() && it.key !in rs.set.goff }
+        Row(Modifier.fillMaxWidth().padding(bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+            Txt("Genres", bold = true, modifier = Modifier.weight(1f))
+            if (listOn && gk.isNotEmpty()) Switch(gk.any { it !in rs.set.goff }) { on ->
+                msg = ""; rs.set.goff = if (on) rs.set.goff - gk.toSet() else rs.set.goff + gk; rs.set.save(); r.genreChanged()
+            }
+        }
         r.genres.forEach { (g, label) ->
             val n = r.songs.count { it.genre == g && !it.dead }; if (n == 0) return@forEach
             row(GENRE_IC[g] ?: Ic.NOTE, label, "$n songs", g, true)
@@ -387,12 +397,23 @@ private fun QrPopup(rs: Rs) {
     }
 }
 
-/** the logo spinning: the loading mark */
+/** the logo spinning, the loading mark: upright for a moment, then two quick turns (eased in and out). while it's fast, a few fading
+    copies trail behind it: motion blur */
 @Composable
 fun Spinner(size: androidx.compose.ui.unit.Dp) {
-    val t = remember { Animatable(0f) }
-    LaunchedEffect(Unit) { while (true) { t.snapTo(0f); t.animateTo(360f, tween(1000, easing = LinearEasing)) } }
-    Logo(size, Modifier.rotate(t.value))
+    var ms by remember { mutableStateOf(0L) }
+    LaunchedEffect(Unit) { val t0 = withFrameMillis { it }; while (true) withFrameMillis { ms = it - t0 } }
+    val hold = 380f; val spin = 760f; val turn = 720f
+    fun angle(t: Float): Float { val c = t % (hold + spin); return if (c < hold) 0f else turn * FastOutSlowInEasing.transform((c - hold) / spin) }
+    val t = ms.toFloat(); val a = angle(t)
+    val v = (a - angle(t - 16f)).let { if (it < 0f) 0f else it }   // degrees a frame: how fast it's going
+    Box(contentAlignment = Alignment.Center) {
+        if (v > 6f) for (i in 4 downTo 1) {
+            val k = (v / 40f).coerceAtMost(1f)
+            Logo(size, Modifier.rotate(a - i * v * .45f).graphicsLayer { alpha = k * (.34f - i * .07f) })
+        }
+        Logo(size, Modifier.rotate(a))
+    }
 }
 
 /* the music sheet's genre icons */
