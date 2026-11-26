@@ -31,7 +31,7 @@ class FeedBridge(private val f: Feed) {
     @JavascriptInterface fun refresh() = h.post { f.refresh() }
     @JavascriptInterface fun profile(ai: Int) = h.post { f.profile(ai) }
     @JavascriptInterface fun pmore() = h.post { f.profileMore() }
-    @JavascriptInterface fun pfOpen(open: Boolean) = h.post { f.profileOpen = open; if (!open) f.stopSong() }
+    @JavascriptInterface fun pfOpen(open: Boolean) = h.post { f.profileOpen = open; if (!open) { f.stopSong(); f.backToReels() } }
     @JavascriptInterface fun saved() = h.post { f.savedProfile() }
     @JavascriptInterface fun save(id: String, o: Int, on: Boolean) = h.post { f.save(id.toLong(), o, on) }
     @JavascriptInterface fun hide(id: String, o: Int, text: String, path: String) = h.post { f.hide(id.toLong(), o, text, path) }
@@ -48,6 +48,7 @@ class FeedWeb(ctx: Context, f: Feed) : Page(ctx, "feed.html", false, { FeedBridg
     fun heat(j: String) = js("R.heat($j)")
     fun refreshed(j: String) = js("R.refreshed($j)")
     fun nocom(v: Boolean) = js("R.nocom($v)")
+    fun fake(v: Boolean) = js("R.fake($v)")
     /** a like's colour (#hex): the accent, or Instagram red */
     fun like(hex: String) = js("document.documentElement.style.setProperty('--like','$hex')")
     fun songsOn(j: String) = js("R.songsOn($j)")
@@ -200,9 +201,12 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
     /** the feed account for a card: handle, icon, colour (#hex); null before the feed is built */
     fun accountOf(n: Note): Triple<String, String, String>? = acc.getOrNull(accIndex(n))?.let { Triple(it.h, it.ic, it.c) }
     /** from Reels: home to the feed, with that card's account open (the card as its latest post) */
+    /** the profile was opened from Reels: closing it (back) returns there */
+    private var fromReels = false
+    fun backToReels() { if (fromReels) { fromReels = false; if (rs.S != null && rs.cur != null) { rs.study = true; rs.reels.onCard() } } }
     fun openFromReels(n: Note, o: Int) {
         val ai = accIndex(n); if (ai < 0) return
-        rs.home(); rs.tab = "feed"
+        rs.home(); rs.tab = "feed"; fromReels = true
         io.execute {
             val r = Random(System.nanoTime()); val reels = rs.reels
             val p = JSONObject().put("a", ai).put("n", JSONArray(DeckStore.noteJson(rs.ctx, n))).put("o", o).put("likes", r.nextInt(120, 98000)).put("coms", r.nextInt(4, 2400))

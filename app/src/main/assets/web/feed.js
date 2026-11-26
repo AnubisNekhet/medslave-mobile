@@ -55,7 +55,7 @@ const postOf=el=>{const i=el.dataset.i;return i=='h'?F.hp:i[0]=='p'?PF.list[+i.s
 const isSaved=p=>p.n&&F.saved.has(p.n[0]+':'+p.o);
 const dotsHTML=p=>slides(p).length>1?`<div class="f-dots">${slides(p).map((_,k)=>`<i${k?'':' class="on"'}></i>`).join('')}</div>`:'';
 const hashtags=(c,ex)=>ESC(c).replace(/#[^\s#]+/g,m=>`<span class="f-tag${ex&&ex.includes(m)?' f-ex':''}">${m}</span>`);   /* ex: exam hashtags (a slight accent tint) */
-const actions=p=>`${dotsHTML(p)}<div class="f-pa"><button class="f-lk${p.liked?' on':''}" aria-label="Like">${SVG(ICN.heart)}<span class="f-lkn">${fmt(p.likes+(p.liked?1:0))}</span></button><button class="f-cm" aria-label="Comments">${SVG(ICN.com)}<span>${fmt(p.coms)}</span></button><button class="f-sh" aria-label="Share">${SVG(ICN.send)}</button><button class="f-sv${isSaved(p)?' on':''}" aria-label="Save">${SVG(ICN.save)}</button></div>`;
+const actions=p=>`${dotsHTML(p)}<div class="f-pa"><button class="f-lk${p.liked?' on':''}" aria-label="Like">${SVG(ICN.heart)}<span class="f-lkn">${fmt(p.likes+(p.liked?1:0))}</span></button><button class="f-cm" aria-label="Comments">${SVG(ICN.com)}<span>${fmt(p.coms)}</span></button><button class="f-sh" aria-label="Share">${SVG(ICN.send)}</button>${p===F.hp?'':`<button class="f-sv${isSaved(p)?' on':''}" aria-label="Save">${SVG(ICN.save)}</button>`}</div>`;
 function postHTML(p,i){const a=accOf(p.a);return `<article class="f-post" data-i="${i}">
 <header class="f-ph">${avatar(a)}<span class="f-pn"><b>${ESC(a.h)}</b>${subHTML([p.st&&'♪ '+p.st,p.n&&dir(p.n)])}</span>${p.n?`<button class="f-more" aria-label="More">${SVG(ICN.dots)}</button>`:''}</header>
 <div class="f-pb f-load">${skel()}</div>
@@ -89,7 +89,7 @@ document.addEventListener('click',e=>{const c=e.target.closest('.f-hg i[data-k]'
 
 /* ---- "online" loading: a post's card starts as a shimmering placeholder and turns up after a believable delay, mostly .2–.9s, now
    and then up to ~2s, once it scrolls near; more posts take a moment too. it's all local, it just shouldn't look it */
-const LAG=()=>Math.random()<.15?900+Math.random()*1300:200+Math.random()*700;
+const LAG=()=>F.nofake?0:Math.random()<.15?900+Math.random()*1300:200+Math.random()*700;   /* no fake loading (Settings › Appearance): straight away */
 function skel(){const w=[[86,64,72],[78,92,58,66],[70,88],[90,60,80,50]][Math.random()*4|0];
  return `<div class="f-sk" style="min-height:${120+Math.random()*110|0}px">${w.map(x=>`<i style="width:${x}%"></i>`).join('')}</div>`}
 function arrive(b){if(b.dataset.t)return;b.dataset.t=1;const el0=b.closest('.f-post');setTimeout(()=>{const el=b.closest('.f-post');if(!el)return;const p=postOf(el);if(!p)return;
@@ -232,7 +232,7 @@ const R={
   $('#empty').hidden=!!d.acc.length;HJ='';heat(d.act);addPosts(d.posts);FD.scrollTop=0},
  heat(m){heat(m)},
  refreshed(l){setTimeout(()=>{$('#posts').querySelectorAll('.f-post:not([data-i="h"]),.f-loadmore').forEach(e=>e.remove());F.posts=[];F.wait=false;addPosts(l);
-  $('#ptr').classList.remove('spin');ptrSet(0,true);PTR.busy=false},Math.max(0,600+Math.random()*900-(Date.now()-PTR.t)))},   /* a believable wait, then the new posts */
+  $('#ptr').classList.remove('spin');ptrSet(0,true);PTR.busy=false},F.nofake?0:Math.max(0,600+Math.random()*900-(Date.now()-PTR.t)))},   /* a believable wait, then the new posts */
  insets(t,b){const s=document.documentElement.style;s.setProperty('--st',t+'px');s.setProperty('--sb',b+'px')},   /* status / navigation bar heights: the page runs behind the status bar */
  posts(l){setTimeout(()=>addPosts(l),Math.max(0,500+Math.random()*900-(Date.now()-(F.asked||0))))},
  stories(g){if(SV.on){F.next=g;return}F.groups=g;rings()},   /* new stories wait while the viewer is open */
@@ -242,6 +242,7 @@ const R={
  closeProfile(){pfClose()},
  savedSet(l){F.saved=new Set(l);document.querySelectorAll('.f-post').forEach(x=>{const q=postOf(x),b=x.querySelector('.f-sv');if(q&&q.n&&b)b.classList.toggle('on',F.saved.has(q.n[0]+':'+q.o))})},   /* saved from Reels */
  opts(source,expl,tags){SET.source=!!source;SET.expl=expl!==false;SET.tags=!!tags},   /* Settings › Reviewing (cards drawn from now on) */
+ fake(v){F.nofake=!v},   /* Settings › Appearance › Loading animations */
  nocom(v){document.body.classList.toggle('nocom',!!v)},   /* Settings › Appearance › Hide comments */
  close(){svClose()},
  replay(){SONG=null;tune()},   /* the feed is back on screen: its song again */

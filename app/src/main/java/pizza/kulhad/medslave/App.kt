@@ -368,7 +368,7 @@ class Rs(val ctx: Context) {
         val ex = j.optString("exported", "").take(10)
         dialog = Dlg("Replace all progress on this device with this file" + (if (ex.isNotEmpty()) " (exported $ex)" else "") + "?", "Replace", cancel = true) {
             store.replaceAll(m.mapValues { it.value as String }); set.load(); last = null; S = null; cur = null; fin = null
-            settingsOpen = false; study = false; heatTick++; web.init(deck.paths, set.source, set.expl, set.tags, set.hidex)
+            settingsOpen = false; study = false; heatTick++; web.init(deck.paths, set.source, set.expl, set.tags, set.hidex); feed.show()   // the feed's heatmap post shows the imported activity
         }
     }
 

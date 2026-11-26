@@ -246,6 +246,7 @@ private fun Appearance(rs: Rs) {
             Tile(l, rs.set.rev == k, !lock, Modifier.weight(1f), small = true, onClick = { rs.set.reveal = k; rs.set.save() }) { RevealDemo(k) }
         }
     }
+    if (rs.set.reels) Row2("Loading animations", "Placeholders and short waits, as if the feed were online") { Switch(rs.set.fakeload) { rs.set.fakeload = it; rs.set.save() } }
     if (rs.set.reels) Row2("Hide comments", "No comment buttons or comments in the feed and on reels") { Switch(rs.set.nocom) { rs.set.nocom = it; rs.set.save() } }
 }
 

@@ -51,6 +51,7 @@ class Settings(private val st: Store) {
     var theme by mutableStateOf("default")
     var accent by mutableStateOf(-1)              // the accent: an index into the theme's accents(); -1 = the theme's blue, the default (Settings › Appearance)
     var redlike by mutableStateOf(true)          // likes in Instagram red instead of the accent, on by default (Settings › Reviewing, Reels Mode; stored as likered)
+    var fakeload by mutableStateOf(true)         // pretend-online waits: post placeholders, comment and refresh delays (Settings › Appearance)
     var mode by mutableStateOf("auto")            // light or dark: auto (the phone's) | light | dark (Settings › Appearance › Mode)
     var reels by mutableStateOf(true)          // on for a first visit
     var source by mutableStateOf(false)
@@ -68,12 +69,13 @@ class Settings(private val st: Store) {
         theme = o.optString("theme", "default").let { if (it in THEMES) it else "default" }
         accent = o.optInt("accent", -1)
         redlike = o.optBoolean("likered", true)
+        fakeload = o.optBoolean("fakeload", true)
         mode = o.optString("mode", "auto").let { if (it in listOf("auto", "light", "dark")) it else "auto" }
         reels = o.optBoolean("reels", true); source = o.optBoolean("source", false); nocom = o.optBoolean("nocom", false); expl = true; tags = o.optBoolean("tags", false); volkeys = o.optBoolean("volkeys", false); hidex = o.optBoolean("exback", true)
         goff = o.optJSONArray("goff")?.let { a -> (0 until a.length()).map { a.optString(it) }.toSet() } ?: emptySet()
     }
     fun save() {
-        st.set(SK, JSONObject().put("ordered", ordered).put("style", style).put("reveal", reveal).put("theme", theme).put("mode", mode).put("likered", redlike).put("accent", accent)
+        st.set(SK, JSONObject().put("ordered", ordered).put("style", style).put("reveal", reveal).put("theme", theme).put("mode", mode).put("fakeload", fakeload).put("likered", redlike).put("accent", accent)
             .put("reels", reels).put("source", source).put("nocom", nocom).put("expl", expl).put("tags", tags).put("volkeys", volkeys).put("exback", hidex).put("goff", JSONArray(goff.toList())).toString())
     }
     /** Reels Mode forces Flip + Scroll up */

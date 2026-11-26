@@ -157,6 +157,7 @@ private fun FeedView(rs: Rs) {
     if (!rs.loaded) { Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Spinner(72.dp) }; return }
     LaunchedEffect(rs.deck) { rs.feed.show() }
     LaunchedEffect(rs.set.nocom) { rs.feed.web.nocom(rs.set.nocom) }
+    LaunchedEffect(rs.set.fakeload) { rs.feed.web.fake(rs.set.fakeload) }
     /* the feed's song plays while the feed is on screen */
     androidx.compose.runtime.DisposableEffect(Unit) { rs.feed.web.replay(); onDispose { rs.feed.stopSong() } }
     LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(30_000); rs.feed.show() } }   // new stories every 5 minutes
@@ -313,7 +314,11 @@ fun Credits(rs: Rs) {
         Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             Logo(64.dp)
             Gap(10.dp)
-            Txt("medslave", size = 24.sp, bold = true)
+            /* the name opens the project on GitHub */
+            val ctx = androidx.compose.ui.platform.LocalContext.current
+            Txt("medslave", size = 24.sp, bold = true, modifier = Modifier.clickable(remember { MutableInteractionSource() }, null) {
+                runCatching { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/AnubisNekhet/medslave-mobile")).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            })
             Txt("by a medslave, for medslaves", color = P.faint)
             Gap(16.dp)
             val decks = rs.deck.top.filter { it.cnt > 0 }

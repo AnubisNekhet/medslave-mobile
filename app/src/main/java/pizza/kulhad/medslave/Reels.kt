@@ -359,11 +359,11 @@ class Reels(private val rs: Rs) {
             fun more() {
                 if (g != gen) return
                 loading = false
-                val n = minOf(q.size - i, rnd(1, 4))
+                val n = if (rs.set.fakeload) minOf(q.size - i, rnd(1, 4)) else q.size - i   // no fake loading: all at once
                 repeat(n) { list.add(Comment(pick(names) + pick(suffixes), pick(times), q[i], if (Math.random() < .3) 0 else rnd(1, 9000), pick(DCOL).second)); i++ }
                 if (i < q.size) h.postDelayed({ more() }, rnd(60, 260).toLong())
             }
-            h.postDelayed({ more() }, rnd(350, 900).toLong())
+            if (rs.set.fakeload) h.postDelayed({ more() }, rnd(350, 900).toLong()) else more()
         }
     }
     fun post(text: String) { loading = false; list.add(0, Comment("you", "now", text, 0, pick(DCOL).second)) }
