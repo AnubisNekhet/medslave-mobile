@@ -14,7 +14,6 @@ const val LK = "medslave:last"        // resume point per deck {key: {n, o}}
 const val OK = "medslave:order"       // seed per deck
 const val AGK = "medslave:again"      // missed cards still to come back per deck [[id, o, k], …]
 const val SK = "medslave:settings"
-const val CK = "medslave:corrections"
 const val AK = "medslave:activity"    // answers revealed per day {yyyy-mm-dd: n}
 const val SEEN = "medslave:seen"
 const val SAVED = "medslave:saved"     // saved cards [[note id, ordinal], …] (the feed's save button)

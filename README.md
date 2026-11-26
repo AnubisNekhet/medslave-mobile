@@ -9,7 +9,7 @@ An Android flashcard app for your own Anki decks. Import an `.apkg` and study it
 - **Studying:** shuffled or ordered decks with resume. Missed cards come back 20–40 cards later.
 - **Review styles:** Tinder (swipe right if you knew it, left if you didn't), Flip (swipe up or down), New Card Reveal animations, and five colour themes in light and dark.
 - **Reels Mode:** the review screen dressed up as a reels feed, with likes, comments, Repost (= missed it), share and a song per card. The home screen becomes a social feed made from your deck. Each subject has its own accounts, which post card answers and share them as stories; new stories turn up every five minutes.
-- **Your data:** a study activity heatmap, corrections saved on the device, and progress backup and restore as a JSON file.
+- **Your data:** a study activity heatmap and progress backup and restore as a JSON file.
 
 The deck, progress and settings are stored inside the app, and nothing is uploaded. The only network use is Reels Mode's 30-second song previews and their cover art.
 
@@ -52,7 +52,7 @@ git tag v1.3 && git push origin v1.3
 ## Code
 
 - `app/src/main/java/pizza/kulhad/medslave/`
-  - `App.kt`: app state (`Rs`). The study session, card motion, corrections, progress backup, and deck import and delete.
+  - `App.kt`: app state (`Rs`). The study session, card motion, progress backup, and deck import and delete.
   - `Importer.kt`: `.apkg` → deck.
   - `Deck.kt`: the stored deck (`deck.db` plus `media/` in the app's files).
   - `Order.kt`: the seeded shuffle and resume.

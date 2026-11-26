@@ -130,11 +130,11 @@ private fun hint(rs: Rs): String {
 @Composable
 private fun Footer(rs: Rs, reels: Boolean) {
     if (reels) {
-        /* Reels: three buttons, like the home bar: stats, home (the feed), corrections */
+        /* Reels: three buttons, like the home bar: menu, home (the feed), stats */
         Row(Modifier.fillMaxWidth().solidLine(P.divider, true).padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceAround) {
-            IconBtn(Ic.PIE, Modifier.size(51.dp, 42.dp), size = 24.dp, plain = true) { rs.progressOpen = true }
+            IconBtn(Ic.LIST, Modifier.size(51.dp, 42.dp), size = 24.dp, stroke = 2f, plain = true) { rs.home(); rs.tab = "menu" }
             IconBtn(Ic.HOME, Modifier.size(51.dp, 42.dp), size = 24.dp, plain = true) { rs.home(); rs.tab = "feed" }
-            IconBtn(Ic.PEN, Modifier.size(51.dp, 42.dp), size = 24.dp, stroke = 2f, plain = true) { if (rs.cur != null) rs.corrOpen = true }
+            IconBtn(Ic.PIE, Modifier.size(51.dp, 42.dp), size = 24.dp, plain = true) { rs.progressOpen = true }
         }
         return
     }
@@ -149,7 +149,6 @@ private fun Footer(rs: Rs, reels: Boolean) {
                 Txt("Next ›", bold = true, modifier = Modifier.alpha(if (cl) 0f else 1f))
                 Txt("Next Cloze ›", bold = true, modifier = Modifier.alpha(if (cl) 1f else 0f))
             }
-            IconBtn(Ic.PEN, Modifier.size(42.dp, 38.dp), stroke = 2f) { if (rs.cur != null) rs.corrOpen = true }
         }
     }
 }

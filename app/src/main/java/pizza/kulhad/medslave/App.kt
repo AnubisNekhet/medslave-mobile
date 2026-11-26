@@ -1,8 +1,6 @@
 package pizza.kulhad.medslave
 
 import android.app.Activity
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Rect
@@ -70,7 +68,6 @@ class Rs(val ctx: Context) {
     var settingsOpen by mutableStateOf(false)
     var settingsSec by mutableStateOf<String?>(null)   // the open settings section: ap | rv | da
     var progressOpen by mutableStateOf(false)
-    var corrOpen by mutableStateOf(false)
     var creditsOpen by mutableStateOf(false)
     var heatOpen by mutableStateOf(false)
     var tutorial by mutableStateOf(false)
@@ -165,7 +162,7 @@ class Rs(val ctx: Context) {
                     if (o in n.ords) s.q.add(minOf(s.q.size, p.start + a.optInt(2)), Item(n, true, o)) }
             }
         } else store.mapSet(AGK, key, null)
-        fin = null; progressOpen = false; corrOpen = false
+        fin = null; progressOpen = false
         next(); showT()
     }
 
@@ -194,7 +191,7 @@ class Rs(val ctx: Context) {
         store.mapSet(AGK, s.key, null); cur = null; stage = 0
         store.mapSet(LK, s.key, null)
         if (!set.ordered) store.mapSet(OK, s.key, Order.planPass(s.notes, null, null, last).seed)
-        progressOpen = false; corrOpen = false
+        progressOpen = false
         fin = Fin(s.name, s.q.count { !it.rq }, s.wr)
         web.clear(); scope.launch { pose() }
         reels.onCard()
@@ -316,15 +313,6 @@ class Rs(val ctx: Context) {
         }
     }
 
-    /* ---------------------------------------------------------------- corrections (panels.js) */
-    fun corrections(): JSONArray = try { JSONArray(store.get(CK) ?: "[]") } catch (e: Exception) { JSONArray() }
-    fun addCorrection(c: Cur, text: String) {
-        val a = corrections()
-        a.put(JSONObject().put("card_id", c.n.cids.getOrElse(c.n.ords.indexOf(c.o)) { 0L }).put("note_id", c.n.id)
-            .put("deck", deck.paths.getOrElse(c.n.p) { "" }.split(" › ").joinToString(" / ")).put("correction", text).put("submitted", Instant.now().toString()))
-        store.set(CK, a.toString())
-    }
-    fun copy(text: String) = (ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("corrections.json", text))
 
     /* ---------------------------------------------------------------- progress backup: every medslave:* key as JSON {app, v, exported, data}.
        backups made by ReelSlave (app 'reelslave', reelslave:* keys) still import */

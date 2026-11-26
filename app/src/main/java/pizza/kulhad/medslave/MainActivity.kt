@@ -23,7 +23,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalConfiguration
-import pizza.kulhad.medslave.ui.CorrectionsPanel
 import pizza.kulhad.medslave.ui.Credits
 import pizza.kulhad.medslave.ui.DialogBox
 import pizza.kulhad.medslave.ui.Home
@@ -81,7 +80,6 @@ class MainActivity : ComponentActivity() {
                     if (rs.heatOpen) pizza.kulhad.medslave.ui.HeatPanel(rs)
                     if (rs.settingsOpen) SettingsPanel(rs)
                     if (rs.progressOpen) ProgressPanel(rs)
-                    if (rs.corrOpen) CorrectionsPanel(rs)
                     Sheets(rs)
                     if (rs.tutorial) Tutorial(rs)
                     rs.importTypes?.let { ImportPanel(rs, it) }
@@ -94,8 +92,8 @@ class MainActivity : ComponentActivity() {
                 BackHandler(!rs.study && rs.set.reels && rs.tab != "feed") { rs.tab = "feed" }
                 BackHandler(!rs.study && rs.set.reels && rs.feed.profileOpen && !rs.feed.storyOpen) { rs.feed.web.closeProfile() }
                 BackHandler(!rs.study && rs.set.reels && rs.feed.storyOpen) { rs.feed.web.close() }
-                BackHandler(rs.picker != null || rs.heatOpen || rs.creditsOpen || rs.settingsOpen || rs.progressOpen || rs.corrOpen) {
-                    rs.picker = null; rs.heatOpen = false; rs.creditsOpen = false; rs.settingsOpen = false; rs.progressOpen = false; rs.corrOpen = false
+                BackHandler(rs.picker != null || rs.heatOpen || rs.creditsOpen || rs.settingsOpen || rs.progressOpen) {
+                    rs.picker = null; rs.heatOpen = false; rs.creditsOpen = false; rs.settingsOpen = false; rs.progressOpen = false
                 }
                 BackHandler(rs.reels.sheet != null) { if (rs.reels.qr) rs.reels.qr = false else rs.reels.close() }
                 BackHandler(rs.tutorial) { rs.tutorial = false }

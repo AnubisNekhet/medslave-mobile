@@ -173,7 +173,7 @@ private fun FeedView(rs: Rs) {
 
 /* Reels Mode's home bar: Menu, Home (the feed), Reels (the last card reviewed), the current one in the text colour and bolder, the
    others in a solid mid-tone. Three buttons, like the
-   reviewer's (stats, home, corrections) */
+   reviewer's (menu, home, stats) */
 @Composable
 fun NavBar(rs: Rs, current: String) {
     val back = rs.recent()

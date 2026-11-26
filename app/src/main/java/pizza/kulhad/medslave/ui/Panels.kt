@@ -341,41 +341,6 @@ fun ProgressPanel(rs: Rs) {
     }
 }
 
-/* ---------------------------------------------------------------- corrections (#cp): saved on this device, downloadable as JSON */
-@Composable
-fun CorrectionsPanel(rs: Rs) {
-    val c = rs.cur ?: return run { rs.corrOpen = false }
-    var text by remember { mutableStateOf("") }
-    var st by remember { mutableStateOf("") }
-    var count by remember { mutableStateOf(rs.corrections().length()) }
-    val scope = rememberCoroutineScope()
-    Popup("Suggest a correction", { rs.corrOpen = false }) {
-        Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Txt("Card ${c.n.cids.getOrElse(c.n.ords.indexOf(c.o)) { 0L }} · Note ${c.n.id}", size = 13.sp, color = P.faint)
-            BasicTextField(text, { if (it.length <= 2000) text = it }, Modifier.fillMaxWidth().heightIn(min = 110.dp).border(1.dp, P.border, RoundedCornerShape(8.dp))
-                .background(P.bg, RoundedCornerShape(8.dp)).padding(10.dp), textStyle = TextStyle(color = P.text, fontSize = 15.sp, fontFamily = Carlito), cursorBrush = SolidColor(P.text),
-                decorationBox = { inner -> Box { if (text.isEmpty()) Txt("What’s wrong with this card?", color = P.faint); inner() } })
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Btn("Submit", p = true, h = 38.dp, size = 15.sp, pad = 19.dp) {
-                    val x = text.trim(); if (x.isEmpty()) { st = "Write something first"; return@Btn }
-                    rs.addCorrection(c, x); text = ""; count++; st = "Saved"; scope.launch { delay(700); rs.corrOpen = false }
-                }
-                Txt(st, size = 13.6.sp, color = P.faint)
-            }
-            Row(Modifier.fillMaxWidth().dashedBottom(P.divider, top = true).padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Txt("$count saved on this device", size = 13.sp, color = P.faint, modifier = Modifier.weight(1f))
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Btn("Download", h = 32.dp, size = 13.sp, pad = 12.dp) { rs.saveFile("corrections.json", "application/json", rs.corrections().toString(2).toByteArray()) }
-                Btn("Copy", h = 32.dp, size = 13.sp, pad = 12.dp) { rs.copy(rs.corrections().toString(2)); st = "Copied" }
-                Btn("Clear", h = 32.dp, size = 13.sp, pad = 12.dp) {
-                    if (count > 0) rs.dialog = pizza.kulhad.medslave.Dlg("Delete all $count saved corrections from this device?", "Delete", cancel = true, danger = true) { rs.store.set(pizza.kulhad.medslave.CK, "[]"); count = 0 }
-                }
-            }
-        }
-    }
-}
-
 /* ---------------------------------------------------------------- the first-visit tutorial (#tut): a looping demo of the swipes */
 @Composable
 fun Tutorial(rs: Rs) {
