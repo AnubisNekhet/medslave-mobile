@@ -17,7 +17,7 @@ import java.security.MessageDigest
    note, fields as a JSON array. Notes are loaded without their fields; a card's fields are read when it's drawn. */
 
 /** a note: n[0] id, n[1] kind b/c/o, n[2] path index, n[3] card ordinals, n[6] Anki card ids (fields and tags stay in the db) */
-class Note(val id: Long, val k: Char, val p: Int, val ords: IntArray, val cids: LongArray)
+class Note(val id: Long, val k: Char, val p: Int, val ords: IntArray, val cids: LongArray) { var mcq = false }   // mcq: an imported MCQ (its options in the fields)
 class Subject(val name: String, val notes: List<Note>)
 class Meta(val name: String, val notes: Int, val cards: Int, val media: Int, val bytes: Long, val imported: String) {
     fun json(): String = JSONObject().put("name", name).put("notes", notes).put("cards", cards).put("media", media).put("bytes", bytes).put("imported", imported).toString()
@@ -35,6 +35,7 @@ class Node(val id: Int, val name: String, val segs: List<String>, all: Boolean =
 
 class Deck(val paths: List<String>, val pc: IntArray, val subjects: List<Subject>, val meta: Meta?) {
     val empty get() = subjects.isEmpty()
+    val hasMcq by lazy { subjects.any { s -> s.notes.any { it.mcq } } }
     val nodes = mutableListOf<Node>()
     val top = mutableListOf<Node>()
 
@@ -111,6 +112,9 @@ object DeckStore {
                     by.getOrNull(c.getInt(5))?.add(n)
                 }
             }
+            /* MCQs: their front lists the options (<li class="mcq-o">) */
+            val mcq = HashSet<Long>(); d.rawQuery("SELECT id FROM notes WHERE flds LIKE '%mcq-o%'", null).use { c -> while (c.moveToNext()) mcq.add(c.getLong(0)) }
+            if (mcq.isNotEmpty()) by.forEach { l -> l.forEach { if (it.id in mcq) it.mcq = true } }
             Deck(paths, pc, names.mapIndexed { i, s -> Subject(s, by[i]) }, Meta.of(info["meta"]))
         } catch (e: Exception) { Deck.EMPTY }
     }

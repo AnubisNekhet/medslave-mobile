@@ -110,6 +110,14 @@ private fun SettingsBody(rs: Rs, names: Map<String, String>) {
                 "ap" -> Appearance(rs)
                 "rv" -> {
                     Row2("Ordered mode") { Switch(rs.set.ordered) { rs.setOrdered(it) } }
+                    if (rs.deck.hasMcq) {   /* only when the deck has MCQs */
+                        Row2("MCQ cards", "Takes effect when you next open a deck")
+                        Row(Modifier.fillMaxWidth().padding(bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("all" to "All", "only" to "Only MCQs", "none" to "No MCQs").forEach { (k, l) ->
+                                Btn(l, Modifier.weight(1f), p = rs.set.mcq == k, h = 36.dp, size = 14.sp, pad = 8.dp) { rs.set.mcq = k; rs.set.save() }
+                            }
+                        }
+                    }
                     Row2("Show source") { Switch(rs.set.source) { rs.set.source = it; rs.set.save(); rs.web.source(it); rs.cur?.let { c -> rs.web.show(c.json, c.o, rs.stage, rs.set.flip) } } }
                     var tdone by remember { mutableStateOf(false) }
                     LaunchedEffect(tdone) { if (tdone) { delay(1500); tdone = false } }

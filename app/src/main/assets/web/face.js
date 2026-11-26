@@ -28,7 +28,21 @@ const BL='(?:\\s|&nbsp;|<br\\b[^>]*>|<div>(?:\\s|&nbsp;|<br\\b[^>]*>)*</div>)+',
 const LBA=/(<li\b[^>]*>(?:\s*<(?:div|p|span|b|strong|i|em|u|font)\b[^>]*>)*|<\/?(?:ul|ol)\b[^>]*>|<\/(?:li|h[1-6])>)(?:\s|<br\b[^>]*>)+/gi,
  LBB=/(?:<br\b[^>]*>\s*)+(?=(?:<\/(?:div|p|span|b|strong|i|em|u|font)>\s*)*(?:<\/(?:li|ul|ol)>|<(?:li|ul|ol)\b))/gi;
 const trimF=x=>typeof x=='string'?x.replace(LBA,'$1').replace(LBB,'').replace(BLS,'').replace(BLE,''):x;
+/* MCQs (imported MCQ note types, e.g. AkiraRemix MCQs; stored as a basic card whose front lists the options and whose back marks the
+   right one): drawn with AkiraRemix MCQs' own markup. the question side's options are shuffled (the answer side keeps that order);
+   tapping one picks it (card.js). the answer side marks the right option (correct-answer if it was picked, highlight-correct if not)
+   and a wrong pick (highlight-wrong); without a pick (posts, stories) it just marks the right one */
+const MQ={key:'',order:[],picked:null};
+function mcqOf(f){if(f[6]!='ioe'||!/<ol class="mcq"/.test(f[0]))return null;const li=x=>[...x.matchAll(/<li class="mcq-o( mcq-ok)?">([\s\S]*?)<\/li>/g)];
+ const a=li(f[1]);return{q:f[0].slice(0,f[0].indexOf('<ol class="mcq"')),opts:li(f[0]).map(m=>m[2]),right:a.findIndex(m=>m[1]),extra:f[2],title:f[3]}}
+function mcqFace(m,A,pi,key){if(MQ.key!=key){MQ.key=key;MQ.picked=null;MQ.order=m.opts.map((_,i)=>i);for(let i=MQ.order.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[MQ.order[i],MQ.order[j]]=[MQ.order[j],MQ.order[i]]}}
+ const ops=MQ.order.map(i=>A?`<label data-o="${i}" class="${i==m.right?(MQ.picked==i?'correct-answer':'highlight-correct'):MQ.picked==i?'highlight-picked highlight-wrong':''}">${m.opts[i]}</label>`
+  :`<input type="radio" id="opt${i}" name="mcq" value="${i}"><label for="opt${i}" data-o="${i}">${m.opts[i]}</label>`).join('');
+ return deck(pi)+HR+ttl(m.title)+`<div class="prettify-field prettify-field--front"><div class="center-text"><div class="prettify-field center-text zoomable-image">${m.q}</div></div></div>`+HR   /* the question, a divider, then the options */
+  +`<div class="prettify-field prettify-field--front"><div class="center-text"><div class="prettify-field option-group center-text">${ops}</div></div></div>`
+  +(A&&m.extra?`<hr class="prettify-divider prettify-divider--answer"><div class="prettify-field prettify-field--front"><div class="center-text"><div class="prettify-field center-text extra">${m.extra}</div></div></div>`:'')}
 function face(A){const{n,o}=cur,[,k,pi]=n,f=n[4].map(trimF);let h;
+const mq=k=='b'&&mcqOf(f);if(mq)return `<div class="prettify-flashcard mcq-card">${mcqFace(mq,A,pi,n[0]+':'+o)}</div>`;
 if(k=='b'){const[fr,bk,ex,ti,so,ht]=f,sr=SET.source?so:'',q=o?bk:fr;
 h=deck(pi)+HR+(A?ttl(ti)+(f[6]=='ioe'?'':fld('front',q)+HR)+fld('back',o?fr:bk)+(ex?HR+fld('back',ex,'center-text extra'):'')+(!o&&sr?DV+fld('front zoomable-image',sr,'center-text extra'):'')+tags()
 :(o?'':ttl(ti))+fld('front',q)+(o?'':tags()))}

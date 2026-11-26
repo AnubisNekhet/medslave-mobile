@@ -31,6 +31,7 @@ class CardBridge(private val w: CardWeb) {
     @JavascriptInterface fun h(px: Float) = h.post { w.contentH = px }
     @JavascriptInterface fun ready(seq: Int) = h.post { w.ready(seq) }
     @JavascriptInterface fun sc(top: Boolean, bot: Boolean) = h.post { w.top = top; w.bot = bot }
+    @JavascriptInterface fun pick(ok: Boolean) = h.post { w.onPick(ok) }
 }
 
 /** one of the app's pages (an html file in assets/web) in a WebView, served from https://appassets.androidplatform.net/ so it behaves like a
@@ -99,6 +100,7 @@ class CardWeb(ctx: Context) : Page(ctx, "card.html", true, { CardBridge(it as Ca
     var seqN by mutableIntStateOf(1)
     var contentH by mutableFloatStateOf(0f)   // the card's full height in CSS px (= dp)
     var onTap: () -> Unit = {}
+    var onPick: (Boolean) -> Unit = {}   // an MCQ's option tapped: right or wrong
     /** the card's own scroll (a card taller than the view scrolls inside itself, the page never does) */
     internal var top = true
     internal var bot = true

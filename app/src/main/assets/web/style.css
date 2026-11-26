@@ -1481,8 +1481,12 @@ button.rp .rp-x{animation:rpX .26s .14s cubic-bezier(.3,1.7,.5,1) both}
 /* Reels music genre sheet (long press on the music box): switch rows in the bottom sheet */
 .gn-t{margin:.4em 0 .2em;color:var(--text-fg-faint);font-size:.85rem}.so.gn{padding:.55em 0}.gn-m{min-height:1.2em;margin:.2em 0 .6em;color:#e5534b;font-size:.85rem}
 #reel,#reel *{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}#rmus{touch-action:none}   /* no long-press menus or text selection on the Reels overlay */
-/* MCQs (imported MCQ note types, e.g. AkiraRemix MCQs): the options as a lettered list; on the answer side the right one is marked */
-ol.mcq{display:inline-block;text-align:left;margin:.6em auto 0;padding-left:1.6em}
-ol.mcq .mcq-o{margin:.3em 0;padding-left:.2em}
-ol.mcq .mcq-ok{color:var(--cloze-fg);font-weight:700}
-ol.mcq .mcq-ok::marker{color:var(--cloze-fg);font-weight:700}
+/* MCQs: AkiraRemix MCQs' own styles (its style.css), the options as buttons in a grid; one column on phones */
+.option-group{display:grid;grid-template-columns:1fr 1fr;gap:.75em;margin-top:1em}
+@media (max-width:600px){.option-group{grid-template-columns:1fr}}
+.option-group input[type="radio"]{position:absolute;opacity:0;width:0;height:0}
+.option-group label{position:relative;padding:.75em;background-color:var(--tag-bg);border:1px solid var(--card-border);border-radius:var(--card-radius);cursor:pointer;transition:transform .1s ease,border-color .2s;overflow:visible}
+.option-group label:active{transform:scale(.97)}
+.option-group input[type="radio"]:checked+label{border-color:var(--text-bg-selected);background-color:var(--tag-bg-active)}
+.highlight-correct,.correct-answer{border-color:var(--scheme-green)!important;background:rgba(var(--ctp-green),.10)!important}
+.highlight-wrong{border-color:var(--scheme-red)!important;background:rgba(var(--ctp-red),.10)!important}

@@ -138,7 +138,18 @@ class Rs(val ctx: Context) {
     fun recent(): Node? = store.get(RK)?.let { k -> if (k == deck.all.ps) deck.all else deck.nodes.find { it.ps == k } }
     fun resetTutorial() { store.set(SEEN, null); tut = true }
 
-    fun begin(notes: List<Note>, name: String, key: String, resume: Boolean = true) {
+    /** MCQ cards in a pass, per Settings › Reviewing (all / only MCQs / no MCQs); a choice that would leave nothing keeps them all */
+    private fun mcqFilter(notes: List<Note>): List<Note> = when (set.mcq) {
+        "only" -> notes.filter { it.mcq }.ifEmpty { notes }
+        "none" -> notes.filter { !it.mcq }.ifEmpty { notes }
+        else -> notes
+    }
+    /** an MCQ's verdict from the option tapped (null: none tapped) */
+    private var mcqOk: Boolean? = null
+    init { web.onPick = { ok -> if (cur?.n?.mcq == true && stage == 0) { mcqOk = ok; advance(true) } } }
+
+    fun begin(notes0: List<Note>, name: String, key: String, resume: Boolean = true) {
+        val notes = mcqFilter(notes0)
         val sv = if (resume) lastOf(key) else null
         val p = if (set.ordered) Order.planOrdered(notes, sv) else {
             val seed = if (resume) store.obj(OK).optString(key, "").ifEmpty { null } else null
@@ -166,7 +177,7 @@ class Rs(val ctx: Context) {
         val it = s.q[s.i]; val n = it.n
         val o = if (it.rq) it.o else (s.first ?: n.ords[(Math.random() * n.ords.size).toInt()]).also { s.first = null }
         val c = Cur(n, o, it.rq, DeckStore.noteJson(ctx, n))
-        cur = c; stage = 0
+        cur = c; stage = 0; mcqOk = null
         if (!it.rq) { s.ri = s.i; remember() }
         saveAgain()
         web.seqLeft = 0
@@ -195,8 +206,12 @@ class Rs(val ctx: Context) {
 
     /* ---------------------------------------------------------------- going forward (review.js) */
     /** question side: reveal (or the next sequential cloze step). answer side: ok false = missed it (requeued) */
-    fun advance(sw: Boolean = false, ok: Boolean = true) {
+    fun advance(sw: Boolean = false, ok0: Boolean = true) {
         val c = cur ?: return; if (leaving) return
+        /* an MCQ: the picked option decides (a wrong pick comes back later; swiping down or Repost still means missed). swiping past
+           the question without picking counts as right and moves on */
+        val ok = if (stage == 1 && ok0 && c.n.mcq && mcqOk != null) mcqOk!! else ok0
+        if (stage == 0 && sw && c.n.mcq && mcqOk == null) { store.actBump(); heatTick++; return if (set.flip) leave(-1, true) else next() }
         if (stage == 1) {
             if (!ok) { requeue(c); S?.let { it.wr++ } }
             return if (set.flip) leave(if (ok) -1 else 1, ok) else next()
