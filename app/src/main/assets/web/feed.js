@@ -139,7 +139,7 @@ $('#pfs').addEventListener('click',e=>{const b=e.target.closest('.f-hl .f-st');i
 function ringAt(g){const r=$(`${SV.src} .f-st[data-g="${g}"] .f-ring`);if(!r)return null;const b=r.getBoundingClientRect();return b.bottom>0&&b.top<innerHeight?b:null}
 const page=g=>$('#svp').children[g];
 function svBuild(){$('#svp').innerHTML=SV.list.map(g=>{const a=accOf(g.a);return `<section class="f-sg"><div class="f-bars">${g.items.map(()=>'<span class="f-bar"><i></i></span>').join('')}</div>
-<div class="f-sh"><span class="f-sa">${avatar(a)}<span class="f-pn"><b>${ESC(g.hl?g.t:a.h)}</b><span class="f-sst"></span></span></span><small>${ESC(g.hl?'':g.t)}</small><button class="f-sx" aria-label="Close">×</button></div><div class="f-sc"></div></section>`}).join('')}
+<div class="f-sh"><span class="f-sa">${avatar(a)}<span class="f-pn"><span class="f-pnl"><b>${ESC(g.hl?g.t:a.h)}</b>${g.hl?'':`<small>${ESC(g.t)}</small>`}</span><span class="f-sst"></span></span></span><button class="f-sx" aria-label="Close">×</button></div><div class="f-sc"></div></section>`}).join('')}
 function svShow(g,i){const G=SV.list[g];if(!G)return svClose();SV.g=g;SV.i=i;SV.el=0;
  [...$('#svp').children].forEach((s,k)=>{if(k!=g)s.querySelector('.f-sc').innerHTML=''});
  const s=page(g);s.querySelectorAll('.f-bar i').forEach((b,k)=>b.style.width=k<i?'100%':'0');

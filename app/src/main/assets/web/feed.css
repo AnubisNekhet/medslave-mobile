@@ -165,6 +165,6 @@ body.nocom .f-cm,body.nocom .f-cmt{display:none!important}
 .f-day>b{font-size:40px;line-height:1.1}.f-day>small{font-size:13px;color:var(--text-fg-faint);margin-bottom:12px}
 .f-dayhm{padding:0;--hm:var(--accent,var(--text-fg))}
 /* a story's account (taps open its profile) and its song under the name */
-/* the story header: the account (name, and its song under it) takes the room, the time sits just left of the × */
-.f-sh small{flex:none}
+/* the story header: the account takes the room: its name with the time right after it, and its song under them; then the × */
+.f-pnl{display:flex;align-items:baseline;gap:7px;min-width:0}.f-pnl small{flex:none;font-size:13px;color:var(--text-fg-faint)}
 .f-sa{flex:1;display:flex;align-items:center;gap:9px;min-width:0}.f-sh .f-pn{min-width:0;flex:1}.f-sh .f-pn b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
