@@ -142,7 +142,7 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.cardGest
 
 private fun hint(rs: Rs): String {
     val f = rs.set.flip
-    return if (rs.stage == 1) (if (f) "↑ knew it · ↓ again" else "→ knew it · ← again")
+    return if (rs.stage == 1) (if (f) "↑ knew it · ↓ " + (if (rs.set.reels) "or Repost: " else "") + "again" else "→ knew it · ← again")
     else (if (rs.cur?.again == true) "Again · " else "") + (if (f) "Swipe up " else "Swipe ") + "to reveal the answer"
 }
 

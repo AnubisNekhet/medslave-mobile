@@ -25,7 +25,7 @@ import java.net.URLEncoder
 import kotlin.concurrent.thread
 
 /* Reels Mode (Settings › Appearance): a joke overlay on the review screen, as on the site. Nothing here is saved or sent anywhere.
-   A made-up account per card, likes, comments (a sheet of mean comments), Save (into saved.cards, shared with the feed) and a
+   A made-up account per card, likes, comments (a sheet of mean comments), Repost (= missed it), share (made-up contacts), save (into saved.cards, shared with the feed) and a
    30-second Apple Music preview per card on loop. The data (reels.json) is the site's reels.js lists. */
 class Song(val title: String, val artist: String, var url: String, val art: String, val genre: String) { var dead = false; var re = false }
 class Comment(val user: String, val time: String, val text: String, likes: Int, val color: Color) { var likes by mutableIntStateOf(likes); var liked by mutableStateOf(false) }
@@ -159,6 +159,8 @@ class Reels(private val rs: Rs) {
     var icon by mutableStateOf("")
     var color by mutableStateOf(Color.White)
     var likePop by mutableIntStateOf(0)
+    var repostAt by mutableIntStateOf(0)       // bumps when Repost fires (its animation)
+    var reposting by mutableStateOf(false)
     var saved by mutableStateOf(false)         // this card is in saved.cards (the Save button)
     var savePop by mutableIntStateOf(0)        // bumps when Save turns on (its animation)
     private val colors = HashMap<String, Color>()
@@ -198,7 +200,7 @@ class Reels(private val rs: Rs) {
         if (!on()) { stop(); sheet = null; return }
         val c = rs.cur
         if (card !== c) {
-            card = c; liked = false; likes = rnd(800, 98000); coms = rnd(40, 2400); saved = c != null && rs.feed.isSaved(c.n.id, c.o)
+            card = c; liked = false; likes = rnd(800, 98000); coms = rnd(40, 2400); reposting = false; saved = c != null && rs.feed.isSaved(c.n.id, c.o)
             val hd = pick(handles); name = hd.first; icon = hd.second; color = colors.getOrPut(name) { pick(DCOL).second }
             set(pick())
         } else if (!want && song != null) play()

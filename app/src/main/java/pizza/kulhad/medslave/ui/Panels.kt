@@ -238,7 +238,7 @@ private fun FlipDemo() {
             scaleX = fs; scaleY = fs; alpha = seg(t, 0f to 0f, .06f to 0f, .14f to 1f, .28f to 1f, .34f to 0f, .56f to 0f, .57f to 0f, .64f to 1f, .78f to 1f, .84f to 0f, 1f to 0f) })
     }
 }
-/** Reels: the heart is tapped (it fills red), then the card and its buttons scroll up and the next one rises in */
+/** Reels: Repost is pressed (red, the arrows turn, a cross pops in), then the card and its buttons scroll up and the next one rises in */
 @Composable
 private fun ReelsDemo() {
     val t by rememberInfiniteTransition(label = "rl").animateFloat(0f, 1f, infiniteRepeatable(tween(3600, easing = LinearEasing)), label = "rl")
@@ -259,11 +259,12 @@ private fun ReelSlide(m: Modifier, turn: Float, x: Float, tap: @Composable () ->
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             Mini()
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Icon(Ic.HEART, 13.dp, P.text)
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(Ic.HEART, 15.dp, if (turn > 0f) HEART else P.text, fill = turn > 0f, modifier = Modifier.graphicsLayer { val k = 1f + x * .25f * (1f - x) * 4f; scaleX = k; scaleY = k })
+                    Icon(Ic.REPOST, 15.dp, if (turn > 0f) HEART else P.text, modifier = Modifier.graphicsLayer { rotationZ = turn * 180f })
+                    if (x > 0f) Icon(Ic.CROSS, 15.dp, HEART, 2.6f, modifier = Modifier.graphicsLayer { scaleX = x; scaleY = x })
                     tap()
                 }
-                Icon(Ic.SAVE, 13.dp, P.text)
             }
         }
     }
@@ -346,7 +347,7 @@ fun Tutorial(rs: Rs) {
             .background(P.card).padding(horizontal = 19.dp, vertical = 18.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
             TutDemo(f, reel)
             Txt((if (f) "Swipe the card up" else "Swipe the card left or right") + " to show the answer.", align = TextAlign.Center, bold = true)
-            Txt(if (f) "Then swipe up if you knew it, down if you didn’t." else "Then swipe right if you knew it, left if you didn’t.", align = TextAlign.Center)
+            Txt(if (f) "Then swipe up if you knew it, down if you didn’t" + (if (reel) " (or tap Repost)" else "") + "." else "Then swipe right if you knew it, left if you didn’t.", align = TextAlign.Center)
             Txt((if (reel) "" else "Or tap Next › if you knew it. ") + "Missed cards come back 20–40 cards later.", size = 13.6.sp, color = P.faint, align = TextAlign.Center)
             Btn("Got it", Modifier.padding(top = 4.dp), onClick = close)
         }
@@ -380,6 +381,14 @@ private fun TutDemo(f: Boolean, reel: Boolean) {
             val fa = seg(t, 0f to 0f, .08f to 1f, .28f to 1f, .36f to 0f, .51f to 0f, .58f to 1f, .80f to 1f, .88f to 0f, 1f to 0f)
             TutCard(Modifier.graphicsLayer { scaleY = maxOf(.001f, sy); translationY = cy * 16 * density; alpha = ca }, ink)
             Finger(Modifier.graphicsLayer { translationY = (fy * 16 + 27) * density; alpha = fa }, ink)
+            if (reel) {
+                /* Repost being pressed while the answer rests */
+                val press = seg(t, 0f to 0f, .34f to 0f, .38f to 1f, .42f to 1f, .46f to 0f, 1f to 0f)
+                Column(Modifier.graphicsLayer { translationX = 82 * density }, horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Ic.REPOST, 29.dp, if (press > .5f) HEART else ink, modifier = Modifier.graphicsLayer { rotationZ = press * 180f })
+                    Txt("Repost", size = 10.sp, bold = true)
+                }
+            }
         }
     }
 }
