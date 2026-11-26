@@ -69,6 +69,8 @@ class Reels(private val rs: Rs) {
         p.status = "Reading the list…"
         thread {
             val t = text.trim(); val link = Regex("https?://").containsMatchIn(t)
+            val al = if (link) runCatching { albumSongs(t, p.key) }.getOrNull() else null
+            if (!al.isNullOrEmpty()) { h.post { p.songs.clear(); p.songs.addAll(al); p.status = ""; saveLists(); changed() }; return@thread }
             val lines = if (link) runCatching { tracksOf(t) }.getOrDefault(emptyList()).map { (a, b) -> "$a – $b" } else t.lines().map { it.trim() }.filter { it.isNotEmpty() }
             val out = ArrayList<Song>()
             lines.forEachIndexed { i, l ->
@@ -87,6 +89,9 @@ class Reels(private val rs: Rs) {
         val name = name0.trim().ifEmpty { "My playlist" }.let { n -> var x = n; var k = 2; while (lists.any { it.name == x }) x = "$n ${k++}"; x }
         val p = Playlist(name); p.status = "Reading the list…"; lists.add(p)
         thread {
+            /* an album link: its songs straight from Apple, all at once */
+            val al = runCatching { albumSongs(text.trim(), p.key) }.getOrNull()
+            if (!al.isNullOrEmpty()) { h.post { p.songs.addAll(al); p.status = ""; saveLists(); changed() }; return@thread }
             val tracks = runCatching { tracksOf(text.trim()) }.getOrDefault(emptyList())
             if (tracks.isEmpty()) { h.post { p.status = "Couldn't read any songs from that" }; return@thread }
             tracks.forEachIndexed { i, (t, ar) ->
@@ -107,15 +112,47 @@ class Reels(private val rs: Rs) {
         val r = JSONObject(c.inputStream.use { String(it.readBytes()) }).getJSONArray("results")
         (0 until r.length()).map { r.getJSONObject(it) }.firstOrNull { it.has("previewUrl") }?.let { listOf(it.optString("trackName"), it.optString("artistName"), it.getString("previewUrl"), it.optString("artworkUrl100")) }
     }.getOrNull()
+    private fun get(u: String) = (URL(u).openConnection() as HttpURLConnection).apply { connectTimeout = 10000; readTimeout = 15000
+        setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/124 Mobile Safari/537.36"); setRequestProperty("Accept-Language", "en") }.inputStream.use { String(it.readBytes()) }
+    /** a Spotify playlist or album as its public embed page describes it: name, subtitle (the artist), trackList */
+    private fun spotifyEntity(kind: String, id: String): JSONObject? {
+        val html = get("https://open.spotify.com/embed/$kind/$id")
+        val js = Regex("<script id=\"__NEXT_DATA__\" type=\"application/json\">(.*?)</script>", RegexOption.DOT_MATCHES_ALL).find(html)?.groupValues?.get(1) ?: return null
+        return JSONObject(js).getJSONObject("props").getJSONObject("pageProps").getJSONObject("state").getJSONObject("data").getJSONObject("entity")
+    }
+    /** an album link's songs, straight from Apple in one request: an Apple Music album as it is, a Spotify album matched to Apple by its
+        name, artist and track count. null: not an album link, or no Apple album clearly matches (the songs are then searched one by one) */
+    private fun albumSongs(t: String, key: String): List<Song>? {
+        val am = Regex("music\\.apple\\.com/(\\w\\w)/album/(?:[^/?\\s]+/)?(\\d+)").find(t)
+        if (am != null) return appleAlbum(am.groupValues[2], am.groupValues[1], key)
+        val sp = Regex("open\\.spotify\\.com/(?:intl-\\w+/)?album/(\\w+)").find(t) ?: return null
+        val e = spotifyEntity("album", sp.groupValues[1]) ?: return null
+        val name = e.optString("name"); val artist = e.optString("subtitle"); val n = e.optJSONArray("trackList")?.length() ?: 0
+        fun norm(s: String) = s.lowercase().replace(Regex("\\s*[\\(\\[].*?[\\)\\]]"), "").replace(Regex(" - (single|ep)$"), "").replace(Regex("[^\\p{L}\\p{N}]"), "")
+        val nn = norm(name); val na = norm(artist)
+        fun pick(r: JSONArray) = (0 until r.length()).map { r.getJSONObject(it) }
+            .filter { it.has("collectionId") && norm(it.optString("collectionName")) == nn && norm(it.optString("artistName")).let { a -> a.isNotEmpty() && (a == na || a in na || na in a) } }
+            .maxByOrNull { if (it.optInt("trackCount") == n) 1 else 0 }
+        fun json(u: String) = JSONObject(get(u)).getJSONArray("results")
+        /* Apple's album search first; it misses some albums, so then the artist's own album list */
+        val best = pick(json("https://itunes.apple.com/search?entity=album&limit=15&term=" + URLEncoder.encode("$artist $name".take(120), "UTF-8")))
+            ?: json("https://itunes.apple.com/search?entity=musicArtist&limit=1&term=" + URLEncoder.encode(artist.split(",").first().trim().take(80), "UTF-8"))
+                .optJSONObject(0)?.optLong("artistId")?.let { pick(json("https://itunes.apple.com/lookup?entity=album&limit=200&id=$it")) }
+            ?: return null
+        return appleAlbum(best.optLong("collectionId").toString(), "us", key)
+    }
+    /** an Apple album's songs with previews, in album order */
+    private fun appleAlbum(id: String, cc: String, key: String): List<Song> {
+        val r = JSONObject(get("https://itunes.apple.com/lookup?entity=song&id=$id&country=$cc")).getJSONArray("results")
+        return (0 until r.length()).map { r.getJSONObject(it) }.filter { it.optString("wrapperType") == "track" && it.has("previewUrl") }
+            .sortedWith(compareBy({ it.optInt("discNumber") }, { it.optInt("trackNumber") }))
+            .map { Song(it.optString("trackName"), it.optString("artistName"), it.getString("previewUrl"), it.optString("artworkUrl100"), key) }
+    }
     /** track names (title, artist) from pasted lines or a playlist link */
     private fun tracksOf(t: String): List<Pair<String, String>> {
-        fun get(u: String) = (URL(u).openConnection() as HttpURLConnection).apply { connectTimeout = 10000; readTimeout = 15000
-            setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/124 Mobile Safari/537.36"); setRequestProperty("Accept-Language", "en") }.inputStream.use { String(it.readBytes()) }
         val sp = Regex("open\\.spotify\\.com/(?:intl-\\w+/)?(playlist|album)/(\\w+)").find(t)
         if (sp != null) {   // Spotify: the public embed page carries the track list
-            val html = get("https://open.spotify.com/embed/${sp.groupValues[1]}/${sp.groupValues[2]}")
-            val js = Regex("<script id=\"__NEXT_DATA__\" type=\"application/json\">(.*?)</script>", RegexOption.DOT_MATCHES_ALL).find(html)?.groupValues?.get(1) ?: return emptyList()
-            val tl = JSONObject(js).getJSONObject("props").getJSONObject("pageProps").getJSONObject("state").getJSONObject("data").getJSONObject("entity").getJSONArray("trackList")
+            val tl = spotifyEntity(sp.groupValues[1], sp.groupValues[2])?.getJSONArray("trackList") ?: return emptyList()
             return (0 until tl.length()).map { tl.getJSONObject(it).let { x -> x.optString("title") to x.optString("subtitle") } }
         }
         if (Regex("music\\.apple\\.com/").containsMatchIn(t)) {   // Apple Music: the page's structured data lists the tracks

@@ -20,7 +20,7 @@ You're going to doomscroll anyway, so make it your flashcards. medslave turns yo
 
 ### Music and playlists
 - **A song on most posts and reels.** Songs play as 30-second previews, sorted into genres you can switch on and off. Previews are cached and cleaned up for you.
-- **Your own playlists.** Paste a list of songs or a playlist link, and long-press a playlist to edit it.
+- **Your own playlists.** Paste a list of songs or a playlist link, and long-press a playlist to edit it. An Apple Music album link brings in that album's songs as they are; a Spotify album is matched to the same album on Apple, so the songs are exact.
 
 The deck, your progress and your settings stay inside the app, and nothing is uploaded. The only network use is the song previews and their cover art.
 
