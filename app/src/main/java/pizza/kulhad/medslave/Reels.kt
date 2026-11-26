@@ -44,7 +44,12 @@ class Reels(private val rs: Rs) {
        YouTube playlist link: the track names are read, then each is matched to its 30-second Apple preview, a couple of seconds apart
        (Apple's search allows about 20 lookups a minute). kept under medslave:playlists as [{name, songs: [[title, artist, url, art]]}];
        switched off like a genre (its key "pl:<name>" in goff) */
-    inner class Playlist(val name: String) { val songs = mutableStateListOf<Song>(); var status by mutableStateOf(""); val key get() = "pl:$name" }
+    inner class Playlist(name: String) { var name by mutableStateOf(name); val songs = mutableStateListOf<Song>(); var status by mutableStateOf(""); val key get() = "pl:$name" }
+    fun key(s: Song) = "${s.title} · ${s.artist}"
+    fun byKey(k: String) = songs.firstOrNull { key(it) == k && !it.dead }
+    /** a playlist's songs as the lines it can be edited from */
+    fun lines(p: Playlist) = p.songs.joinToString("\n") { "${it.title} – ${it.artist}" }
+    private fun changed() = genreChanged()
     val lists = mutableStateListOf<Playlist>()
     private fun loadLists() = runCatching {
         val a = JSONArray(rs.store.get(PLAYLISTS) ?: "[]")
@@ -53,7 +58,31 @@ class Reels(private val rs: Rs) {
             lists.add(p) }
     }
     private fun saveLists() = rs.store.set(PLAYLISTS, JSONArray(lists.map { p -> JSONObject().put("name", p.name).put("songs", JSONArray(p.songs.map { JSONArray().put(it.title).put(it.artist).put(it.url).put(it.art) })) }).toString())
-    fun removePlaylist(p: Playlist) { lists.remove(p); rs.set.goff = rs.set.goff - p.key; rs.set.save(); saveLists() }
+    fun removePlaylist(p: Playlist) { lists.remove(p); rs.set.goff = rs.set.goff - p.key; rs.set.save(); saveLists(); changed() }
+    /** editing (a long press on the playlist): a new name and/or new lines. songs whose line is still there are kept as they are; new lines
+        are looked up; removed ones go. the list switches over once it's all found */
+    fun editPlaylist(p: Playlist, name0: String, text: String) {
+        val nn = name0.trim().ifEmpty { p.name }.let { n -> var x = n; var k = 2; while (lists.any { it !== p && it.name == x }) x = "$n ${k++}"; x }
+        val old = p.key; p.name = nn
+        if (old != p.key && old in rs.set.goff) { rs.set.goff = rs.set.goff - old + p.key; rs.set.save() }
+        val keep = p.songs.associateBy { "${it.title} – ${it.artist}".lowercase() }
+        p.status = "Reading the list…"
+        thread {
+            val t = text.trim(); val link = Regex("https?://").containsMatchIn(t)
+            val lines = if (link) runCatching { tracksOf(t) }.getOrDefault(emptyList()).map { (a, b) -> "$a – $b" } else t.lines().map { it.trim() }.filter { it.isNotEmpty() }
+            val out = ArrayList<Song>()
+            lines.forEachIndexed { i, l ->
+                val k = keep[l.lowercase()]
+                if (k != null) { out.add(Song(k.title, k.artist, k.url, k.art, p.key)); return@forEachIndexed }
+                h.post { p.status = "Finding songs… ${i + 1} / ${lines.size}" }
+                val (ti, ar) = runCatching { tracksOf(l).firstOrNull() }.getOrNull() ?: return@forEachIndexed
+                var hit = lookup("$ti $ar"); if (hit == null) { Thread.sleep(60_000); hit = lookup("$ti $ar") }
+                hit?.let { (tt, aa, url, art) -> out.add(Song(tt, aa, url, art, p.key)) }
+                Thread.sleep(2600)
+            }
+            h.post { p.songs.clear(); p.songs.addAll(out); p.status = if (out.isEmpty()) "No previews found" else ""; saveLists(); changed() }
+        }
+    }
     fun addPlaylist(name0: String, text: String) {
         val name = name0.trim().ifEmpty { "My playlist" }.let { n -> var x = n; var k = 2; while (lists.any { it.name == x }) x = "$n ${k++}"; x }
         val p = Playlist(name); p.status = "Reading the list…"; lists.add(p)
@@ -67,7 +96,7 @@ class Reels(private val rs: Rs) {
                 hit?.let { (tt, aa, url, art) -> h.post { p.songs.add(Song(tt, aa, url, art, p.key)); saveLists() } }
                 Thread.sleep(2600)
             }
-            h.post { p.status = if (p.songs.isEmpty()) "No previews found" else ""; saveLists() }
+            h.post { p.status = if (p.songs.isEmpty()) "No previews found" else ""; saveLists(); changed() }
         }
     }
     /** a 30-second Apple preview for "title artist": [title, artist, preview, artwork] */
@@ -230,7 +259,8 @@ class Reels(private val rs: Rs) {
     fun stop() { want = false; if (prepared) runCatching { if (mp.isPlaying) mp.pause() } }
     fun tapMusic() { muted = !muted; play() }
     fun pause(p: Boolean) { paused = p; if (p) { if (prepared) runCatching { if (mp.isPlaying) mp.pause() } } else if (want) play() }
-    fun genreChanged() { song?.let { if (!gOn(it)) set(pick()) } }
+    /** the songs changed: the reviewer swaps its song if that one's off or gone; the feed and stories swap theirs (Feed.songsChanged) */
+    fun genreChanged() { if (rs.study) song?.let { if (!gOn(it) || songs.none { s -> s === it }) set(pick()) }; rs.feed.songsChanged() }
 
     /** a preview that fails is looked up again once by title + artist; if that fails too, the song is skipped for this visit */
     private fun onError() {

@@ -34,7 +34,7 @@ class FeedBridge(private val f: Feed) {
     @JavascriptInterface fun pfOpen(open: Boolean) = h.post { f.profileOpen = open; if (!open) f.stopSong() }
     @JavascriptInterface fun saved() = h.post { f.savedProfile() }
     @JavascriptInterface fun save(id: String, o: Int, on: Boolean) = h.post { f.save(id.toLong(), o, on) }
-    @JavascriptInterface fun play(i: Int) = h.post { f.playSong(i) }
+    @JavascriptInterface fun play(k: String) = h.post { f.playSong(k) }
     @JavascriptInterface fun mute() = h.post { f.rs.reels.tapMusic() }
 }
 
@@ -47,6 +47,7 @@ class FeedWeb(ctx: Context, f: Feed) : Page(ctx, "feed.html", false, { FeedBridg
     fun heat(j: String) = js("R.heat($j)")
     fun refreshed(j: String) = js("R.refreshed($j)")
     fun nocom(v: Boolean) = js("R.nocom($v)")
+    fun songsOn(j: String) = js("R.songsOn($j)")
     fun replay() = js("R.replay()")
     fun profile(j: String) = js("R.profile($j)")
     fun profilePosts(j: String) = js("R.pposts($j)")
@@ -111,7 +112,10 @@ class Feed(val rs: Rs) {
     fun opened() { made?.top(true) }
 
     /** the song of the post or story on screen (-1: none) */
-    fun playSong(i: Int) { if (i < 0) stopSong() else rs.reels.songs.getOrNull(i)?.let { rs.reels.playSong(it) } }
+    fun playSong(k: String) { if (k.isEmpty()) stopSong() else rs.reels.byKey(k)?.let { rs.reels.playSong(it) } ?: stopSong() }
+    /** the songs changed (a genre or playlist switched, a playlist edited or removed): the page swaps any post's or story's song that's
+        no longer on for one that is, and plays again */
+    fun songsChanged() { made?.let { w -> w.songsOn(JSONArray(rs.reels.songs.filter { !it.dead && it.genre !in rs.set.goff }.map { rs.reels.key(it) }).toString()) } }
     fun stopSong() { if (!rs.study) rs.reels.stop() }
 
     fun comments(handle: String) { rs.reels.name = handle; rs.reels.open("com") }
@@ -216,7 +220,7 @@ class Feed(val rs: Rs) {
     private fun song(r: Random, o: JSONObject) {
         if (r.nextFloat() >= .8f) return
         val ok = rs.reels.songs.withIndex().filter { (_, s) -> !s.dead && s.genre !in rs.set.goff }; if (ok.isEmpty()) return
-        val (i, s) = ok[r.nextInt(ok.size)]; o.put("s", i).put("st", "${s.title} · ${s.artist}")
+        val s = ok[r.nextInt(ok.size)].value; o.put("s", rs.reels.key(s)).put("st", rs.reels.key(s))   // a song is known by "title · artist" (indexes move when playlists change)
     }
     var profileOpen by mutableStateOf(false)
 

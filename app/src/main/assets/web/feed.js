@@ -4,7 +4,7 @@
    App.com(handle, n) / App.share(): the app's comment and share sheets. App.story(open): the story viewer opened or closed (the app
    hides its bottom bar). App.seen(account): its story was watched. App.imp(). App.settings() / App.credits(): the gear and the logo.
    App.profile(account) → R.profile, App.pmore() → R.pposts, App.pfOpen(open), App.saved() → R.profile (saved.cards), App.save(id, o, on).
-   App.play(song) / App.mute(): the song of whatever post or story is on screen (-1: none) */
+   App.play(song) / App.mute(): the song of whatever post or story is on screen, by "title · artist" ('' for none) */
 const A_=window.App||{more(){},com(){},share(){},story(){},seen(){},imp(){},settings(){},credits(){},refresh(){},profile(){},pmore(){},pfOpen(){},saved(){},save(){},play(){},mute(){}};
 const F={acc:[],posts:[],groups:[],wait:false,saved:new Set()};
 function fitX(){}   /* face.js calls it after MathJax; the feed has nothing to refit */
@@ -120,11 +120,11 @@ FD.addEventListener('touchend',()=>{if(PTR.y==null)return;PTR.y=null;if(PTR.d<PU
 
 /* ---- songs: about 80% of posts and stories have one. the song plays for the post most in view (or the story on screen) */
 const VIS=new Map(),SEEN=new IntersectionObserver(es=>{es.forEach(e=>VIS.set(e.target,e.intersectionRatio));tune()},{threshold:[0,.25,.5,.75,1]});
-let SONG=-2;
-function tune(){let s=-1;
- if(SV.on){const it=SV.list[SV.g]?.items[SV.i];s=it&&it.s!=null?it.s:-1}
+let SONG=null;
+function tune(){let s='';
+ if(SV.on){const it=SV.list[SV.g]?.items[SV.i];s=it&&it.s||''}
  else{let best=null,r=.45;VIS.forEach((v,el)=>{if(!el.isConnected){VIS.delete(el);return}if(!!el.closest('#pf')!=PF.on)return;if(v>r){r=v;best=el}});
-  const p=best&&postOf(best);s=p&&p.s!=null?p.s:-1}
+  const p=best&&postOf(best);s=p&&p.s||''}
  if(s!==SONG){SONG=s;A_.play(s)}}
 
 /* ---- stories: the row of accounts (unwatched first), and the viewer (one page per account, swiped sideways; tap right / left for the
@@ -216,5 +216,12 @@ const R={
  closeProfile(){pfClose()},
  nocom(v){document.body.classList.toggle('nocom',!!v)},   /* Settings › Appearance › Hide comments */
  close(){svClose()},
- replay(){SONG=-2;tune()},   /* the feed is back on screen: its song again */
+ replay(){SONG=null;tune()},   /* the feed is back on screen: its song again */
+ /* the songs that are on changed (a genre or playlist switched, a playlist edited): a post's or story's song that's no longer on is
+    swapped for one that is (the same one each time for the same song), and the line under the account name follows */
+ songsOn(keys){const on=new Set(keys),swap=s=>{if(!s||on.has(s)||!keys.length)return s;let h=0;for(const c of String(s))h=h*31+c.charCodeAt(0)|0;return keys[Math.abs(h)%keys.length]};
+  const fix=x=>{if(x&&x.s&&!on.has(x.s)){x.s=x.st=swap(x.s)}};
+  F.posts.forEach(fix);PF.list.forEach(fix);F.groups.forEach(g=>g.items.forEach(fix));PF.hl.forEach(g=>g.items.forEach(fix));if(F.next)F.next.forEach(g=>g.items.forEach(fix));
+  document.querySelectorAll('.f-post').forEach(el=>{const p=postOf(el),n=el.querySelector('.f-ph .f-pn');if(!p||!p.n||!n)return;n.querySelector('.f-sub')?.remove();n.insertAdjacentHTML('beforeend',subHTML([p.st&&'♪ '+p.st,dir(p.n)]))});
+  subs(document);if(SV.on)svShow(SV.g,SV.i);else{SONG=null;tune()}},
  top(i){if(SV.on&&i)svClose(true);if(PF.on)pfClose(!!i);FD.scrollTo({top:0,behavior:i?'instant':'smooth'})}};
