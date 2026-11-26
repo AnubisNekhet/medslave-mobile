@@ -39,10 +39,10 @@ function mcqFace(m,A,pi,key){if(MQ.key!=key){MQ.key=key;MQ.picked=null;MQ.order=
  const ops=MQ.order.map(i=>A?`<label data-o="${i}" class="${i==m.right?(MQ.picked==i?'correct-answer':'highlight-correct'):MQ.picked==i?'highlight-picked highlight-wrong':''}">${m.opts[i]}</label>`
   :`<input type="radio" id="opt${i}" name="mcq" value="${i}"><label for="opt${i}" data-o="${i}">${m.opts[i]}</label>`).join('');
  return deck(pi)+HR+ttl(m.title)+`<div class="prettify-field prettify-field--front"><div class="center-text"><div class="prettify-field center-text zoomable-image">${m.q}</div></div></div>`+HR   /* the question, a divider, then the options */
-  +`<div class="prettify-field prettify-field--front"><div class="center-text"><div class="prettify-field option-group center-text">${ops}</div></div></div>`
-  +(A&&m.extra?`<hr class="prettify-divider prettify-divider--answer"><div class="prettify-field prettify-field--front"><div class="center-text"><div class="prettify-field center-text extra">${m.extra}</div></div></div>`:'')}
+  +`<div class="prettify-field prettify-field--front mcq-of"><div class="center-text"><div class="prettify-field option-group center-text">${ops}</div></div></div>`
+  +(A&&m.extra?`<hr class="prettify-divider prettify-divider--answer"><div class="prettify-field prettify-field--front mcq-ex"><div class="center-text"><div class="prettify-field center-text extra">${m.extra}</div></div></div>`:'')}
 function face(A){const{n,o}=cur,[,k,pi]=n,f=n[4].map(trimF);let h;
-const mq=k=='b'&&mcqOf(f);if(mq)return `<div class="prettify-flashcard mcq-card">${mcqFace(mq,A,pi,n[0]+':'+o)}</div>`;
+const mq=k=='b'&&mcqOf(f);if(mq)return `<div class="prettify-flashcard mcq-card${A&&mq.extra?' mcq-a':''}">${mcqFace(mq,A,pi,n[0]+':'+o)}</div>`;
 if(k=='b'){const[fr,bk,ex,ti,so,ht]=f,sr=SET.source?so:'',q=o?bk:fr;
 h=deck(pi)+HR+(A?ttl(ti)+(f[6]=='ioe'?'':fld('front',q)+HR)+fld('back',o?fr:bk)+(ex?HR+fld('back',ex,'center-text extra'):'')+(!o&&sr?DV+fld('front zoomable-image',sr,'center-text extra'):'')+tags()
 :(o?'':ttl(ti))+fld('front',q)+(o?'':tags()))}

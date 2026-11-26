@@ -18,13 +18,13 @@ function draw(){const st=$('#stage');st.innerHTML='<div class="wrap">'+render()+
  {const b=$('#allClozeBtn');if(b)b.onclick=()=>revealAll(b)}syncNxt()}
 /* the card on screen: in Flip, the face showing */
 const card=()=>document.querySelector(FL&&stage?'#stage .flip-back>.prettify-flashcard,#stage .fade-back>.prettify-flashcard':'#stage .flip-front>.prettify-flashcard,#stage .fade-front>.prettify-flashcard,#swipe>.prettify-flashcard');
-function scRep(){const c=card();A_.sc(!c||c.scrollTop<=1,!c||c.scrollTop+c.clientHeight>=c.scrollHeight-2)}
+function scRep(){const k=card(),c=k&&(k.querySelector(':scope>.mcq-ex')||k);A_.sc(!c||c.scrollTop<=1,!c||c.scrollTop+c.clientHeight>=c.scrollHeight-2)}   /* an MCQ answer scrolls its explanation, not the card */
 /* tables and the deck path that fit get .nsx; the card's full height (as if it didn't scroll) and its scroll state go to the app */
 function fitX(){document.querySelectorAll('#stage table,#stage .prettify-deck,#stage [style*="overflow"]').forEach(e=>e.classList.toggle('nsx',e.scrollWidth<=e.clientWidth+1));document.querySelectorAll('#stage .prettify-deck').forEach(deckFade);
- const c=card();A_.h(c?c.scrollHeight+c.offsetHeight-c.clientHeight:0);scRep()}
+ const c=card(),x=c&&c.querySelector(':scope>.mcq-ex');A_.h(!c?0:x?c.offsetHeight-x.clientHeight+x.scrollHeight:c.scrollHeight+c.offsetHeight-c.clientHeight);scRep()}   /* the full height (an MCQ answer: with its whole explanation) */
 const RSZ=new ResizeObserver(()=>fitX());
 function deckFade(d){d.classList.toggle('sl',d.scrollLeft>1);d.classList.toggle('sr',d.scrollLeft+d.clientWidth<d.scrollWidth-1)}
-$('#stage').addEventListener('scroll',e=>{const d=e.target;if(!d.classList)return;if(d.classList.contains('prettify-deck'))deckFade(d);else if(d.classList.contains('prettify-flashcard'))scRep()},true);
+$('#stage').addEventListener('scroll',e=>{const d=e.target;if(!d.classList)return;if(d.classList.contains('prettify-deck'))deckFade(d);else if(d.classList.contains('prettify-flashcard')||d.classList.contains('mcq-ex'))scRep()},true);
 addEventListener('resize',fitX);$('#stage').addEventListener('load',e=>{if(e.target.tagName=='IMG')ioBox(e.target);fitX()},true);
 $('#stage').addEventListener('dragstart',e=>e.preventDefault());
 const front=()=>document.querySelector('#stage .flip-front,#stage .fade-front')||$('#stage');
