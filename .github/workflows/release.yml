@@ -40,9 +40,9 @@ jobs:
           printf 'storeFile=release.keystore\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > keystore.properties
           ./gradlew assembleRelease
           rm -f release.keystore keystore.properties
-          cp app/build/outputs/apk/release/app-release.apk "medslave-$TAG.apk"
+          cp app/build/outputs/apk/release/app-release.apk medslave-Universal.apk   # the name the app looks for when it updates itself
 
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$TAG" "medslave-$TAG.apk" --title "medslave $TAG" --generate-notes
+        run: gh release create "$TAG" medslave-Universal.apk --title "medslave $TAG" --generate-notes

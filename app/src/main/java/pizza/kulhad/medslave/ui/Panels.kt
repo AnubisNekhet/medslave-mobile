@@ -177,14 +177,28 @@ private fun Mini(modifier: Modifier = Modifier, answer: Boolean = false) {
     }
 }
 
+/* the mode tiles' icons: auto (half sun, half moon), light (sun), dark (moon) */
+private val MODE_IC = mapOf(
+    "auto" to "<circle cx=\"12\" cy=\"12\" r=\"8\"/><path d=\"M12 4a8 8 0 0 1 0 16z\" fill=\"currentColor\"/>",
+    "light" to "<circle cx=\"12\" cy=\"12\" r=\"4\"/><path d=\"M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41\"/>",
+    "dark" to "<path d=\"M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z\"/>")
+
 @Composable
 private fun Appearance(rs: Rs) {
+    Head("Mode")
+    Row(Modifier.fillMaxWidth().padding(bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+        listOf("auto" to "Auto", "light" to "Light", "dark" to "Dark").forEach { (k, l) ->
+            Tile(l, rs.set.mode == k, modifier = Modifier.weight(1f), small = true, onClick = { rs.set.mode = k; rs.set.save() }) {
+                Box(Modifier.fillMaxWidth().height(46.dp), contentAlignment = Alignment.Center) { Icon(MODE_IC[k]!!, 24.dp, P.text, 1.8f) }
+            }
+        }
+    }
     Head("Theme")
     val ts = rememberScrollState(); val dn = androidx.compose.ui.platform.LocalDensity.current.density
     LaunchedEffect(Unit) { val i = THEMES.indexOf(rs.set.theme).coerceAtLeast(0); ts.scrollTo(((i + 1) * 114 + 16) * dn.toInt() - ts.viewportSize) }
     Row(Modifier.fillMaxWidth().horizontalScroll(ts).padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        val tp = mapOf("default" to "Default", "ctp" to "Catppuccin", "tokyo" to "Tokyo Night", "nord" to "Nord", "dracula" to "Dracula")
-        THEMES.forEach { t ->
+        val tp = mapOf("default" to "Default", "you" to "Material You", "ctp" to "Catppuccin", "tokyo" to "Tokyo Night", "nord" to "Nord", "dracula" to "Dracula")
+        THEMES.filter { it != "you" || pizza.kulhad.medslave.ui.You.ok }.forEach { t ->
             val l = pal(t, false); val d = pal(t, true)
             val la = if (t == "tokyo" || t == "default") Color(0xFFE49320) else l.accent
             val da = if (t == "default") Color(0xFFF9E2AF) else d.accent
@@ -518,6 +532,30 @@ fun ImportProgress(rs: Rs) {
             Txt(rs.impStep, size = 14.4.sp, color = P.faint, align = TextAlign.Center, lines = 2)
             Gap(6.dp)
             Btn("Cancel", h = 36.dp, size = 14.4.sp, pad = 18.dp) { rs.importCancel() }
+        }
+    }
+}
+
+/* ---------------------------------------------------------------- an update from GitHub: Later / Update, then the download's bar */
+@Composable
+fun UpdateBox(rs: Rs) {
+    val u = rs.updater; val o = u.offer ?: return; val busy = u.progress >= 0f
+    val shown by androidx.compose.animation.core.animateFloatAsState(u.progress.coerceAtLeast(0f), tween(200), label = "upd")
+    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = .55f)).clickable(remember { MutableInteractionSource() }, null) { u.later() }.padding(24.dp), contentAlignment = Alignment.Center) {
+        Column(Modifier.widthIn(max = 380.dp).fillMaxWidth().shadow(20.dp, RoundedCornerShape(8.dp)).border(1.dp, P.border, RoundedCornerShape(8.dp)).clip(RoundedCornerShape(8.dp))
+            .background(P.card).clickable(remember { MutableInteractionSource() }, null) {}.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Txt("Update available", bold = true, size = 17.sp)
+            Txt("A new update has been detected. Please update to the latest version for bug fixes and changes.", lh = 21.sp)
+            if (busy) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(3.dp)).background(P.border)) {
+                    Box(Modifier.fillMaxWidth(shown).height(5.dp).clip(RoundedCornerShape(3.dp)).background(P.text))
+                }
+                Txt("${(shown * 100).toInt()}%  ·  ${u.status}", size = 13.6.sp, color = P.faint)
+            } else if (u.status.isNotEmpty()) Txt(u.status, size = 13.6.sp, color = P.faint)
+            Row(Modifier.align(Alignment.End), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Btn("Later", enabled = !busy, h = 37.dp, size = 15.sp, pad = 16.dp) { u.later() }
+                Btn("Update", p = true, enabled = !busy, h = 37.dp, size = 15.sp, pad = 16.dp) { u.update() }
+            }
         }
     }
 }

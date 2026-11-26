@@ -92,7 +92,7 @@ open class Page(protected val ctx: Context, file: String, transparent: Boolean, 
 
     protected fun js(s: String) { if (loaded) view.evaluateJavascript(s, null) else queue.add(s) }
     protected fun q(s: String) = JSONObject.quote(s)
-    fun theme(t: String, dark: Boolean) = js("R.theme(${q(t)},$dark)")
+    fun theme(t: String, dark: Boolean) { if (t == "you") js("youVars(${q(pizza.kulhad.medslave.ui.You.css)})"); js("R.theme(${q(t)},$dark)") }
     fun detach() { (view.parent as? ViewGroup)?.removeView(view) }
 }
 

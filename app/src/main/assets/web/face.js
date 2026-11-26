@@ -43,6 +43,8 @@ function mcqFace(m,A,pi,key){if(MQ.key!=key){MQ.key=key;MQ.picked=null;MQ.order=
   +`<div class="prettify-field prettify-field--front mcq-of"><div class="center-text"><div class="prettify-field option-group center-text">${ops}</div></div></div>`
 }
 /* the explanation: its own small card under the MCQ card on the answer side (Settings › Reviewing › Show explanation) */
+/* Material You: the phone's colours as card variables (html[data-theme=you]), sent by the app */
+function youVars(css){let s=document.getElementById('you-vars');if(!s){s=document.createElement('style');s.id='you-vars';document.head.appendChild(s)}s.textContent=css}
 let EXIN=false,TURN=false;   /* TURN: the reviewer can turn an MCQ answer over to its explanation (Hide explanation) */
 /* the answer card with the explanation on its back: both sides share one grid cell, so they're the same height (the taller one, up to the
    card's cap) and each scrolls on its own */

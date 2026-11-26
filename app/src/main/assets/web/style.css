@@ -1489,6 +1489,9 @@ button.rp .rp-x{animation:rpX .26s .14s cubic-bezier(.3,1.7,.5,1) both}
 .option-group label{position:relative;padding:.75em;background-color:var(--tag-bg);border:1px solid var(--card-border);border-radius:var(--card-radius);cursor:pointer;transition:transform .1s ease,border-color .2s;overflow:visible}
 .option-group label:active{transform:scale(.97)}
 .option-group input[type="radio"]:checked+label{border-color:var(--text-bg-selected);background-color:var(--tag-bg-active)}
+/* light mode: the options sit closer to the card colour (the tag colour read too dark) */
+.card:not(.night_mode) .option-group label{background-color:color-mix(in srgb,var(--card-bg) 60%,var(--tag-bg))}
+.card:not(.night_mode) .option-group input[type="radio"]:checked+label{background-color:color-mix(in srgb,var(--card-bg) 45%,var(--tag-bg-active))}
 .highlight-correct,.correct-answer{border-color:var(--scheme-green)!important;background:rgba(var(--ctp-green),.10)!important}
 .highlight-wrong{border-color:var(--scheme-red)!important;background:rgba(var(--ctp-red),.10)!important}
 /* even space around the options: the template's option box is itself a field inside a field, so the card's field margins stacked

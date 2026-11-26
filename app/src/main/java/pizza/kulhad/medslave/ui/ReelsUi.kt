@@ -114,9 +114,11 @@ fun ReelOverlay(rs: Rs) {
             .graphicsLayer { translationY = rs.oy.value }, verticalAlignment = Alignment.Bottom) {
             Row(Modifier.weight(1f).onGloballyPositioned { val b = it.boundsInWindow(); r.whoTop = b.top - rs.stageRect.top - rs.oy.value; r.setExcl(0, b) },
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                Box(Modifier.size(37.dp).clip(CircleShape).background(r.color), contentAlignment = Alignment.Center) { Icon(r.icon, 20.dp, DARKINK) }
+                val openAcc = { rs.cur?.let { c -> rs.feed.openFromReels(c.n, c.o) }; Unit }   // the account's profile in the feed
+                Box(Modifier.size(37.dp).clip(CircleShape).background(r.color).clickable(remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, null) { openAcc() }, contentAlignment = Alignment.Center) { Icon(r.icon, 20.dp, DARKINK) }
                 Column(Modifier.widthIn(max = (LocalConfiguration.current.screenWidthDp * .6f).dp)) {
-                    androidx.compose.foundation.text.BasicText(r.name, style = TextStyle(color = P.text, fontSize = 15.sp, fontFamily = Carlito, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, shadow = glowStyle()), maxLines = 1)
+                    androidx.compose.foundation.text.BasicText(r.name, style = TextStyle(color = P.text, fontSize = 15.sp, fontFamily = Carlito, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, shadow = glowStyle()), maxLines = 1,
+                        modifier = Modifier.clickable(remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, null) { openAcc() })
                     r.song?.let { s -> androidx.compose.foundation.text.BasicText("♪ ${s.title} · ${s.artist}", style = TextStyle(color = P.text.copy(alpha = .85f), fontSize = 11.5.sp, fontFamily = Carlito, shadow = glowStyle()), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         modifier = Modifier.clickable(remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, null) { r.open("music") }) }   // the song opens the music sheet
                 }
@@ -329,7 +331,7 @@ private fun MusicSheet(rs: Rs) {
         if (r.lists.isNotEmpty()) Txt("Press and hold a playlist to edit it", size = 12.8.sp, color = P.faint)
         r.lists.toList().forEach { p ->
             val n = p.songs.size
-            row(Ic.NOTE, p.name, p.status.ifEmpty { "$n song${if (n == 1) "" else "s"}" }, p.key, n > 0, long = { editing = p }) {
+            row(Ic.NOTE, p.name, p.status.ifEmpty { "$n song${if (n == 1) "" else "s"}" }, p.key, n > 0, long = { r.buzz(); editing = p }) {   // a long press edits it, with a small buzz
                 Box(Modifier.size(32.dp).clip(CircleShape).clickable { r.removePlaylist(p) }, contentAlignment = Alignment.Center) { Txt("×", size = 20.sp, color = P.faint) }
             }
         }
@@ -343,9 +345,16 @@ private fun MusicSheet(rs: Rs) {
                 msg = ""; rs.set.goff = if (on) rs.set.goff - gk.toSet() else rs.set.goff + gk; rs.set.save(); r.genreChanged()
             }
         }
-        r.genres.forEach { (g, label) ->
-            val n = r.songs.count { it.genre == g && !it.dead }; if (n == 0) return@forEach
-            row(GENRE_IC[g] ?: Ic.NOTE, label, "$n songs", g, true)
+        /* with every genre off (the switch above), the list folds away; while any genre is on it stays open */
+        androidx.compose.animation.AnimatedVisibility(!(listOn && gk.isNotEmpty()) || gk.any { it !in rs.set.goff },
+            enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
+            exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()) {
+            Column {
+                r.genres.forEach { (g, label) ->
+                    val n = r.songs.count { it.genre == g && !it.dead }; if (n == 0) return@forEach
+                    row(GENRE_IC[g] ?: Ic.NOTE, label, "$n songs", g, true)
+                }
+            }
         }
         if (msg.isNotEmpty()) Txt(msg, size = 13.sp, color = RED, modifier = Modifier.padding(vertical = 6.dp))
         Gap(10.dp)

@@ -52,6 +52,7 @@ class Rs(val ctx: Context) {
     val web = CardWeb(ctx)
     val reels = Reels(this)
     val feed = Feed(this)
+    val updater = Updater(this)   // a newer release on GitHub (checked as the app starts)
     var dark = true
     /** Reels Mode's home views: feed | menu */
     var tab by mutableStateOf("feed")

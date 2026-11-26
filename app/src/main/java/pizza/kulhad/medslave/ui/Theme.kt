@@ -60,7 +60,46 @@ class Pal(val bg: Color, val card: Color, val text: Color, val faint: Color, val
 private fun c(s: String): Color { val h = s.removePrefix("#"); val v = h.toLong(16); return if (h.length == 8) Color(((v and 0xff) shl 24 or (v ushr 8)).toInt()) else Color((0xff000000 or v).toInt()) }
 private fun mix(a: String, p: Float, b: String) = lerp(c(b), c(a), p)
 
-fun pal(theme: String, dark: Boolean): Pal = if (!dark) when (theme) {
+/** Material You (Android 12+): the phone's wallpaper colours, read as the app starts. light and dark palettes for the app, and the same
+    colours as card variables for the web pages (css, injected by Page.theme) */
+object You {
+    var light: Pal? = null; var dark: Pal? = null; var css = ""
+    val ok get() = android.os.Build.VERSION.SDK_INT >= 31
+    fun load(ctx: android.content.Context) {
+        if (!ok) return
+        val r = android.R.color::class.java
+        fun k(n: String): Int = runCatching { ctx.getColor(r.getField(n).getInt(null)) }.getOrDefault(0xFF808080.toInt())
+        fun hx(i: Int) = String.format("#%06x", i and 0xffffff)
+        fun rgb(i: Int) = "${(i shr 16) and 255}, ${(i shr 8) and 255}, ${i and 255}"
+        fun col(i: Int) = Color(i)
+        val red = c("#d20f39"); val green = c("#40a02b"); val redD = c("#f38ba8"); val greenD = c("#a6e3a1")
+        light = Pal(col(k("system_neutral2_50")), col(k("system_neutral1_10")), col(k("system_neutral1_900")), col(k("system_neutral2_700")), col(k("system_neutral2_200")),
+            col(k("system_neutral2_200")), col(k("system_neutral2_100")), col(k("system_accent1_600")), col(k("system_accent1_600")), red, green, false)
+        dark = Pal(col(k("system_neutral1_900")), col(k("system_neutral1_800")), col(k("system_neutral1_50")), col(k("system_neutral2_200")), col(k("system_neutral1_700")),
+            col(k("system_neutral1_700")), col(k("system_neutral2_700")), col(k("system_accent1_200")), col(k("system_accent1_200")), redD, greenD, true)
+        fun vars(d: Boolean): String {
+            val s = if (d) mapOf("bg" to "system_neutral1_900", "card" to "system_neutral1_800", "text" to "system_neutral1_50", "faint" to "system_neutral2_200",
+                "sel" to "system_accent2_700", "press" to "system_neutral2_700", "border" to "system_neutral1_700", "tagfg" to "system_neutral2_100", "tag" to "system_neutral2_700",
+                "hover" to "system_neutral2_700", "a1" to "system_accent1_200", "a1b" to "system_accent1_100", "a2" to "system_accent2_200", "a3" to "system_accent3_200")
+            else mapOf("bg" to "system_neutral2_50", "card" to "system_neutral1_10", "text" to "system_neutral1_900", "faint" to "system_neutral2_700",
+                "sel" to "system_accent2_100", "press" to "system_neutral2_100", "border" to "system_neutral2_200", "tagfg" to "system_neutral2_700", "tag" to "system_neutral2_100",
+                "hover" to "system_neutral2_50", "a1" to "system_accent1_600", "a1b" to "system_accent1_500", "a2" to "system_accent2_600", "a3" to "system_accent3_600")
+            val v = s.mapValues { k(it.value) }; fun h(n: String) = hx(v[n]!!)
+            val rd = if (d) "#f38ba8" else "#d20f39"; val gn = if (d) "#a6e3a1" else "#40a02b"
+            return "background-color:${h("bg")};--card-bg:${h("card")};--text-fg:${h("text")};--text-fg-faint:${h("faint")};--text-bg-selected:${h("sel")};--press-bg:${h("press")};" +
+                "--card-border:${h("border")};--card-box-shadow:${if (d) "#0000001f" else "#00000017"};--divider:${h("border")};--tag-fg:${h("tagfg")};--tag-bg:${h("tag")};" +
+                "--tag-fg-active:${h("text")};--tag-bg-active:${h("sel")};--hover-bg:${h("hover")};--hover-fg:${h("text")};--tag-border:transparent;--cloze-fg:${h("a1")};" +
+                "--cloze-bg:${h("card")};--link-fg:${h("a1")};--link-fg-active:${h("a1b")};--bold-fg:${h("a1")};--bold-italic-fg:${h("a1")};--italic-fg:${h("a3")};" +
+                "--h1-fg:${h("a3")};--h2-fg:${h("a2")};--h3-fg:${h("a1")};--h4-fg:$rd;--h5-fg:${h("a1b")};--h6-fg:${h("faint")};--mark-color:color-mix(in srgb,${h("a1")} 22%,transparent);" +
+                "--scheme-red:$rd;--scheme-green:$gn;--scheme-blue:${h("a1")};--ctp-text:${rgb(v["text"]!!)};--ctp-red:${rgb(c(rd).let { (it.value shr 32).toInt() })};" +
+                "--ctp-green:${rgb(c(gn).let { (it.value shr 32).toInt() })};--ctp-blue:${rgb(v["a1"]!!)};--ctp-yellow:${if (d) "249, 226, 175" else "223, 142, 29"};" +
+                "--ctp-teal:${if (d) "148, 226, 213" else "23, 146, 153"};--accent:${h("a1")}"
+        }
+        css = "html[data-theme=you] .card:not(.night_mode){${vars(false)}}html[data-theme=you] .card.card.night_mode,html[data-theme=you] .card.card.nightMode{${vars(true)}}"
+    }
+}
+
+fun pal(theme: String, dark: Boolean): Pal = if (theme == "you") (if (dark) You.dark else You.light) ?: pal("default", dark) else if (!dark) when (theme) {
     "ctp" -> Pal(c("#e6e9ef"), c("#eff1f5"), c("#4c4f69"), c("#6c6f85"), c("#bcc0cc"), c("#bcc0cc"), c("#ccd0da"), c("#8839ef"), c("#1e66f5"), c("#d20f39"), c("#40a02b"), false)
     "nord" -> Pal(c("#e5e9f0"), c("#eceff4"), c("#2e3440"), c("#4c566a"), c("#d8dee9"), c("#d8dee9"), c("#e5e9f0"), c("#5e81ac"), c("#5e81ac"), c("#bf616a"), c("#a3be8c"), false)
     "dracula" -> Pal(mix("#fffbeb", .92f, "#6c664b"), c("#fffbeb"), c("#1f1f1f"), c("#6c664b"), c("#cfcfde"), c("#cfcfde"), mix("#fffbeb", .95f, "#6c664b"), c("#644ac9"), c("#036a96"), c("#cb3a2a"), c("#14710a"), false)

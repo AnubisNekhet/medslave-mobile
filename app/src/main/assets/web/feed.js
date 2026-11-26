@@ -222,6 +222,7 @@ const R={
  posts(l){setTimeout(()=>addPosts(l),Math.max(0,500+Math.random()*900-(Date.now()-(F.asked||0))))},
  stories(g){if(SV.on){F.next=g;return}F.groups=g;rings()},   /* new stories wait while the viewer is open */
  profile(j){pfRender(j)},
+ openAccount(ai,p){svClose(true);PF.first=p;A_.profile(ai)},   /* from Reels: that card's account, the card first */
  pposts(l){if(!l.length)PF.more=false;const at=PF.list.length;PF.list.push(...l);setTimeout(()=>pfAdd(l,at),400+Math.random()*700)},
  closeProfile(){pfClose()},
  savedSet(l){F.saved=new Set(l);document.querySelectorAll('.f-post').forEach(x=>{const q=postOf(x),b=x.querySelector('.f-sv');if(q&&q.n&&b)b.classList.toggle('on',F.saved.has(q.n[0]+':'+q.o))})},   /* saved from Reels */

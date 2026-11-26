@@ -238,7 +238,10 @@ class Reels(private val rs: Rs) {
         val c = rs.cur
         if (card !== c) {
             card = c; liked = false; likes = rnd(800, 98000); coms = rnd(40, 2400); reposting = false; saved = c != null && rs.feed.isSaved(c.n.id, c.o)
-            val hd = pick(handles); name = hd.first; icon = hd.second; color = colors.getOrPut(name) { pick(DCOL).second }
+            /* the feed's account for the card's subject (so tapping it opens that profile); a random one before the feed exists */
+            val fa = c?.let { rs.feed.accountOf(it.n) }
+            if (fa != null) { name = fa.first; icon = fa.second; color = Color(android.graphics.Color.parseColor(fa.third)) }
+            else { val hd = pick(handles); name = hd.first; icon = hd.second; color = colors.getOrPut(name) { pick(DCOL).second } }
             set(pick())
         } else if (!want && song != null) play()
     }

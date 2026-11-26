@@ -41,7 +41,7 @@ class Store(ctx: Context) {
     fun actBump() { val k = LocalDate.now().toString(); val m = obj(AK); m.put(k, m.optInt(k) + 1); set(AK, m.toString()) }
 }
 
-val THEMES = listOf("default", "ctp", "tokyo", "nord", "dracula")
+val THEMES = listOf("default", "you", "ctp", "tokyo", "nord", "dracula")   // you: Material You (Android 12+)
 
 /* settings, as JSON under medslave:settings */
 class Settings(private val st: Store) {
@@ -49,6 +49,7 @@ class Settings(private val st: Store) {
     var style by mutableStateOf("tinder")      // tinder | flip (older saves: doom)
     var reveal by mutableStateOf("pop")        // none | pop | up
     var theme by mutableStateOf("default")
+    var mode by mutableStateOf("auto")            // light or dark: auto (the phone's) | light | dark (Settings › Appearance › Mode)
     var reels by mutableStateOf(true)          // on for a first visit
     var source by mutableStateOf(false)
     var goff by mutableStateOf(setOf<String>()) // music genres switched off
@@ -63,11 +64,12 @@ class Settings(private val st: Store) {
         val o = st.obj(SK)
         ordered = o.optBoolean("ordered", false); style = o.optString("style", "tinder"); reveal = o.optString("reveal", "pop")
         theme = o.optString("theme", "default").let { if (it in THEMES) it else "default" }
+        mode = o.optString("mode", "auto").let { if (it in listOf("auto", "light", "dark")) it else "auto" }
         reels = o.optBoolean("reels", true); source = o.optBoolean("source", false); nocom = o.optBoolean("nocom", false); expl = true; tags = o.optBoolean("tags", false); volkeys = o.optBoolean("volkeys", false); hidex = o.optBoolean("exback", true)
         goff = o.optJSONArray("goff")?.let { a -> (0 until a.length()).map { a.optString(it) }.toSet() } ?: emptySet()
     }
     fun save() {
-        st.set(SK, JSONObject().put("ordered", ordered).put("style", style).put("reveal", reveal).put("theme", theme)
+        st.set(SK, JSONObject().put("ordered", ordered).put("style", style).put("reveal", reveal).put("theme", theme).put("mode", mode)
             .put("reels", reels).put("source", source).put("nocom", nocom).put("expl", expl).put("tags", tags).put("volkeys", volkeys).put("exback", hidex).put("goff", JSONArray(goff.toList())).toString())
     }
     /** Reels Mode forces Flip + Scroll up */

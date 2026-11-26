@@ -52,14 +52,19 @@ class MainActivity : ComponentActivity() {
             SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT))
         super.onCreate(b)
         if (Build.VERSION.SDK_INT >= 29) window.isNavigationBarContrastEnforced = false
+        pizza.kulhad.medslave.ui.You.load(this)   // Material You colours (they change with the wallpaper; the activity is recreated then)
         rs = (lastNonConfigurationInstance as? Rs) ?: Rs(applicationContext).also { it.loadDeck() }
         rs.activity = this
         if (b == null) rs.reels.prune()   // tidy the cache when the app opens
+        rs.updater.check()   // a newer release? (in the background, once per start)
         rs.openFile = { mimes, then -> openThen = then; runCatching { opener.launch(mimes) } }
         rs.saveFile = { name, _, data -> saveData = data; runCatching { saver.launch(name) } }
         handle(intent)
         setContent {
-            val dark = isSystemInDarkTheme()
+            val sys = isSystemInDarkTheme()
+            val dark = when (rs.set.mode) { "light" -> false; "dark" -> true; else -> sys }   // Settings › Appearance › Mode
+            LaunchedEffect(dark) { val t = android.graphics.Color.TRANSPARENT
+                enableEdgeToEdge(if (dark) SystemBarStyle.dark(t) else SystemBarStyle.light(t, t), if (dark) SystemBarStyle.dark(t) else SystemBarStyle.light(t, t)) }
             val p = remember(rs.set.theme, dark) { pal(rs.set.theme, dark) }
             rs.scope = rememberCoroutineScope()
             val dn = LocalDensity.current; val cf = LocalConfiguration.current
@@ -85,6 +90,7 @@ class MainActivity : ComponentActivity() {
                     rs.importTypes?.let { ImportPanel(rs, it) }
                     if (rs.importing) pizza.kulhad.medslave.ui.ImportProgress(rs)
                     rs.dialog?.let { DialogBox(rs, it) }
+                    if (rs.updater.offer != null) pizza.kulhad.medslave.ui.UpdateBox(rs)
                 }
                 /* the back gesture closes the topmost popup, then leaves the deck (the site's pOn/pOff history entries) */
                 BackHandler(rs.study) { rs.home() }

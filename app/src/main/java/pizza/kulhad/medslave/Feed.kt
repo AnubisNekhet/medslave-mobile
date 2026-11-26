@@ -53,6 +53,7 @@ class FeedWeb(ctx: Context, f: Feed) : Page(ctx, "feed.html", false, { FeedBridg
     fun savedSet(j: String) = js("R.savedSet($j)")
     fun replay() = js("R.replay()")
     fun profile(j: String) = js("R.profile($j)")
+    fun openAccount(ai: Int, post: String) = js("R.openAccount($ai,$post)")
     fun profilePosts(j: String) = js("R.pposts($j)")
     fun closeProfile() = js("R.closeProfile()")
     /** the status and navigation bar heights (CSS px): the page runs behind the status bar and pads itself */
@@ -87,7 +88,7 @@ class Feed(val rs: Rs) {
     }
 
     private fun build() {
-        val d = rs.deck; deck = d; page = 0; salt = System.currentTimeMillis()
+        val d = rs.deck; deck = d; page = 0; salt = System.currentTimeMillis(); subOf = null
         seed = (d.meta?.imported ?: "").hashCode().toLong()
         val hs = rs.reels.handles; val s = d.subjects.size
         val order = hs.indices.shuffled(Random(seed))
@@ -170,6 +171,29 @@ class Feed(val rs: Rs) {
         "%s notes you'll thank me for", "%s · no fluff", "%s for the night before")
     private fun title(h: String) = h.split('.', '_').filter { it.isNotEmpty() }.joinToString(" ") { it.replaceFirstChar(Char::uppercase) }
 
+    /* ---- Reels uses the feed's accounts: a card shows the account that posts its subject, and tapping it opens that profile here */
+    private var subOf: Map<Long, Int>? = null
+    private fun accIndex(n: Note): Int {
+        val d = deck ?: rs.deck
+        val m = subOf ?: HashMap<Long, Int>().also { m -> d.subjects.forEachIndexed { i, s -> s.notes.forEach { m[it.id] = i } } }.also { subOf = it }
+        val s = m[n.id] ?: return -1
+        return acc.indexOfFirst { s in it.subs }
+    }
+    /** the feed account for a card: handle, icon, colour (#hex); null before the feed is built */
+    fun accountOf(n: Note): Triple<String, String, String>? = acc.getOrNull(accIndex(n))?.let { Triple(it.h, it.ic, it.c) }
+    /** from Reels: home to the feed, with that card's account open (the card as its latest post) */
+    fun openFromReels(n: Note, o: Int) {
+        val ai = accIndex(n); if (ai < 0) return
+        rs.home(); rs.tab = "feed"
+        io.execute {
+            val r = Random(System.nanoTime()); val reels = rs.reels
+            val p = JSONObject().put("a", ai).put("n", JSONArray(DeckStore.noteJson(rs.ctx, n))).put("o", o).put("likes", r.nextInt(120, 98000)).put("coms", r.nextInt(4, 2400))
+                .put("cap", CAPS[r.nextInt(CAPS.size)])
+                .put("cm", JSONArray(List(2) { JSONArray().put(reels.names[r.nextInt(reels.names.size)] + reels.suffixes[r.nextInt(reels.suffixes.size)]).put(reels.comments[r.nextInt(reels.comments.size)]) }))
+                .put("t", "just now")
+            main.post { web.openAccount(ai, p.toString()) }
+        }
+    }
     fun profile(ai: Int) {
         if (ai !in acc.indices) return
         val d = deck ?: return; pfAi = ai
