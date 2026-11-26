@@ -314,9 +314,7 @@ fun Credits(rs: Rs) {
             Logo(64.dp)
             Gap(10.dp)
             Txt("medslave", size = 24.sp, bold = true)
-            Txt("your own Anki decks, on your phone", color = P.faint)
-            Gap(6.dp)
-            Txt("bring any Anki deck; it stays on your device", size = 14.sp, color = P.faint, align = TextAlign.Center)
+            Txt("by a medslave, for medslaves", color = P.faint)
             Gap(16.dp)
             val decks = rs.deck.top.filter { it.cnt > 0 }
             val tot = decks.sumOf { it.cnt }.coerceAtLeast(1)
