@@ -157,6 +157,7 @@ private fun FeedView(rs: Rs) {
     if (!rs.loaded) { Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Spinner(72.dp) }; return }
     LaunchedEffect(rs.deck) { rs.feed.show() }
     LaunchedEffect(rs.set.nocom) { rs.feed.web.nocom(rs.set.nocom) }
+    LaunchedEffect(rs.set.avatar) { rs.feed.web.avatars(rs.set.avatar == "solid") }
     LaunchedEffect(rs.set.fakeload) { rs.feed.web.fake(rs.set.fakeload) }
     /* the feed's song plays while the feed is on screen */
     androidx.compose.runtime.DisposableEffect(Unit) { rs.feed.web.replay(); onDispose { rs.feed.stopSong() } }

@@ -10,6 +10,7 @@ html,body{height:100%;overflow:hidden}
 #feed,#sv{color:var(--text-fg)}
 #feed{--pdiv:color-mix(in srgb,var(--card-border),color-mix(in srgb,var(--text-fg) 28%,transparent))}   /* style.css's .prettify-divider colour */
 body{margin:0;padding:0;font-family:"Carlito",Calibri,system-ui,sans-serif;color:var(--text-fg)}
+html body.card{padding:0}   /* style.css pads .card (the body here) by .5em, which left a strip above the bottom bar's line */
 button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
 button:active,button:hover{background:none;color:inherit}
 /* the feed's own icons only: a blanket svg rule also caught MathJax (its formulas are SVG) and pushed them to the left */
@@ -35,6 +36,8 @@ button:active,button:hover{background:none;color:inherit}
 .f-st .f-stn{width:100%;font-size:11.5px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .f-av{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#1e1e2e;box-sizing:border-box}
 .f-av svg{width:55%;height:55%}
+.f-av{position:relative;overflow:hidden}.f-av>svg:not(.f-wv){position:relative}   /* the icon over the waves */
+.f-av>svg.f-wv{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .f-ring .f-av{border-color:var(--bgc,var(--card-bg))}   /* --bgc: the page colour, set by R.theme */
 
 /* posts */
@@ -174,7 +177,7 @@ body.nocom .f-cm,body.nocom .f-cmt{display:none!important}
 .f-hl{display:flex;gap:14px;overflow-x:auto;margin-top:16px;scrollbar-width:none}.f-hl::-webkit-scrollbar{display:none}
 .f-hl .f-ring{background:var(--card-border)}
 .f-hlc{background:var(--card-bg)!important;color:var(--text-fg)}
-#pfl{max-width:var(--card-max-width);margin:0 auto;padding:12px 10px calc(16px + var(--sb,0px))}
+#pfl{max-width:var(--card-max-width);margin:0 auto;padding:12px 10px 16px}   /* the bottom bar already sits above the navigation bar: no extra gap over its line */
 .f-none{text-align:center;color:var(--text-fg-faint);font-size:14px;padding:40px 20px}
 /* daily.heatmap's posts: the day's count, and its month with the day ringed */
 .f-day{display:flex;flex-direction:column;align-items:center;padding:18px 12px 16px}
@@ -192,5 +195,13 @@ body.nocom .f-cm,body.nocom .f-cmt{display:none!important}
 .f-car table{overscroll-behavior-x:auto}
 .f-sl{flex:0 0 100%;scroll-snap-align:start;scroll-snap-stop:always;display:flex;min-width:0}
 .f-sl>.prettify-flashcard{flex:1;display:flex;flex-direction:column;justify-content:center;min-width:0}
-.f-dots{display:flex;justify-content:center;gap:4px;padding-top:10px;margin-bottom:-6px;pointer-events:none}   /* their own row under the cards */
+.f-dots{display:flex;justify-content:center;gap:4px;padding:10px 0;border-bottom:1px dashed var(--pdiv);pointer-events:none}   /* their own row under the cards, above the post's divider */
+.f-pb:has(+.f-dots){border-bottom:0}   /* the divider moves under the dots */
+.f-dots+.f-pa{padding-top:5px}   /* no leftover gap under that line (it used to be the dots' -6px) */
 .f-dots i{width:6px;height:6px;border-radius:50%;background:var(--pdiv)}.f-dots i.on{background:var(--text-fg)}
+
+
+/* once the stories have scrolled up under the header, their dashed line stays as the header's own bottom edge */
+.f-top::after{content:"";position:absolute;left:0;right:0;bottom:-1px;border-bottom:1px dashed var(--pdiv);opacity:0;pointer-events:none}
+.f-top.sc::after{opacity:1}
+.av-solid .f-av>svg.f-wv{display:none}

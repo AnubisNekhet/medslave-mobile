@@ -31,10 +31,11 @@ val ISL = mapOf(
     "m" to listOf("Question*", "Correct option*", "Option 1*", "Option 2*", "Option 3", "Option 4", "Extra", "Year", "Title"),
     "b" to listOf("Front*", "Back*", "Extra", "Title", "Source", "Hint", "Reverse"),
     "c" to listOf("Text*", "Extra", "Title", "Source", "Hint", "Left align", "Sequential", "Show all clozes"),
-    "o" to listOf("Occlusions*", "Header", "Image*", "Footer"))
+    "o" to listOf("Occlusions*", "Header", "Image*", "Footer"),
+    "x" to listOf("Question*", "Left*", "Right*", "Pairs*", "Extra", "Year", "Title"))
 /* Basic's Reverse slot: a note whose field there is filled also gets the back → front card (card 1; -note id when the package has none).
    the field is only a switch and isn't stored. without it a note keeps only the front → back card */
-val IKS = linkedMapOf("b" to "Basic", "c" to "Cloze", "o" to "Image occlusion", "m" to "MCQ", "e" to "Image occlusion (Enhanced add-on)")
+val IKS = linkedMapOf("b" to "Basic", "c" to "Cloze", "o" to "Image occlusion", "m" to "MCQ", "x" to "Match", "e" to "Image occlusion (Enhanced add-on)")
 
 private fun rx(s: String) = Regex(s, RegexOption.IGNORE_CASE)
 private val SLOT = mapOf(
@@ -43,6 +44,8 @@ private val SLOT = mapOf(
     "o" to listOf("occlusion", "header", "^image", "footer|back.?extra"),
     "e" to listOf("^image$", "question.?mask", "answer.?mask", "^header", "^footer", "remark", "source", "extra.?1", "extra.?2"),
     /* m: MCQs with an option per field and the right one's number (AkiraRemix MCQs: Question, Correct, Option1-4, Extra, Year, Title) */
+    /* x: match the following: the two columns (an item per line, optionally keyed "A." / "1)"), and the right pairs ("A-1, B-3, …") */
+    "x" to listOf("^(question|stem|q)$", "^(left|column.?(a|1)|col.?(a|1)|list.?(a|1|i))", "^(right|column.?(b|2)|col.?(b|2)|list.?(b|2|ii))", "^(pairs?|answer|correct|key|matches)", "extra|explan|solution", "^year", "^title|heading"),
     "m" to listOf("^(question|stem|q)$", "^(correct|answer|correct.?option|ans|key)$", "^opt(ion)?.?(1|a)$", "^opt(ion)?.?(2|b)$", "^opt(ion)?.?(3|c)$", "^opt(ion)?.?(4|d)$", "extra|explan|solution", "^year", "^title|heading")
 ).mapValues { (_, l) -> l.map { Regex(it) } }
 private val OPTS = rx("^(options?|choices?|mcq.?options?)$") // PYQ MCQs: an unmapped options field stays on the front
@@ -52,6 +55,9 @@ private val PXF = Regex("\\[\\[rect\\d*::\\s*[\\d.]+,")
 /** an MCQ note type: a question, a correct-answer field and at least two option fields */
 private fun isMCQ(names: List<String>): Boolean { val l = names.map { it.lowercase().trim() }
     return SLOT["m"]!!.let { m -> l.any { m[0].containsMatchIn(it) } && l.any { m[1].containsMatchIn(it) } && l.any { m[2].containsMatchIn(it) } && l.any { m[3].containsMatchIn(it) } } }
+/** a Match note type: a left column, a right column and the pairs */
+private fun isMatch(names: List<String>): Boolean { val l = names.map { it.lowercase().trim() }
+    return SLOT["x"]!!.let { m -> l.any { m[1].containsMatchIn(it) } && l.any { m[2].containsMatchIn(it) } && l.any { m[3].containsMatchIn(it) } } }
 private fun isIOE(names: List<String>) = names.any { rx("question.?mask").containsMatchIn(it) } && names.any { rx("answer.?mask").containsMatchIn(it) }
 
 /* shared decks come from anywhere and their fields go into the page as HTML: no scripts, styles, embeds, event handlers, javascript: links */
@@ -77,7 +83,7 @@ private fun plan(names: List<String>, k: String): IntArray {
     val l = names.map { it.lowercase().trim() }; val used = HashSet<Int>()
     val m = SLOT[k]!!.map { r -> val i = l.indices.firstOrNull { it !in used && r.containsMatchIn(l[it]) } ?: -1; if (i >= 0) used.add(i); i }.toIntArray()
     fun fill(s: Int) { if (m[s] < 0) { val i = l.indices.firstOrNull { it !in used } ?: -1; if (i >= 0) { m[s] = i; used.add(i) } } }
-    when (k) { "b" -> { fill(0); fill(1) }; "c" -> fill(0); "o" -> { fill(0); fill(2) }; "m" -> fill(0) }
+    when (k) { "b" -> { fill(0); fill(1) }; "x" -> fill(0); "c" -> fill(0); "o" -> { fill(0); fill(2) }; "m" -> fill(0) }
     return m
 }
 
@@ -175,8 +181,8 @@ class Importer(private val ctx: Context, private val say: (String, Float?) -> Un
             val t = nt[mid] ?: NT("Note type $mid", f.indices.map { "Field ${it + 1}" }.toMutableList(), false)
             if (t.names.isEmpty()) t.names = f.indices.map { "Field ${it + 1}" }.toMutableList()
             nt[mid] = t; val names = t.names
-            val kind = if (mid in io || mid in px) "o" else if (isIOE(names)) "e" else if (isMCQ(names)) "m" else if (t.cloze || f.any { CLZ.containsMatchIn(it) }) "c" else "b"
-            val pl = listOf("b", "c", "o", "e", "m").associateWith { plan(names, it) }
+            val kind = if (mid in io || mid in px) "o" else if (isIOE(names)) "e" else if (isMatch(names)) "x" else if (isMCQ(names)) "m" else if (t.cloze || f.any { CLZ.containsMatchIn(it) }) "c" else "b"
+            val pl = listOf("b", "c", "o", "e", "m", "x").associateWith { plan(names, it) }
             px[mid]?.let { j -> pl["o"]!!.let { o -> for (s in o.indices) if (s == 0) o[s] = j else if (o[s] == j) o[s] = -1 } }
             /* sample of each field: its first non-empty value among up to 200 notes of that type */
             val sm = arrayOfNulls<String>(names.size)
@@ -215,7 +221,7 @@ class Importer(private val ctx: Context, private val say: (String, Float?) -> Un
                     val rv = p.m.getOrElse(6) { -1 }.let { it >= 0 && it < f.size && strip(f[it]).isNotEmpty() }   // the Reverse field is filled: both ways
                     o = if (rv) listOf(0, 1) else listOf(0); ids = o.map { x -> c.o.indexOf(x).let { if (it >= 0) c.id[it] else if (x == 0) c.id[0] else -id } }   // no reverse card in the package: -note id stands in
                 }
-                else if (k == "e" || k == "m") { val keep = c.o.indices.filter { c.o[it] < 2 }; o = keep.map { c.o[it] }; ids = keep.map { c.id[it] }; if (o.isEmpty()) return@rows }
+                else if (k == "e" || k == "m" || k == "x") { val keep = c.o.indices.filter { c.o[it] < 2 }; o = keep.map { c.o[it] }; ids = keep.map { c.id[it] }; if (o.isEmpty()) return@rows }
                 var fields = (if (k == "b") p.m.take(6) else p.m.toList()).map(g).toMutableList()
                 when (k) {
                     /* IOE → a basic card: front = image under the question mask, back = image under the answer mask; field 6 'ioe' */
@@ -224,6 +230,9 @@ class Importer(private val ctx: Context, private val say: (String, Float?) -> Un
                         fields = mutableListOf(ov(qm), ov(am), listOf(rm, x1, x2).filter { it.isNotBlank() }.joinToString("<br><br>"), hd, sr, "", "ioe") }
                     /* MCQ → a basic card: the question with lettered options; the answer side shows them again with the right one marked,
                        then the explanation. field 6 'ioe': the answer side shows only the back (it repeats the question) */
+                    /* Match → a basic card: the question with the two columns as a table (mt-src: each cell keyed), field 1 the right pairs,
+                       field 6 'match' (face.js draws the wires) */
+                    "x" -> fields = mutableListOf(fields[0] + matchTable(fields[1], fields[2], fields[3]), fields[3], fields[4], fields[6], fields[5], "", "match")
                     "m" -> { val q = fields[0]; val cr = fields[1]; val op = (2..5).map { fields[it] }.filter { it.isNotBlank() }
                         val plain = { x: String -> x.replace(Regex("<[^>]*>"), "").replace("&nbsp;", " ").trim() }
                         val key = plain(cr).lowercase()
@@ -237,7 +246,7 @@ class Importer(private val ctx: Context, private val say: (String, Float?) -> Un
                 val path = dk[c.did] ?: "Default"
                 val x = pi.getOrPut(path) { paths.add(path); perPath.add(0); paths.size - 1 }; perPath[x]++
                 ins.clearBindings()
-                ins.bindLong(1, id); ins.bindString(2, if (k == "e" || k == "m") "b" else k); ins.bindLong(3, x.toLong())
+                ins.bindLong(1, id); ins.bindString(2, if (k == "e" || k == "m" || k == "x") "b" else k); ins.bindLong(3, x.toLong())
                 ins.bindString(4, o.joinToString(",")); ins.bindString(5, ids.joinToString(","))
                 ins.bindString(6, JSONArray(fields).toString())
                 ins.bindString(7, JSONArray(r.getString(3).trim().split(Regex("\\s+")).filter { it.isNotEmpty() }).toString())
@@ -294,4 +303,33 @@ class Importer(private val ctx: Context, private val say: (String, Float?) -> Un
         runCatching { zip?.close() }; zip = null
         pkg.delete(); colFile.delete(); File(colFile.path + "-journal").delete()
     }
+}
+
+/* ---- Match: the columns as a keyed table. the keys come from the pairs ("A-1, B-3" → left A, B…, right 1, 3…); an item may carry
+   its key ("A. …", "1) …"), otherwise the items take the keys in order */
+private val MK = "(?:[0-9]{1,2}|ix|iv|vi{0,3}|i{1,3}|x|[A-Za-z])"   // roman numerals before single letters, so "ii" is one key
+private val MPAIR = Regex("(?<![\\w])($MK)\\s*[-–:→]\\s*($MK)(?![\\w])")
+private fun roman(k: String) = listOf("i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x").indexOf(k.lowercase())
+private fun keyOrder(k: String): Int = k.toIntOrNull() ?: roman(k).takeIf { it >= 0 && k.length > 1 }?.plus(100) ?: (k.lowercase()[0] - 'a' + 200)
+private fun matchItems(html: String, keys: List<String>): List<String> {
+    val seg = html.split(Regex("<br\\b[^>]*>|</(?:div|p|li|tr)>|\\n", RegexOption.IGNORE_CASE)).map { it.replace(Regex("</?(?:div|p|ul|ol|li|table|tbody|tr|td|th)\\b[^>]*>", RegexOption.IGNORE_CASE), "").trim() }
+        .filter { it.replace(Regex("<(?!img)[^>]*>"), "").replace("&nbsp;", " ").isNotBlank() }
+    val out = arrayOfNulls<String>(keys.size); val rest = ArrayList<String>()
+    seg.forEach { s0 ->
+        val m = Regex("^((?:<[^>]+>)*)\\s*\\(?($MK)[.):\\-]\\s+").find(s0)
+        val i = m?.let { mm -> keys.indexOfFirst { it.equals(mm.groupValues[2], true) } } ?: -1
+        if (m != null && i >= 0 && out[i] == null) out[i] = m.groupValues[1] + s0.substring(m.range.last + 1) else rest.add(s0)
+    }
+    rest.forEach { s -> val i = out.indexOfFirst { it == null }; if (i >= 0) out[i] = s }
+    return out.map { it ?: "" }
+}
+private fun matchTable(left: String, right: String, pairs: String): String {
+    val ps = MPAIR.findAll(pairs.replace(Regex("<[^>]*>"), " ")).map { it.groupValues[1] to it.groupValues[2] }.toList()
+    if (ps.isEmpty()) return ""
+    val lk = ps.map { it.first }.distinct(); val rk = ps.map { it.second }.distinct().sortedBy(::keyOrder)
+    val li = matchItems(left, lk); val ri = matchItems(right, rk)
+    val q = { k: String -> k.replace("\"", "") }
+    return "<table class=\"mt-src\">" + (0 until maxOf(lk.size, rk.size)).joinToString("") { i ->
+        "<tr>" + (if (i < lk.size) "<td data-k=\"${q(lk[i])}\">${li[i]}</td>" else "<td></td>") + (if (i < rk.size) "<td data-k=\"${q(rk[i])}\">${ri[i]}</td>" else "<td></td>") + "</tr>"
+    } + "</table>"
 }

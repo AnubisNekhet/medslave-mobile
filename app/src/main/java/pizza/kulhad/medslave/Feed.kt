@@ -48,6 +48,7 @@ class FeedWeb(ctx: Context, f: Feed) : Page(ctx, "feed.html", false, { FeedBridg
     fun heat(j: String) = js("R.heat($j)")
     fun refreshed(j: String) = js("R.refreshed($j)")
     fun nocom(v: Boolean) = js("R.nocom($v)")
+    fun avatars(solid: Boolean) = js("R.avatars($solid)")   // Settings › Appearance › Profile style
     fun fake(v: Boolean) = js("R.fake($v)")
     /** a like's colour (#hex): the accent, or Instagram red */
     fun like(hex: String) = js("document.documentElement.style.setProperty('--like','$hex')")
@@ -152,8 +153,8 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
 
     /** a random card from one of the account's niches: [note json, ordinal, subject] */
     private var lastMcq = false   // whether card() just picked an MCQ (carousels never have one)
-    private fun card(r: Random, a: Acc, noMcq: Boolean = false): Triple<JSONArray, Int, Int>? {
-        val d = deck ?: return null; val s = a.subs[r.nextInt(a.subs.size)]; val notes = d.subjects[s].notes
+    private fun card(r: Random, a: Acc, noMcq: Boolean = false, sub: Int = -1): Triple<JSONArray, Int, Int>? {
+        val d = deck ?: return null; val s = if (sub >= 0) sub else a.subs[r.nextInt(a.subs.size)]; val notes = d.subjects[s].notes
         if (notes.isEmpty()) return null
         var n: Note; var o: Int; var k = 0
         do { n = notes[r.nextInt(notes.size)]; o = n.ords[r.nextInt(n.ords.size)] } while ((isHidden(n.id, o) || noMcq && n.mcq) && ++k < 12)   // never a hidden card
@@ -308,11 +309,14 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
     private fun stories(b: Long): JSONArray {
         val out = JSONArray(); if (acc.isEmpty()) { groups = emptyList(); return out }
         val r = Random(seed * 131 + b)
-        val pick = acc.indices.shuffled(r).take(12)
+        /* every subject on the home page has a story: one of its accounts each (its cards from that subject), then random accounts up to 12 */
+        val sh = acc.indices.shuffled(r); val pick = LinkedHashMap<Int, Int>()   // account → the subject its story is drawn from (-1: any of its niche)
+        deck?.subjects?.indices?.shuffled(r)?.forEach { s -> if (deck!!.subjects[s].notes.isNotEmpty() && pick.values.none { it == s }) sh.firstOrNull { it !in pick && s in acc[it].subs }?.let { pick[it] = s } }
+        sh.forEach { if (pick.size < 12 && it !in pick) pick[it] = -1 }
         val times = listOf("1m", "4m", "12m", "38m", "1h", "2h", "3h", "5h", "9h", "14h", "20h")
         val g = ArrayList<Int>()
-        pick.forEach { ai ->
-            val items = JSONArray(); repeat(1 + r.nextInt(3)) { card(r, acc[ai], noMcq = true)?.let { (n, o, _) -> items.put(JSONObject().put("n", n).put("o", o).also { song(r, it) }) } }
+        pick.keys.shuffled(r).forEach { ai -> val sub = pick[ai] ?: -1
+            val items = JSONArray(); repeat(1 + r.nextInt(3)) { card(r, acc[ai], noMcq = true, sub = sub)?.let { (n, o, _) -> items.put(JSONObject().put("n", n).put("o", o).also { song(r, it) }) } }
             if (items.length() == 0) return@forEach
             g.add(ai)
             out.put(JSONObject().put("a", ai).put("t", times[r.nextInt(times.size)]).put("items", items).put("seen", "$b:${acc[ai].h}" in seen))

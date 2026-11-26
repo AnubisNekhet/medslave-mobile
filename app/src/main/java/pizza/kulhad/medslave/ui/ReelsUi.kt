@@ -49,6 +49,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -59,12 +60,14 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -115,7 +118,7 @@ fun ReelOverlay(rs: Rs) {
             Row(Modifier.weight(1f).onGloballyPositioned { val b = it.boundsInWindow(); r.whoTop = b.top - rs.stageRect.top - rs.oy.value; r.setExcl(0, b) },
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                 val openAcc = { rs.cur?.let { c -> rs.feed.openFromReels(c.n, c.o) }; Unit }   // the account's profile in the feed
-                Box(Modifier.size(37.dp).clip(CircleShape).background(r.color).clickable(remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, null) { openAcc() }, contentAlignment = Alignment.Center) { Icon(r.icon, 20.dp, DARKINK) }
+                Box(Modifier.size(37.dp).clip(CircleShape).background(r.color).clickable(remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, null) { openAcc() }, contentAlignment = Alignment.Center) { if (rs.set.avatar != "solid") Waves(r.color); Icon(r.icon, 20.dp, DARKINK) }
                 Column(Modifier.widthIn(max = (LocalConfiguration.current.screenWidthDp * .6f).dp)) {
                     androidx.compose.foundation.text.BasicText(r.name, style = TextStyle(color = P.text, fontSize = 15.sp, fontFamily = Carlito, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, shadow = glowStyle()), maxLines = 1,
                         modifier = Modifier.clickable(remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, null) { openAcc() })
@@ -124,14 +127,28 @@ fun ReelOverlay(rs: Rs) {
                 }
             }
             Column(Modifier.onGloballyPositioned { r.setExcl(1, it.boundsInWindow()) }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(15.dp)) {
-                /* like: a pop when it turns on */
-                val pop = remember { Animatable(1f) }
-                LaunchedEffect(r.likePop) { if (r.likePop > 0) pop.animateTo(1f, keyframes { durationMillis = 350; .6f at 0; 1.25f at 210; 1f at 350 }) }
-                Act(onClick = { r.like(!r.liked) }) {
-                    Icon(Ic.HEART, 25.dp, if (r.liked) likeC(rs) else P.text, fill = r.liked, modifier = Modifier.scale(pop.value))
+                /* the feed's button animations (feed.css). like: the heart pops and a ring bursts out of it; unlike: a small squash */
+                val scope = rememberCoroutineScope()
+                val pop = remember { Animatable(1f) }; val ring = remember { Animatable(1f) }; var unlikes by remember { mutableIntStateOf(0) }
+                LaunchedEffect(r.likePop) { if (r.likePop > 0) {
+                    launch { ring.snapTo(0f); ring.animateTo(1f, tween(450, easing = CubicBezierEasing(0f, 0f, .58f, 1f))) }
+                    pop.animateTo(1f, keyframes { durationMillis = 350; .6f at 0; 1.25f at 210; 1f at 350 }) } }
+                LaunchedEffect(unlikes) { if (unlikes > 0) pop.animateTo(1f, keyframes { durationMillis = 250; 1f at 0; .8f at 100; 1f at 250 }) }
+                Act(onClick = { val v = !r.liked; r.like(v); if (!v) unlikes++ }) {
+                    Box(Modifier.size(25.dp), contentAlignment = Alignment.Center) {
+                        if (ring.value < 1f) { val t = ring.value; Box(Modifier.size(25.dp).graphicsLayer { scaleX = .4f + 1.3f * t; scaleY = scaleX; alpha = 1f - t }.border((2f * (1f - t)).dp, likeC(rs), CircleShape)) }
+                        Icon(Ic.HEART, 25.dp, if (r.liked) likeC(rs) else P.text, fill = r.liked, modifier = Modifier.scale(pop.value))
+                    }
                     ActLabel(kfmt(r.likes + if (r.liked) 1 else 0))
                 }
-                if (!rs.set.nocom) Act(onClick = { r.open("com") }) { Icon(Ic.COMMENT, 25.dp, P.text); ActLabel(kfmt(r.coms)) }
+                /* comments: a wiggle, then the sheet */
+                val wig = remember { Animatable(0f) }
+                if (!rs.set.nocom) Act(onClick = { scope.launch { wig.snapTo(0f); wig.animateTo(1f, tween(450, easing = CubicBezierEasing(.42f, 0f, .58f, 1f))) }
+                    scope.launch { if (!rs.rm()) kotlinx.coroutines.delay(160); r.open("com") } }) {
+                    val t = wig.value
+                    val rot = when { t <= 0f || t >= 1f -> 0f; t < .2f -> -14f * t / .2f; t < .45f -> -14f + 25f * (t - .2f) / .25f; t < .7f -> 11f - 17f * (t - .45f) / .25f; else -> -6f + 6f * (t - .7f) / .3f }
+                    val sc = when { t <= 0f || t >= 1f -> 1f; t < .2f -> 1f + .1f * t / .2f; t < .45f -> 1.1f; t < .7f -> 1.1f - .1f * (t - .45f) / .25f; else -> 1f }
+                    Icon(Ic.COMMENT, 25.dp, P.text, modifier = Modifier.graphicsLayer { rotationZ = rot; scaleX = sc; scaleY = sc }); ActLabel(kfmt(r.coms)) }
                 /* Repost = missed it: red, the arrows turn half a turn, a cross pops in, then the card is requeued and scrolls up */
                 val turn = remember { Animatable(0f) }; val x = remember { Animatable(0f) }
                 LaunchedEffect(r.repostAt) {
@@ -149,20 +166,32 @@ fun ReelOverlay(rs: Rs) {
                         if (red) Icon(Ic.CROSS, 25.dp, HEART, 2.6f, modifier = Modifier.scale(x.value))
                     }
                 }
-                Act(onClick = { r.open("share") }) { Icon(Ic.SEND, 25.dp, P.text) }
-                /* Save: the card goes into saved.cards (the feed's archive), a pop when it turns on */
-                val sp = remember { Animatable(1f) }
-                LaunchedEffect(r.savePop) { if (r.savePop > 0) sp.animateTo(1f, keyframes { durationMillis = 350; .6f at 0; 1.25f at 210; 1f at 350 }) }
+                /* share: the plane flies off top right and comes back in from bottom left, then the sheet */
+                val fly = remember { Animatable(1f) }
+                Act(onClick = { scope.launch { fly.snapTo(0f); fly.animateTo(1f, tween(600, easing = CubicBezierEasing(.4f, 0f, .2f, 1f))) }
+                    scope.launch { if (!rs.rm()) kotlinx.coroutines.delay(260); r.open("share") } }) {
+                    val t = fly.value
+                    val (dx, a, sc) = if (t < .4f) Triple(16f * t / .4f, 1f - t / .4f, 1f - .3f * t / .4f) else if (t < .41f) Triple(-12f, 0f, .7f) else { val u = (t - .41f) / .59f; Triple(-12f * (1 - u), u, .7f + .3f * u) }
+                    val dpx = with(androidx.compose.ui.platform.LocalDensity.current) { dx.dp.toPx() }
+                    Icon(Ic.SEND, 25.dp, P.text, modifier = Modifier.graphicsLayer { translationX = dpx; translationY = -dpx; alpha = a; scaleX = sc; scaleY = sc })
+                }
+                /* Save: the card goes into saved.cards (the feed's archive); the bookmark drops in on every tap */
+                val drop = remember { Animatable(1f) }
+                LaunchedEffect(r.savePop) { if (r.savePop > 0) { drop.snapTo(0f); drop.animateTo(1f, tween(400, easing = CubicBezierEasing(.3f, 1.6f, .5f, 1f))) } }
                 Act(onClick = {
-                    rs.cur?.let { c -> r.saved = !r.saved; if (r.saved) r.savePop++; rs.feed.saveFromReels(c.n.id, c.o, r.saved) }
-                }) { Icon(Ic.SAVE, 25.dp, P.text, fill = r.saved, modifier = Modifier.scale(sp.value)) }
+                    rs.cur?.let { c -> r.saved = !r.saved; r.savePop++; rs.feed.saveFromReels(c.n.id, c.o, r.saved) }
+                }) {
+                    val t = drop.value; val dy = with(androidx.compose.ui.platform.LocalDensity.current) { (-8f * (1 - t)).dp.toPx() }
+                    Icon(Ic.SAVE, 25.dp, P.text, fill = r.saved, modifier = Modifier.graphicsLayer { translationY = dy; scaleX = .85f + .15f * t; scaleY = scaleX })
+                }
                 /* ⋯: a small menu with Hide (like a feed post's), which keeps the card out of Reels, posts and stories */
                 var menu by remember { mutableStateOf(false) }
+                var shutAt by remember { mutableStateOf(0L) }   // when a touch outside closed it: that touch landing on the dots mustn't reopen it
                 LaunchedEffect(rs.cur) { menu = false }
                 Box {
-                    Act(onClick = { menu = !menu }) { Icon(Ic.DOTS, 25.dp, P.text, 2.6f) }
+                    Act(onClick = { if (menu) menu = false else if (System.currentTimeMillis() - shutAt > 400) menu = true }) { Icon(Ic.DOTS, 25.dp, P.text, 2.6f) }
                     if (menu) androidx.compose.ui.window.Popup(alignment = Alignment.CenterEnd, offset = androidx.compose.ui.unit.IntOffset(with(androidx.compose.ui.platform.LocalDensity.current) { -40.dp.roundToPx() }, 0),
-                        onDismissRequest = { menu = false }) {
+                        onDismissRequest = { menu = false; shutAt = System.currentTimeMillis() }) {
                         val sh = RoundedCornerShape(8.dp)
                         Row(Modifier.clip(sh).background(P.card).border(1.dp, P.border, sh).clickable { menu = false; rs.hideCur() }.padding(horizontal = 14.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -411,12 +440,19 @@ private fun AddPlaylist(rs: Rs, edit: pizza.kulhad.medslave.Reels.Playlist?, clo
             if (kept.isNotEmpty()) Box(Modifier.fillMaxWidth().heightIn(max = 300.dp).verticalScroll(rememberScrollState())) {
                 androidx.compose.foundation.layout.FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     kept.toList().forEach { s ->
-                        /* one of the theme's accents (picked by the song, so it stays put), the text the opposite of the normal text colour */
+                        /* the album cover fills the pill; over it one of the theme's accents (picked by the song, so it stays put), 20% at the left
+                           to full at the right. the title in the text colour with the overlay's glow (it sits on the cover); the × on the full colour */
                         val bg = if (acc.isEmpty()) P.hi else acc[((s.title + s.artist).hashCode().toUInt() % acc.size.toUInt()).toInt()]
-                        val fg = P.bg
-                        Row(Modifier.clip(RoundedCornerShape(30.dp)).background(bg).padding(start = 12.dp, end = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Txt(s.title, size = 13.6.sp, bold = true, color = fg, lines = 1, modifier = Modifier.widthIn(max = 200.dp))
-                            Box(Modifier.size(28.dp).clip(CircleShape).clickable { kept.remove(s) }, contentAlignment = Alignment.Center) { Txt("×", size = 17.sp, bold = true, color = fg) }
+                        var cov by remember(s.art) { mutableStateOf<ImageBitmap?>(null) }
+                        LaunchedEffect(s.art) { rs.reels.art(s.art) { cov = it } }
+                        Box(Modifier.height(28.dp).clip(RoundedCornerShape(30.dp)).background(P.card)) {
+                            cov?.let { Image(it, null, Modifier.matchParentSize(), contentScale = ContentScale.Crop) }
+                            Box(Modifier.matchParentSize().background(androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(bg.copy(alpha = .2f), bg))))
+                            Row(Modifier.fillMaxHeight().padding(start = 12.dp, end = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                                androidx.compose.foundation.text.BasicText(s.title, style = TextStyle(color = P.text, fontSize = 13.6.sp, fontFamily = Carlito, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, shadow = glowStyle()),
+                                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 200.dp))
+                                Box(Modifier.size(28.dp).clip(CircleShape).clickable { kept.remove(s) }, contentAlignment = Alignment.Center) { Txt("×", size = 17.sp, bold = true, color = P.bg) }
+                            }
                         }
                     }
                 }
@@ -496,5 +532,20 @@ private fun PlCover(r: pizza.kulhad.medslave.Reels, urls: List<String>, on: Bool
             else -> { val g = if (urls.size == 3) listOf(0, 1, 2, 0) else listOf(0, 1, 3, 2)   // top left, top right, bottom left, bottom right
                 Column(Modifier.fillMaxSize()) { for (row in 0..1) Row(Modifier.weight(1f).fillMaxWidth()) { for (c in 0..1) pic(urls[g[row * 2 + c]], Modifier.weight(1f).fillMaxHeight()) } } }
         }
+    }
+}
+
+/** an account avatar's waves (as the feed's, feed.js avatar): two diagonal waves over its colour, each a further hue step round the wheel */
+private fun hueStep(c: Color, dh: Float): Color { val hsl = FloatArray(3); androidx.core.graphics.ColorUtils.colorToHSL(c.toArgb(), hsl); hsl[0] = ((hsl[0] + dh) % 360f + 360f) % 360f; return Color(androidx.core.graphics.ColorUtils.HSLToColor(hsl)) }
+@Composable
+fun androidx.compose.foundation.layout.BoxScope.Waves(c: Color) {
+    val c1 = remember(c) { hueStep(c, 22f) }; val c2 = remember(c) { hueStep(c, 44f) }
+    androidx.compose.foundation.Canvas(Modifier.matchParentSize()) {
+        val u = size.width / 100f
+        fun wave(y: Float) = androidx.compose.ui.graphics.Path().apply {
+            moveTo(-40 * u, y * u); cubicTo(-15 * u, (y - 12) * u, 5 * u, (y + 12) * u, 30 * u, y * u)
+            cubicTo(55 * u, (y - 12) * u, 75 * u, (y - 12) * u, 100 * u, y * u); cubicTo(125 * u, (y + 12) * u, 145 * u, (y + 12) * u, 170 * u, y * u)
+            lineTo(170 * u, 200 * u); lineTo(-40 * u, 200 * u); close() }
+        withTransform({ rotate(-28f) }) { drawPath(wave(52f), c1); drawPath(wave(76f), c2) }
     }
 }

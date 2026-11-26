@@ -34,6 +34,7 @@ class CardBridge(private val w: CardWeb) {
     @JavascriptInterface fun pick(ok: Boolean) = h.post { w.onPick(ok) }
     @JavascriptInterface fun ex(up: Boolean, down: Boolean) = h.post { w.exUp = up; w.exDown = down }
     @JavascriptInterface fun mv() = h.post { w.moved = true }
+    @JavascriptInterface fun wire() = h.post { w.wire = true }   // this touch is on a Match card's wire board
 }
 
 /** one of the app's pages (an html file in assets/web) in a WebView, served from https://appassets.androidplatform.net/ so it behaves like a
@@ -107,6 +108,8 @@ class CardWeb(ctx: Context) : Page(ctx, "card.html", true, { CardBridge(it as Ca
     var exUp = false; var exDown = false
     /** the card scrolled during this touch (reset as each touch lands): a swipe that was scrolling it never moves to the next card */
     var moved = false
+    /** this touch is on a Match card's wire board (reset as each touch lands): the card doesn't swipe, flip or fly */
+    var wire = false
     var contentH by mutableFloatStateOf(0f)   // the card's full height in CSS px (= dp)
     var onTap: () -> Unit = {}
     var onPick: (Boolean) -> Unit = {}   // an MCQ's option tapped: right or wrong

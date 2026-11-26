@@ -3,7 +3,9 @@
    App.st(left, n): sequential clozes still hidden + the step size. App.tap(): a pulsing cloze was tapped (= Next).
    App.h(px): the card's full height in CSS px (Reels Mode keeps tall cards above the account row). App.sc(top, bottom): whether the
    card's own scroll is at its top / bottom (a card taller than the view scrolls inside itself). App.ready(seq): a draw is on the page */
-const A_=window.App||{st(){},tap(){},h(){},sc(){},ready(){},pick(){},ex(){},mv(){}};
+const A_=window.App||{st(){},tap(){},h(){},sc(){},ready(){},pick(){},ex(){},mv(){},wire(){}};
+/* a Match card wired right (face.js): that's the answer; ok false if a wrong wiring came first */
+function mtDone(ok){if(!stage&&cur)A_.pick(ok)}
 /* an MCQ's option tapped on the question side: that's the answer. the answer side is redrawn with it marked, and the app is told
    whether it was right (App.pick), which it uses as the verdict when the card moves on */
 document.addEventListener('click',e=>{const l=e.target.closest('#stage .option-group label[data-o]');if(!l||stage||!cur)return;e.preventDefault();

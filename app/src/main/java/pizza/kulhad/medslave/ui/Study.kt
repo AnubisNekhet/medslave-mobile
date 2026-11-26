@@ -87,7 +87,7 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.cardGest
     val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
     if (rs.cur == null) return@awaitEachGesture
     val flip = rs.set.flip; val x0 = down.position.x; val y0 = down.position.y; val t0 = down.uptimeMillis
-    var bot = rs.web.atBottom(); var top = rs.web.atTop(); rs.web.exUp = false; rs.web.exDown = false; rs.web.moved = false
+    var bot = rs.web.atBottom(); var top = rs.web.atTop(); rs.web.exUp = false; rs.web.exDown = false; rs.web.moved = false; rs.web.wire = false
     /* not while an explanation card under the finger can still scroll that way */
     fun canBot() = bot && !rs.web.exDown && !rs.web.moved   // and the card didn't scroll during this touch
     fun canTop() = top && !rs.web.exUp && !rs.web.moved
@@ -102,9 +102,15 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.cardGest
         val c = ev.changes.firstOrNull { it.id == down.id } ?: break
         dx = (c.position.x - x0) / d; dy = (c.position.y - y0) / d
         if (!c.pressed) { tUp = c.uptimeMillis; break }
+        if (rs.web.wire) continue   // dragging a wire on a Match card: the card stays put
         if (follow && !multi) {
             if (!rdrag && abs(dy) > 10 && abs(dy) > abs(dx) * 1.2f && (dy < 0 && canBot() || dy > 0 && canTop())) { rdrag = true; rs.preCapture() }
-            if (rdrag) { c.consume()   /* the reel moves, not the card's page under it */
+            if (rs.web.wire) {   // a Match card's wire drag: undo anything that started before the page said so
+        if (drag || rdrag) rs.scope.launch { val t = tween<Float>(200); launch { rs.tx.animateTo(0f, t) }; launch { rs.oy.animateTo(0f, t) }; launch { rs.rot.animateTo(0f, t) }; rs.ty.animateTo(0f, t) }
+        if (lastGlow != 0f) rs.web.glow(0f)
+        return@awaitEachGesture
+    }
+    if (rdrag) { c.consume()   /* the reel moves, not the card's page under it */
                 val py = (if (dy < 0 && !bot || dy > 0 && !top) 0f else dy) * d; rs.scope.launch { rs.ty.snapTo(py); rs.oy.snapTo(py) } }
         }
         if (flip) {

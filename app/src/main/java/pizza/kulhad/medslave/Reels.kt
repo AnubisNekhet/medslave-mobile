@@ -215,7 +215,7 @@ class Reels(private val rs: Rs) {
     var repostAt by mutableIntStateOf(0)       // bumps when Repost fires (its animation)
     var reposting by mutableStateOf(false)
     var saved by mutableStateOf(false)         // this card is in saved.cards (the Save button)
-    var savePop by mutableIntStateOf(0)        // bumps when Save turns on (its animation)
+    var savePop by mutableIntStateOf(0)        // bumps on every Save tap (its drop animation)
     private val colors = HashMap<String, Color>()
     val bursts = mutableStateListOf<Burst>()
     var whoTop by mutableFloatStateOf(0f)          // the account row's top in the card area (px): tall cards end above it
@@ -326,6 +326,8 @@ class Reels(private val rs: Rs) {
             songDir.listFiles()?.forEach { if (it.name.endsWith(".part") || (it.name !in keep && it.lastModified() < week)) it.delete() }
             var total = songDir.listFiles()?.filter { it.name !in keep }?.sumOf { it.length() } ?: 0L
             songDir.listFiles()?.filter { it.name !in keep }?.sortedBy { it.lastModified() }?.forEach { if (total > 40L shl 20) { total -= it.length(); it.delete() } }
+            val fortnight = System.currentTimeMillis() - 14L * 24 * 3600 * 1000
+            artDir.listFiles()?.forEach { if (it.name.endsWith(".part") || it.lastModified() < fortnight) it.delete() }
             val c = rs.ctx.cacheDir; val f = rs.ctx.filesDir
             if (!rs.busy) listOf(java.io.File(c, "import.apkg"), java.io.File(c, "import-col.db"), java.io.File(c, "import-col.db-journal"), java.io.File(f, "deck.db.tmp")).forEach { it.delete() }
             if (!rs.busy) java.io.File(f, "media.tmp").deleteRecursively()
@@ -377,12 +379,19 @@ class Reels(private val rs: Rs) {
 
     fun release() { au { mp.release() }; audio.quitSafely() }
 
-    /* ---- cover art, loaded once each */
+    /* ---- cover art: in memory, and saved to the phone (cache/art) the first time, so it's there offline and after a restart.
+       prune() clears covers unused for two weeks */
     private val art = LruCache<String, ImageBitmap>(48)
+    private val artDir by lazy { java.io.File(rs.ctx.cacheDir, "art").apply { mkdirs() } }
+    private fun artFile(url: String) = java.io.File(artDir, Integer.toHexString(url.hashCode()) + "-" + url.length + ".img")
     fun art(url: String, then: (ImageBitmap) -> Unit) {
+        if (url.isEmpty()) return
         art.get(url)?.let { return then(it) }
         thread {
-            val b = runCatching { URL(url).openStream().use { BitmapFactory.decodeStream(it) }?.asImageBitmap() }.getOrNull()
+            val f = artFile(url)
+            val bytes = runCatching { if (f.length() > 0) f.readBytes().also { f.setLastModified(System.currentTimeMillis()) } else null }.getOrNull()
+                ?: runCatching { URL(url).openStream().use { it.readBytes() } }.getOrNull()?.also { d -> runCatching { val t = java.io.File(artDir, f.name + ".part"); t.writeBytes(d); t.renameTo(f) } }
+            val b = bytes?.let { runCatching { BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap() }.getOrNull() }
             if (b != null) h.post { art.put(url, b); then(b) }
         }
     }

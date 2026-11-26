@@ -113,7 +113,7 @@ object DeckStore {
                 }
             }
             /* MCQs: their front lists the options (<li class="mcq-o">) */
-            val mcq = HashSet<Long>(); d.rawQuery("SELECT id FROM notes WHERE flds LIKE '%mcq-o%'", null).use { c -> while (c.moveToNext()) mcq.add(c.getLong(0)) }
+            val mcq = HashSet<Long>(); d.rawQuery("SELECT id FROM notes WHERE flds LIKE '%mcq-o%' OR flds LIKE '%mt-src%'", null).use { c -> while (c.moveToNext()) mcq.add(c.getLong(0)) }
             if (mcq.isNotEmpty()) by.forEach { l -> l.forEach { if (it.id in mcq) it.mcq = true } }
             Deck(paths, pc, names.mapIndexed { i, s -> Subject(s, by[i]) }, Meta.of(info["meta"]))
         } catch (e: Exception) { Deck.EMPTY }

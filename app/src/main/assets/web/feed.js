@@ -19,7 +19,13 @@ const RM=()=>matchMedia('(prefers-reduced-motion:reduce)').matches;
 /* accounts: the deck's (0…), daily.heatmap (-1), saved.cards (-2) */
 const HACC={h:'daily.heatmap',c:'#a6e3a1',ic:ICN.cal},SACC={h:'Saved Cards',c:'#b4befe',ic:ICN.save};
 const accOf=a=>a==-1?HACC:a==-2?SACC:F.acc[a];
-const avatar=a=>`<span class="f-av" style="background:${a.c}">${SVG(a.ic)}</span>`;
+/* an account's avatar: its colour, two diagonal waves over it (each a further hue step round the wheel), the icon on top */
+function hueStep(hex,dh){const n=parseInt(String(hex).slice(1),16);if(isNaN(n))return hex;let r=(n>>16&255)/255,g=(n>>8&255)/255,b=(n&255)/255;
+ const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2,d=mx-mn;let h=0,s=0;
+ if(d){s=d/(1-Math.abs(2*l-1));h=mx==r?((g-b)/d)%6:mx==g?(b-r)/d+2:(r-g)/d+4;h*=60}
+ return `hsl(${((h+dh)%360+360)%360} ${Math.round(s*100)}% ${Math.round(l*100)}%)`}
+const WAVE=y=>`M-40 ${y}C-15 ${y-12} 5 ${y+12} 30 ${y}S75 ${y-12} 100 ${y}S145 ${y+12} 170 ${y}V200H-40Z`;
+const avatar=(a,x='')=>`<span class="f-av${x}" style="background:${a.c}"><svg class="f-wv" viewBox="0 0 100 100" preserveAspectRatio="none"><g transform="rotate(-28 50 50)"><path d="${WAVE(52)}" fill="${hueStep(a.c,22)}"/><path d="${WAVE(76)}" fill="${hueStep(a.c,44)}"/></g></svg>${SVG(a.ic)}</span>`;
 function reviewHTML(n,o){cur={n,o};stage=1;FL=false;return `<div class="wrap"><div class="tinder-swipe tinder-swipe--answer">${face(true)}</div></div>`}   /* a story: as the reviewer draws it */
 function answerHTML(n,o){cur={n,o};stage=1;FL=false;EXIN=true;const tg=SET.tags;SET.tags=false;const h=face(true);SET.tags=tg;EXIN=false;   /* no tags on a post: its caption has them as hashtags */
  return h.replace(/^(<div class="prettify-flashcard[^"]*">)<div class="prettify-deck">[\s\S]*?<\/div>(?:<hr[^>]*>|<div class="prettify-divider[^"]*"><\/div>)/,'$1')}   /* a post: no deck path on the card */
@@ -111,9 +117,12 @@ const plain=n=>{const d=document.createElement('div');d.innerHTML=String(n[4][0]
 function hidePost(p){const k=p.n[0]+':'+p.o;A_.hide(String(p.n[0]),p.o,plain(p.n),dir(p.n));
  document.querySelectorAll('.f-post').forEach(x=>{const q=postOf(x);if(!q||!q.n||!slides(q).some(c=>c.n[0]+':'+c.o==k))return;   /* any post with that card, a carousel's too */
   if(RM()){x.remove();return}x.style.height=x.offsetHeight+'px';x.style.overflow='hidden';void x.offsetHeight;x.classList.add('f-gone');x.style.height='0px';setTimeout(()=>x.remove(),380)})}
+/* whether the post's menu was open when the finger went down on its dots: a press can scroll a hair and close it first, and the tap
+   would then open it again. a second tap on the dots closes it */
+let MENU_AT_DOWN=null;document.addEventListener('pointerdown',e=>{const mo=e.target.closest&&e.target.closest('.f-more'),el=mo&&mo.closest('.f-post');MENU_AT_DOWN=el&&el.querySelector('.f-menu')?el:null},true);
 document.addEventListener('scroll',menuClose,true);
 function postClick(e){if(!e.target.closest('.f-menu,.f-more'))menuClose();const el=e.target.closest('.f-post');if(!el)return;const p=postOf(el);if(!p)return;const a=accOf(p.a);
- const mo=e.target.closest('.f-more');if(mo){const open=el.querySelector('.f-menu');menuClose();if(!open){el.insertAdjacentHTML('beforeend',`<div class="f-menu"><button class="f-hide">${SVG(ICN.stop)}<span>Hide</span></button></div>`)}return}
+ const mo=e.target.closest('.f-more');if(mo){const open=MENU_AT_DOWN===el||el.querySelector('.f-menu');MENU_AT_DOWN=null;menuClose();if(!open){el.insertAdjacentHTML('beforeend',`<div class="f-menu"><button class="f-hide">${SVG(ICN.stop)}<span>Hide</span></button></div>`)}return}
  if(e.target.closest('.f-hide')){menuClose();return hidePost(cardAt(el,p))}
  if(e.target.closest('.f-ph .f-av,.f-ph .f-pn b'))return openAccount(p);
  if(e.target.closest('.f-sub'))return A_.mute();
@@ -128,7 +137,7 @@ function postClick(e){if(!e.target.closest('.f-menu,.f-more'))menuClose();const 
  if(e.target.closest('.f-pmore')){b.classList.toggle('open');return}   /* the chevron opens a long post and folds it again */
  const now=Date.now();if(now-LT<320&&LX===el){LT=0;const h=document.createElement('i');h.className='f-burst';h.innerHTML=SVG(ICN.heart);b.appendChild(h);setTimeout(()=>h.remove(),900);if(!p.liked)like(el,p,true)}else{LT=now;LX=el}}
 $('#posts').addEventListener('click',postClick);$('#pfl').addEventListener('click',postClick);
-FD.addEventListener('scroll',()=>{if(!F.wait&&F.posts.length&&FD.clientHeight+FD.scrollTop>FD.scrollHeight-FD.clientHeight*1.5){F.wait=true;F.asked=Date.now();A_.more()}},{passive:true});
+FD.addEventListener('scroll',()=>{{const t=$('.f-top'),st=$('.f-stories');if(t&&st)t.classList.toggle('sc',st.getBoundingClientRect().bottom<=t.getBoundingClientRect().bottom+1)}if(!F.wait&&F.posts.length&&FD.clientHeight+FD.scrollTop>FD.scrollHeight-FD.clientHeight*1.5){F.wait=true;F.asked=Date.now();A_.more()}},{passive:true});
 $('#eimp').onclick=()=>A_.imp();$('#wm').onclick=()=>A_.credits();{const w=$('#wm');w.addEventListener('pointerdown',()=>w.classList.add('pr'));['pointerup','pointercancel','pointerleave'].forEach(t=>w.addEventListener(t,()=>w.classList.remove('pr')))}$('#gear').onclick=()=>A_.settings();$('#arch').onclick=()=>{PF.first=null;A_.saved()};
 
 /* ---- pull to refresh: dragging down from the top pulls the stories and posts down with a circular arrow that turns as it comes;
@@ -221,7 +230,7 @@ function pfRender(j){if(!PF.on){PF.on=true;PFE.classList.add('on');PFE.scrollTop
  PF.hl=(j.hl||[]).map(h=>({a:j.a,t:h.t,hl:true,ic:h.ic,items:h.items,seen:true}));
  const a=accOf(j.a),st=(n,l)=>n<0?'':`<div><b>${n.toLocaleString()}</b><small>${l}</small></div>`;
  $('#pfs').innerHTML=`<header class="f-top f-pft"><button class="f-back" aria-label="Back">‹</button><b>${ESC(a.h)}</b></header>
-<section class="f-prof${j.a==-2?' f-saved':''}"><div class="f-pr1"><span class="f-av f-big" style="background:${a.c}">${SVG(a.ic)}</span><div class="f-stats">${st(j.posts,'posts')}${st(j.followers,'followers')}${st(j.following,'following')}</div></div>
+<section class="f-prof${j.a==-2?' f-saved':''}"><div class="f-pr1">${avatar(a,' f-big')}<div class="f-stats">${st(j.posts,'posts')}${st(j.followers,'followers')}${st(j.following,'following')}</div></div>
 ${j.a==-2?'':`<div class="f-bio"><b>${ESC(j.name)}</b>${j.bio?`<p>${ESC(j.bio)}</p>`:''}</div>`}
 ${j.a>=0?'<button class="nx f-follow">Follow</button>':''}
 ${PF.hl.length?`<div class="f-hl">${PF.hl.map((h,i)=>`<button class="f-st" data-g="${i}"><span class="f-ring seen"><span class="f-av f-hlc">${SVG(h.ic)}</span></span><span class="f-stn">${ESC(h.t)}</span></button>`).join('')}</div>`:''}</section>`;
@@ -259,7 +268,8 @@ const R={
  savedSet(l){F.saved=new Set(l);document.querySelectorAll('.f-post').forEach(x=>{const q=postOf(x),b=x.querySelector('.f-sv');if(q&&q.n&&b)b.classList.toggle('on',F.saved.has(q.n[0]+':'+q.o))})},   /* saved from Reels */
  opts(source,expl,tags){SET.source=!!source;SET.expl=expl!==false;SET.tags=!!tags},   /* Settings › Reviewing (cards drawn from now on) */
  fake(v){F.nofake=!v},   /* Settings › Appearance › Loading animations */
- nocom(v){document.body.classList.toggle('nocom',!!v)},   /* Settings › Appearance › Hide comments */
+ nocom(v){document.body.classList.toggle('nocom',!!v)},
+ avatars(solid){document.body.classList.toggle('av-solid',!!solid)},   /* Settings › Appearance › Profile style: plain avatars, no waves */   /* Settings › Appearance › Hide comments */
  close(){svClose()},
  replay(){SONG=null;tune()},   /* the feed is back on screen: its song again */
  /* the songs that are on changed (a genre or playlist switched, a playlist edited): a post's or story's song that's no longer on is

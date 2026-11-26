@@ -246,8 +246,32 @@ private fun Appearance(rs: Rs) {
             Tile(l, rs.set.rev == k, !lock, Modifier.weight(1f), small = true, onClick = { rs.set.reveal = k; rs.set.save() }) { RevealDemo(k) }
         }
     }
+    /* Reels Mode: the accounts' avatars, with waves (the default) or plain colour; each tile shows a story circle in that style */
+    if (rs.set.reels) {
+        Head("Profile style")
+        Row(Modifier.fillMaxWidth().padding(bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+            listOf("waves" to "Waves", "solid" to "Solid").forEach { (k, l) ->
+                Tile(l, rs.set.avatar == k, modifier = Modifier.weight(1f), small = true, onClick = { rs.set.avatar = k; rs.set.save() }) { AvatarDemo(k == "waves") }
+            }
+        }
+    }
     if (rs.set.reels) Row2("Loading animations", "Placeholders and short waits, as if the feed were online") { Switch(rs.set.fakeload) { rs.set.fakeload = it; rs.set.save() } }
     if (rs.set.reels) Row2("Hide comments", "No comment buttons or comments in the feed and on reels") { Switch(rs.set.nocom) { rs.set.nocom = it; rs.set.save() } }
+}
+
+/** two story circles (the ring in the text colour, the avatar inside), in the given profile style */
+@Composable
+private fun AvatarDemo(waves: Boolean) {
+    val cols = remember { DCOL.shuffled(java.util.Random(7)).take(2) }
+    Row(Modifier.height(104.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        listOf(Ic.HEART to cols[0], Ic.NOTE to cols[1]).forEach { (ic, c) ->
+            val col = if (P.dark) c.second else c.first
+            Box(Modifier.size(52.dp).border(2.dp, P.text, CircleShape).padding(4.dp).clip(CircleShape).background(col), contentAlignment = Alignment.Center) {
+                if (waves) Waves(col)
+                Icon(ic, 22.dp, Color(0xFF1E1E2E))
+            }
+        }
+    }
 }
 
 /** tinder | flip | reels (Reels keeps the saved Tinder/Flip choice for when it's turned off) */
