@@ -364,23 +364,36 @@ private fun MusicSheet(rs: Rs) {
     editing?.let { p -> AddPlaylist(rs, p) { editing = null } }
 }
 
-/** a new playlist: a name, and the songs pasted as lines or a playlist link */
+/** a new playlist: a name, and the songs pasted as lines or a playlist link. editing one: its found songs as pills (× takes one out),
+    and the box adds more */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun AddPlaylist(rs: Rs, edit: pizza.kulhad.medslave.Reels.Playlist?, close: () -> Unit) {
-    var name by remember { mutableStateOf(edit?.name ?: "") }; var text by remember { mutableStateOf(edit?.let { rs.reels.lines(it) } ?: "") }
+    var name by remember { mutableStateOf(edit?.name ?: "") }; var text by remember { mutableStateOf("") }
+    val kept = remember { androidx.compose.runtime.mutableStateListOf<pizza.kulhad.medslave.Song>().apply { edit?.let { addAll(it.songs) } } }
     androidx.compose.ui.window.Dialog(close) {
         Column(Modifier.widthIn(max = 420.dp).fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(P.card).border(1.dp, P.border, RoundedCornerShape(8.dp)).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Txt(if (edit != null) "Edit playlist" else "Add a playlist", bold = true)
             Field(name, { name = it }, "Name", Modifier.fillMaxWidth())
-            BasicTextField(text, { text = it }, Modifier.fillMaxWidth().heightIn(min = 140.dp, max = 260.dp).clip(RoundedCornerShape(8.dp)).background(P.text.copy(alpha = .07f)).padding(12.dp),
+            if (kept.isNotEmpty()) Box(Modifier.fillMaxWidth().heightIn(max = 180.dp).verticalScroll(rememberScrollState())) {
+                androidx.compose.foundation.layout.FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    kept.toList().forEach { s ->
+                        Row(Modifier.clip(RoundedCornerShape(30.dp)).background(P.text.copy(alpha = .07f)).padding(start = 12.dp, end = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Txt(s.title, size = 13.6.sp, lines = 1, modifier = Modifier.widthIn(max = 200.dp))
+                            Box(Modifier.size(28.dp).clip(CircleShape).clickable { kept.remove(s) }, contentAlignment = Alignment.Center) { Txt("×", size = 17.sp, color = P.faint) }
+                        }
+                    }
+                }
+            }
+            BasicTextField(text, { text = it }, Modifier.fillMaxWidth().heightIn(min = if (edit != null) 90.dp else 140.dp, max = 260.dp).clip(RoundedCornerShape(8.dp)).background(P.text.copy(alpha = .07f)).padding(12.dp),
                 textStyle = TextStyle(color = P.text, fontSize = 14.sp, fontFamily = Carlito), cursorBrush = SolidColor(P.text),
-                decorationBox = { inner -> Box { if (text.isEmpty()) Txt("Paste songs, one per line (Song – Artist),\nor a Spotify, Apple Music or YouTube playlist link", size = 14.sp, color = P.faint); inner() } })
+                decorationBox = { inner -> Box { if (text.isEmpty()) Txt(if (edit != null) "Add more songs, one per line (Song – Artist),\nor a playlist link" else "Paste songs, one per line (Song – Artist),\nor a Spotify, Apple Music or YouTube playlist link", size = 14.sp, color = P.faint); inner() } })
             Txt("Each song plays its 30-second preview. Finding them takes a couple of seconds a song.", size = 12.8.sp, color = P.faint)
             Row(Modifier.align(Alignment.End), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Btn("Cancel", h = 36.dp, size = 14.4.sp, pad = 16.dp, onClick = close)
-                Btn(if (edit != null) "Save" else "Add", p = true, h = 36.dp, size = 14.4.sp, pad = 16.dp, enabled = text.isNotBlank()) {
-                    if (edit != null) rs.reels.editPlaylist(edit, name, text) else rs.reels.addPlaylist(name, text); close() }
+                Btn(if (edit != null) "Save" else "Add", p = true, h = 36.dp, size = 14.4.sp, pad = 16.dp, enabled = text.isNotBlank() || (edit != null && kept.isNotEmpty())) {
+                    if (edit != null) rs.reels.editPlaylist(edit, name, kept.toList(), text) else rs.reels.addPlaylist(name, text); close() }
             }
         }
     }

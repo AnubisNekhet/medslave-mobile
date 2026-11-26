@@ -48,8 +48,6 @@ class Reels(private val rs: Rs) {
         var added = System.currentTimeMillis(); var lastOn = 0L }   // lastOn: when it was last seen switched on (its songs' cache is kept until a week after)
     fun key(s: Song) = "${s.title} · ${s.artist}"
     fun byKey(k: String) = songs.firstOrNull { key(it) == k && !it.dead }
-    /** a playlist's songs as the lines it can be edited from */
-    fun lines(p: Playlist) = p.songs.joinToString("\n") { "${it.title} – ${it.artist}" }
     private fun changed() = genreChanged()
     val lists = mutableStateListOf<Playlist>()
     private fun loadLists() = runCatching {
@@ -62,30 +60,31 @@ class Reels(private val rs: Rs) {
     /** notes which playlists are switched on now (called as the app opens and before a switch changes) */
     fun markLists() { val now = System.currentTimeMillis(); var ch = false; lists.forEach { if (it.key !in rs.set.goff) { it.lastOn = now; ch = true } }; if (ch) saveLists() }
     fun removePlaylist(p: Playlist) { lists.remove(p); rs.set.goff = rs.set.goff - p.key; rs.set.save(); saveLists(); changed() }
-    /** editing (a long press on the playlist): a new name and/or new lines. songs whose line is still there are kept as they are; new lines
-        are looked up; removed ones go. the list switches over once it's all found */
-    fun editPlaylist(p: Playlist, name0: String, text: String) {
+    /** editing (a long press on the playlist): a new name, the found songs still kept (the pills), and any new lines or a link to add.
+        the removed ones go at once; the new ones are looked up and added after them as they're found */
+    fun editPlaylist(p: Playlist, name0: String, kept: List<Song>, text: String) {
         val nn = name0.trim().ifEmpty { p.name }.let { n -> var x = n; var k = 2; while (lists.any { it !== p && it.name == x }) x = "$n ${k++}"; x }
         val old = p.key; p.name = nn
         if (old != p.key && old in rs.set.goff) { rs.set.goff = rs.set.goff - old + p.key; rs.set.save() }
-        val keep = p.songs.associateBy { "${it.title} – ${it.artist}".lowercase() }
+        val ks = kept.map { Song(it.title, it.artist, it.url, it.art, p.key) }
+        p.songs.clear(); p.songs.addAll(ks); saveLists(); changed()
+        val t = text.trim(); if (t.isEmpty()) { p.status = if (p.songs.isEmpty()) "No previews found" else ""; return }
         p.status = "Reading the list…"
+        val have = ks.map { key(it).lowercase() }.toMutableSet()
+        fun add(s: Song) { if (have.add(key(s).lowercase())) p.songs.add(s) }
         thread {
-            val t = text.trim(); val link = Regex("https?://").containsMatchIn(t)
+            val link = Regex("https?://").containsMatchIn(t)
             val al = if (link) runCatching { albumSongs(t, p.key) }.getOrNull() else null
-            if (!al.isNullOrEmpty()) { h.post { p.songs.clear(); p.songs.addAll(al); p.status = ""; saveLists(); changed() }; return@thread }
-            val lines = if (link) runCatching { tracksOf(t) }.getOrDefault(emptyList()).map { (a, b) -> "$a – $b" } else t.lines().map { it.trim() }.filter { it.isNotEmpty() }
-            val out = ArrayList<Song>()
-            lines.forEachIndexed { i, l ->
-                val k = keep[l.lowercase()]
-                if (k != null) { out.add(Song(k.title, k.artist, k.url, k.art, p.key)); return@forEachIndexed }
-                h.post { p.status = "Finding songs… ${i + 1} / ${lines.size}" }
-                val (ti, ar) = runCatching { tracksOf(l).firstOrNull() }.getOrNull() ?: return@forEachIndexed
+            if (!al.isNullOrEmpty()) { h.post { al.forEach(::add); p.status = ""; saveLists(); changed() }; return@thread }
+            val tracks = runCatching { tracksOf(t) }.getOrDefault(emptyList())
+            if (tracks.isEmpty()) { h.post { p.status = if (p.songs.isEmpty()) "Couldn't read any songs from that" else "" }; return@thread }
+            tracks.forEachIndexed { i, (ti, ar) ->
+                h.post { p.status = "Finding songs… ${i + 1} / ${tracks.size}" }
                 var hit = lookup("$ti $ar"); if (hit == null) { Thread.sleep(60_000); hit = lookup("$ti $ar") }
-                hit?.let { (tt, aa, url, art) -> out.add(Song(tt, aa, url, art, p.key)) }
+                hit?.let { (tt, aa, url, art) -> h.post { add(Song(tt, aa, url, art, p.key)); saveLists() } }
                 Thread.sleep(2600)
             }
-            h.post { p.songs.clear(); p.songs.addAll(out); p.status = if (out.isEmpty()) "No previews found" else ""; saveLists(); changed() }
+            h.post { p.status = if (p.songs.isEmpty()) "No previews found" else ""; saveLists(); changed() }
         }
     }
     fun addPlaylist(name0: String, text: String) {
