@@ -116,6 +116,7 @@ private fun SettingsBody(rs: Rs, names: Map<String, String>) {
                     if (rs.deck.hasMcq) Row2("Hide explanation", if (rs.set.flip) "On the back of the answer: swipe sideways to turn it over" else "On the back of the answer: swipe up or down to turn it over") {
                         Switch(rs.set.hidex) { rs.set.hidex = it; rs.web.hidex(it); opts() } }
                     Row2("Show tags", "At the bottom of each card") { Switch(rs.set.tags) { rs.set.tags = it; opts() } }
+                    if (rs.set.reels) Row2("Red likes", "Likes in Instagram red instead of the accent") { Switch(rs.set.redlike) { rs.set.redlike = it; rs.set.save() } }
                     Row2("Volume keys", "Down if you knew it, up if you didn’t") { Switch(rs.set.volkeys) { rs.set.volkeys = it; rs.set.save() } }
                     var tdone by remember { mutableStateOf(false) }
                     LaunchedEffect(tdone) { if (tdone) { delay(1500); tdone = false } }

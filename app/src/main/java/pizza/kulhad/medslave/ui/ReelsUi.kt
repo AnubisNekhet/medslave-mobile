@@ -128,7 +128,7 @@ fun ReelOverlay(rs: Rs) {
                 val pop = remember { Animatable(1f) }
                 LaunchedEffect(r.likePop) { if (r.likePop > 0) pop.animateTo(1f, keyframes { durationMillis = 350; .6f at 0; 1.25f at 210; 1f at 350 }) }
                 Act(onClick = { r.like(!r.liked) }) {
-                    Icon(Ic.HEART, 25.dp, if (r.liked) HEART else P.text, fill = r.liked, modifier = Modifier.scale(pop.value))
+                    Icon(Ic.HEART, 25.dp, if (r.liked) likeC(rs) else P.text, fill = r.liked, modifier = Modifier.scale(pop.value))
                     ActLabel(kfmt(r.likes + if (r.liked) 1 else 0))
                 }
                 if (!rs.set.nocom) Act(onClick = { r.open("com") }) { Icon(Ic.COMMENT, 25.dp, P.text); ActLabel(kfmt(r.coms)) }
@@ -189,7 +189,7 @@ fun Bursts(rs: Rs) {
             val sc = when { p < .15f -> p / .15f * 1.18f; p < .30f -> 1.18f - (p - .15f) / .15f * .24f; p < .42f -> .94f + (p - .30f) / .12f * .06f; p < .68f -> 1f; else -> 1f - (p - .68f) / .32f * .1f }
             val a = when { p < .15f -> p / .15f; p < .68f -> 1f; else -> 1f - (p - .68f) / .32f }
             val up = if (p > .68f) -(p - .68f) / .32f * 48f * d else 0f
-            Icon(Ic.HEART, 104.dp, HEART, fill = true, modifier = Modifier.offset { androidx.compose.ui.unit.IntOffset((b.x - 52 * d).roundToInt(), (b.y - 52 * d + up).roundToInt()) }
+            Icon(Ic.HEART, 104.dp, likeC(rs), fill = true, modifier = Modifier.offset { androidx.compose.ui.unit.IntOffset((b.x - 52 * d).roundToInt(), (b.y - 52 * d + up).roundToInt()) }
                 .graphicsLayer { scaleX = sc; scaleY = sc; alpha = a; rotationZ = b.r })
         }
     }
@@ -257,9 +257,9 @@ private fun CommentSheet(rs: Rs, modifier: Modifier) {
                     Txt("Reply", size = 11.5.sp, bold = true, color = P.faint)
                 }
                 Column(Modifier.clickable(remember { MutableInteractionSource() }, null) { c.liked = !c.liked }.padding(3.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Ic.HEART, 11.dp, if (c.liked) HEART else P.faint, fill = c.liked)
+                    Icon(Ic.HEART, 11.dp, if (c.liked) likeC(rs) else P.faint, fill = c.liked)
                     val n = c.likes + if (c.liked) 1 else 0
-                    Txt(if (n > 0) kfmt(n) else "", size = 10.9.sp, color = if (c.liked) HEART else P.faint)
+                    Txt(if (n > 0) kfmt(n) else "", size = 10.9.sp, color = if (c.liked) likeC(rs) else P.faint)
                 }
             }
         }
@@ -405,6 +405,9 @@ private fun QrPopup(rs: Rs) {
         }
     }
 }
+
+/** a like's colour: the accent, or Instagram red (Settings › Reviewing › Red likes) */
+@Composable fun likeC(rs: Rs) = if (rs.set.redlike) HEART else P.hi
 
 /** the logo spinning, the loading mark: upright for a moment, then two quick turns (eased in and out). while it's fast, a few fading
     copies trail behind it: motion blur */

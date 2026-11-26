@@ -48,6 +48,8 @@ class FeedWeb(ctx: Context, f: Feed) : Page(ctx, "feed.html", false, { FeedBridg
     fun heat(j: String) = js("R.heat($j)")
     fun refreshed(j: String) = js("R.refreshed($j)")
     fun nocom(v: Boolean) = js("R.nocom($v)")
+    /** a like's colour (#hex): the accent, or Instagram red */
+    fun like(hex: String) = js("document.documentElement.style.setProperty('--like','$hex')")
     fun songsOn(j: String) = js("R.songsOn($j)")
     fun opts(source: Boolean, expl: Boolean, tags: Boolean) = js("R.opts($source,$expl,$tags)")
     fun savedSet(j: String) = js("R.savedSet($j)")
@@ -62,8 +64,10 @@ class FeedWeb(ctx: Context, f: Feed) : Page(ctx, "feed.html", false, { FeedBridg
 
 class Feed(val rs: Rs) {
     private var made: FeedWeb? = null
-    val web: FeedWeb get() = made ?: FeedWeb(rs.ctx, this).also { made = it; it.theme(rs.set.theme, rs.dark) }
+    val web: FeedWeb get() = made ?: FeedWeb(rs.ctx, this).also { made = it; it.theme(rs.set.theme, rs.dark); it.like(likeHex) }
     fun theme(t: String, dark: Boolean) { made?.theme(t, dark) }
+    var likeHex = "#ff3040"
+        set(v) { field = v; made?.like(v) }
     var storyOpen by mutableStateOf(false)
 
     private class Acc(val h: String, val ic: String, val c: String) { val subs = ArrayList<Int>() }

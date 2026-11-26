@@ -78,7 +78,7 @@ button:active,button:hover{background:none;color:inherit}
 /* the action buttons' animations. like: the heart pops and a ring bursts out of it (unlike: a small squash). comment: a wiggle.
    share: the plane flies off up-right and comes back. save: the bookmark drops in */
 .f-pa button{position:relative}.f-pa svg{transform-origin:50% 50%}
-.f-lk.pop::before{content:"";position:absolute;left:0;top:50%;width:25px;height:25px;margin-top:-12.5px;border-radius:50%;border:2px solid #ff3040;pointer-events:none;animation:fRing .45s ease-out forwards}
+.f-lk.pop::before{content:"";position:absolute;left:0;top:50%;width:25px;height:25px;margin-top:-12.5px;border-radius:50%;border:2px solid var(--like,#ff3040);pointer-events:none;animation:fRing .45s ease-out forwards}
 @keyframes fRing{from{transform:scale(.4);opacity:1}to{transform:scale(1.7);opacity:0;border-width:0}}
 .f-lk.unpop svg{animation:fUnpop .25s ease-out}@keyframes fUnpop{40%{transform:scale(.8)}}
 .f-cm.go svg{animation:fWig .45s ease-in-out}@keyframes fWig{20%{transform:rotate(-14deg) scale(1.1)}45%{transform:rotate(11deg) scale(1.1)}70%{transform:rotate(-6deg)}}
@@ -104,14 +104,14 @@ button:active,button:hover{background:none;color:inherit}
 .f-hg i.t{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--hm) 70%,transparent)}
 .f-hmt{padding:8px 12px 0;font-size:12px;color:var(--text-fg-faint)}.f-hmt:empty{display:none}
 .f-pa .f-sv{margin-left:auto}
-.f-lk.on{color:#ff3040}.f-lk.on svg{fill:currentColor}
+.f-lk.on{color:var(--like,#ff3040)}.f-lk.on svg{fill:currentColor}
 .f-lk.pop svg{animation:lkPop .35s cubic-bezier(.2,.8,.3,1.4)}@keyframes lkPop{0%{transform:scale(.6)}60%{transform:scale(1.25)}100%{transform:none}}
 .f-sv.on svg{fill:currentColor}
 .f-pc,.f-pv,.f-pt{padding:0 12px;font-size:14px;line-height:1.4;margin:0 0 3px}
 .f-pc{overflow-wrap:break-word}
 .f-pv{color:var(--text-fg-faint)}
 .f-pt{font-size:12px;color:var(--text-fg-faint);margin:6px 0 0}
-.f-burst{position:absolute;left:50%;top:50%;width:100px;height:100px;margin:-50px 0 0 -50px;color:#ff3040;pointer-events:none;filter:drop-shadow(0 6px 14px rgba(0,0,0,.3));animation:rlB .85s ease-out forwards}
+.f-burst{position:absolute;left:50%;top:50%;width:100px;height:100px;margin:-50px 0 0 -50px;color:var(--like,#ff3040);pointer-events:none;filter:drop-shadow(0 6px 14px rgba(0,0,0,.3));animation:rlB .85s ease-out forwards}
 .f-burst svg{width:100%;height:100%;fill:currentColor;stroke:none}
 @keyframes rlB{0%{transform:scale(0);opacity:0}15%{transform:scale(1.18);opacity:1}30%{transform:scale(.94)}42%,68%{transform:scale(1);opacity:1}100%{transform:translateY(-3em) scale(.9);opacity:0}}
 .f-loadmore{padding:20px 0;display:grid;place-items:center}.f-loadmore .lg{width:26px;height:26px;animation:lgs 1s linear infinite}
