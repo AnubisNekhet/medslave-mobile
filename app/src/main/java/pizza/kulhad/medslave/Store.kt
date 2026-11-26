@@ -54,7 +54,7 @@ class Settings(private val st: Store) {
     var nocom by mutableStateOf(false)           // Reels Mode: hide comments (Settings › Appearance)
     var expl by mutableStateOf(true)             // an MCQ's explanation is always shown (Hide explanation puts it on the back)
     var tags by mutableStateOf(false)            // show a card's tags at its bottom (Settings › Reviewing)
-    var hidex by mutableStateOf(false)           // an MCQ's explanation on the back of its answer card (Settings › Reviewing)
+    var hidex by mutableStateOf(true)           // an MCQ's explanation on the back of its answer card, on by default (Settings › Reviewing; stored as exback)
     var volkeys by mutableStateOf(false)         // the volume keys answer cards (Settings › Reviewing)
 
     init { load() }
@@ -62,12 +62,12 @@ class Settings(private val st: Store) {
         val o = st.obj(SK)
         ordered = o.optBoolean("ordered", false); style = o.optString("style", "tinder"); reveal = o.optString("reveal", "pop")
         theme = o.optString("theme", "default").let { if (it in THEMES) it else "default" }
-        reels = o.optBoolean("reels", true); source = o.optBoolean("source", false); nocom = o.optBoolean("nocom", false); expl = true; tags = o.optBoolean("tags", false); volkeys = o.optBoolean("volkeys", false); hidex = o.optBoolean("hidex", false)
+        reels = o.optBoolean("reels", true); source = o.optBoolean("source", false); nocom = o.optBoolean("nocom", false); expl = true; tags = o.optBoolean("tags", false); volkeys = o.optBoolean("volkeys", false); hidex = o.optBoolean("exback", true)
         goff = o.optJSONArray("goff")?.let { a -> (0 until a.length()).map { a.optString(it) }.toSet() } ?: emptySet()
     }
     fun save() {
         st.set(SK, JSONObject().put("ordered", ordered).put("style", style).put("reveal", reveal).put("theme", theme)
-            .put("reels", reels).put("source", source).put("nocom", nocom).put("expl", expl).put("tags", tags).put("volkeys", volkeys).put("hidex", hidex).put("goff", JSONArray(goff.toList())).toString())
+            .put("reels", reels).put("source", source).put("nocom", nocom).put("expl", expl).put("tags", tags).put("volkeys", volkeys).put("exback", hidex).put("goff", JSONArray(goff.toList())).toString())
     }
     /** Reels Mode forces Flip + Scroll up */
     val flip get() = reels || style == "flip" || style == "doom"
