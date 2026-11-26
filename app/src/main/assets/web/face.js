@@ -4,7 +4,7 @@ const $=s=>document.querySelector(s),HR='<hr class="prettify-divider prettify-di
 let DATA={paths:[]},SET={source:false,expl:true,tags:false,hidex:false},cur=null,stage=0,FL=false;
 const deck=pi=>`<div class="prettify-deck">${(DATA.paths[pi]||'').split(' › ').map(x=>`<span class="prettify-subdeck">${x}</span>`).join('&nbsp;/&nbsp;')}</div>`;
 /* a card's tags at its bottom (Settings › Reviewing › Show tags): each tag's last part, as on the site's cards */
-const tags=n=>SET.tags&&n[5]&&n[5].length?`<div class="prettify-tags">${n[5].map(t=>{const l=String(t).split('::').filter(Boolean).pop().replace(/_/g,' ').trim();return `<span class="prettify-tag${/neet|aiims/i.test(String(t))?' exam':''}">${l.replace(/</g,'&lt;')}</span>`}).join('')}</div>`:'';
+const tags=n=>SET.tags&&n[5]&&n[5].length?`<div class="prettify-tags">${n[5].map(t=>{const l=String(t).split('::').filter(Boolean).pop().replace(/_/g,' ').trim();return `<span class="prettify-tag${/neet|aiims|inicet/i.test(String(t))?' exam':''}">${l.replace(/</g,'&lt;')}</span>`}).join('')}</div>`:'';
 const fld=(c,x,z='center-text')=>`<div class="prettify-field prettify-field--${c}"><div class="${z}">${x}</div></div>`;
 const ttl=t=>t?`<div class="prettify-field prettify-field--front center-text"><h3 class="title">${t}</h3></div>`+HR:'';
 /* MathJax: \( … \) and \[ … \], typeset as SVG by vendor/tex-svg.js, loaded the first time a card has math */

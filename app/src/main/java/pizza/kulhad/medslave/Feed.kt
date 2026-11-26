@@ -72,8 +72,8 @@ class Feed(val rs: Rs) {
         set(v) { field = v; made?.like(v) }
     var storyOpen by mutableStateOf(false)
 
-/** exam tags: NEET or AIIMS anywhere in a tag's full name */
-private val EXAM = Regex("neet|aiims", RegexOption.IGNORE_CASE)
+/** exam tags: NEET, AIIMS or INICET anywhere in a tag's full name */
+private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
 
     private class Acc(val h: String, val ic: String, val c: String) { val subs = ArrayList<Int>() }
     private var deck: Deck? = null
