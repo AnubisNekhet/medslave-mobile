@@ -316,9 +316,14 @@ fun Credits(rs: Rs) {
             Gap(10.dp)
             /* the name opens the project on GitHub */
             val ctx = androidx.compose.ui.platform.LocalContext.current
-            Txt("medslave", size = 24.sp, bold = true, modifier = Modifier.clickable(remember { MutableInteractionSource() }, null) {
-                runCatching { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/AnubisNekhet/medslave-mobile")).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
-            })
+            /* the version beside it, small and faint, on the name's baseline */
+            val ver = remember { runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull().orEmpty() }
+            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Txt("medslave", size = 24.sp, bold = true, modifier = Modifier.alignByBaseline().clickable(remember { MutableInteractionSource() }, null) {
+                    runCatching { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/AnubisNekhet/medslave-mobile")).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                })
+                if (ver.isNotEmpty()) Txt("v$ver", size = 14.sp, color = P.faint, modifier = Modifier.alignByBaseline())
+            }
             Txt("by a medslave, for medslaves", color = P.faint)
             Gap(16.dp)
             val decks = rs.deck.top.filter { it.cnt > 0 }
