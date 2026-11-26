@@ -44,7 +44,8 @@ class Reels(private val rs: Rs) {
        YouTube playlist link: the track names are read, then each is matched to its 30-second Apple preview, a couple of seconds apart
        (Apple's search allows about 20 lookups a minute). kept under medslave:playlists as [{name, songs: [[title, artist, url, art]]}];
        switched off like a genre (its key "pl:<name>" in goff) */
-    inner class Playlist(name: String) { var name by mutableStateOf(name); val songs = mutableStateListOf<Song>(); var status by mutableStateOf(""); val key get() = "pl:$name" }
+    inner class Playlist(name: String) { var name by mutableStateOf(name); val songs = mutableStateListOf<Song>(); var status by mutableStateOf(""); val key get() = "pl:$name"
+        var added = System.currentTimeMillis(); var lastOn = 0L }   // lastOn: when it was last seen switched on (its songs' cache is kept until a week after)
     fun key(s: Song) = "${s.title} · ${s.artist}"
     fun byKey(k: String) = songs.firstOrNull { key(it) == k && !it.dead }
     /** a playlist's songs as the lines it can be edited from */
@@ -53,11 +54,13 @@ class Reels(private val rs: Rs) {
     val lists = mutableStateListOf<Playlist>()
     private fun loadLists() = runCatching {
         val a = JSONArray(rs.store.get(PLAYLISTS) ?: "[]")
-        for (i in 0 until a.length()) { val o = a.getJSONObject(i); val p = Playlist(o.getString("name")); val ss = o.getJSONArray("songs")
+        for (i in 0 until a.length()) { val o = a.getJSONObject(i); val p = Playlist(o.getString("name")); val ss = o.getJSONArray("songs"); p.added = o.optLong("added", System.currentTimeMillis()); p.lastOn = o.optLong("on", 0L)
             for (k in 0 until ss.length()) ss.getJSONArray(k).let { p.songs.add(Song(it.getString(0), it.getString(1), it.getString(2), it.getString(3), p.key)) }
             lists.add(p) }
     }
-    private fun saveLists() = rs.store.set(PLAYLISTS, JSONArray(lists.map { p -> JSONObject().put("name", p.name).put("songs", JSONArray(p.songs.map { JSONArray().put(it.title).put(it.artist).put(it.url).put(it.art) })) }).toString())
+    private fun saveLists() = rs.store.set(PLAYLISTS, JSONArray(lists.map { p -> JSONObject().put("name", p.name).put("added", p.added).put("on", p.lastOn).put("songs", JSONArray(p.songs.map { JSONArray().put(it.title).put(it.artist).put(it.url).put(it.art) })) }).toString())
+    /** notes which playlists are switched on now (called as the app opens and before a switch changes) */
+    fun markLists() { val now = System.currentTimeMillis(); var ch = false; lists.forEach { if (it.key !in rs.set.goff) { it.lastOn = now; ch = true } }; if (ch) saveLists() }
     fun removePlaylist(p: Playlist) { lists.remove(p); rs.set.goff = rs.set.goff - p.key; rs.set.save(); saveLists(); changed() }
     /** editing (a long press on the playlist): a new name and/or new lines. songs whose line is still there are kept as they are; new lines
         are looked up; removed ones go. the list switches over once it's all found */
@@ -309,9 +312,14 @@ class Reels(private val rs: Rs) {
     fun prune() = thread {
         runCatching {
             val week = System.currentTimeMillis() - 7L * 24 * 3600 * 1000
-            songDir.listFiles()?.forEach { if (it.name.endsWith(".part") || it.lastModified() < week) it.delete() }
-            var total = songDir.listFiles()?.sumOf { it.length() } ?: 0L
-            songDir.listFiles()?.sortedBy { it.lastModified() }?.forEach { if (total > 40L shl 20) { total -= it.length(); it.delete() } }
+            /* your playlists' songs are kept, switched on or not, until a week after the playlist was last on (or added, if it never was);
+               everything else goes after a week unplayed or past 40 MB */
+            h.post { markLists() }
+            val now = System.currentTimeMillis()
+            val keep = lists.toList().filter { now - maxOf(it.lastOn, it.added) < 7L * 24 * 3600 * 1000 || it.key !in rs.set.goff }.flatMap { it.songs.toList() }.map { cached(it).name }.toSet()
+            songDir.listFiles()?.forEach { if (it.name.endsWith(".part") || (it.name !in keep && it.lastModified() < week)) it.delete() }
+            var total = songDir.listFiles()?.filter { it.name !in keep }?.sumOf { it.length() } ?: 0L
+            songDir.listFiles()?.filter { it.name !in keep }?.sortedBy { it.lastModified() }?.forEach { if (total > 40L shl 20) { total -= it.length(); it.delete() } }
             val c = rs.ctx.cacheDir; val f = rs.ctx.filesDir
             if (!rs.busy) listOf(java.io.File(c, "import.apkg"), java.io.File(c, "import-col.db"), java.io.File(c, "import-col.db-journal"), java.io.File(f, "deck.db.tmp")).forEach { it.delete() }
             if (!rs.busy) java.io.File(f, "media.tmp").deleteRecursively()

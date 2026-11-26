@@ -313,6 +313,7 @@ private fun MusicSheet(rs: Rs) {
     /* every group that has songs (the genres and the user's playlists); at least one stays on */
     val keys = r.genres.map { it.first }.filter { g -> r.songs.any { it.genre == g && !it.dead } } + r.lists.filter { it.songs.isNotEmpty() }.map { it.key }
     fun toggle(k: String, on: Boolean) {
+        r.markLists()   // a playlist switched off now was on until now
         val off = if (on) rs.set.goff - k else rs.set.goff + k
         if (keys.all { it in off }) { msg = "Keep at least one genre or playlist on"; return }
         msg = ""; rs.set.goff = off; rs.set.save(); r.genreChanged()
@@ -342,7 +343,7 @@ private fun MusicSheet(rs: Rs) {
         Row(Modifier.fillMaxWidth().padding(bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
             Txt("Genres", bold = true, modifier = Modifier.weight(1f))
             if (listOn && gk.isNotEmpty()) Switch(gk.any { it !in rs.set.goff }) { on ->
-                msg = ""; rs.set.goff = if (on) rs.set.goff - gk.toSet() else rs.set.goff + gk; rs.set.save(); r.genreChanged()
+                msg = ""; r.markLists(); rs.set.goff = if (on) rs.set.goff - gk.toSet() else rs.set.goff + gk; rs.set.save(); r.genreChanged()
             }
         }
         /* with every genre off (the switch above), the list folds away; while any genre is on it stays open */
