@@ -9,7 +9,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -372,6 +371,7 @@ private fun MusicSheet(rs: Rs) {
 private fun AddPlaylist(rs: Rs, edit: pizza.kulhad.medslave.Reels.Playlist?, close: () -> Unit) {
     var name by remember { mutableStateOf(edit?.name ?: "") }; var text by remember { mutableStateOf("") }
     val kept = remember { androidx.compose.runtime.mutableStateListOf<pizza.kulhad.medslave.Song>().apply { edit?.let { addAll(it.songs) } } }
+    val acc = pizza.kulhad.medslave.ui.accents(rs.set.theme).map { if (P.dark) it.second else it.first }   // the pills' colours
     androidx.compose.ui.window.Dialog(close) {
         Column(Modifier.widthIn(max = 420.dp).fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(P.card).border(1.dp, P.border, RoundedCornerShape(8.dp)).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -380,9 +380,9 @@ private fun AddPlaylist(rs: Rs, edit: pizza.kulhad.medslave.Reels.Playlist?, clo
             if (kept.isNotEmpty()) Box(Modifier.fillMaxWidth().heightIn(max = 180.dp).verticalScroll(rememberScrollState())) {
                 androidx.compose.foundation.layout.FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     kept.toList().forEach { s ->
-                        /* a solid colour of its own (from the song, so it stays put), the text black or white, whichever reads better: like a primary button */
-                        val bg = Color.hsv(((s.title + s.artist).hashCode().toUInt() % 360u).toFloat(), .62f, .82f)
-                        val fg = if (bg.luminance() > .42f) Color.Black else Color.White
+                        /* one of the theme's accents (picked by the song, so it stays put), the text the opposite of the normal text colour */
+                        val bg = if (acc.isEmpty()) P.hi else acc[((s.title + s.artist).hashCode().toUInt() % acc.size.toUInt()).toInt()]
+                        val fg = P.bg
                         Row(Modifier.clip(RoundedCornerShape(30.dp)).background(bg).padding(start = 12.dp, end = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                             Txt(s.title, size = 13.6.sp, bold = true, color = fg, lines = 1, modifier = Modifier.widthIn(max = 200.dp))
                             Box(Modifier.size(28.dp).clip(CircleShape).clickable { kept.remove(s) }, contentAlignment = Alignment.Center) { Txt("×", size = 17.sp, bold = true, color = fg) }
