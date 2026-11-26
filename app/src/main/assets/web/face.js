@@ -38,7 +38,7 @@ function mcqOf(f){if(f[6]!='ioe'||!/<ol class="mcq"/.test(f[0]))return null;cons
 function mcqFace(m,A,pi,key){if(MQ.key!=key){MQ.key=key;MQ.picked=null;MQ.order=m.opts.map((_,i)=>i);for(let i=MQ.order.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[MQ.order[i],MQ.order[j]]=[MQ.order[j],MQ.order[i]]}}
  const ops=MQ.order.map(i=>A?`<label data-o="${i}" class="${i==m.right?(MQ.picked==i?'correct-answer':'highlight-correct'):MQ.picked==i?'highlight-picked highlight-wrong':''}">${m.opts[i]}</label>`
   :`<input type="radio" id="opt${i}" name="mcq" value="${i}"><label for="opt${i}" data-o="${i}">${m.opts[i]}</label>`).join('');
- return deck(pi)+HR+ttl(m.title)+`<div class="prettify-field prettify-field--front"><div class="center-text"><div class="prettify-field center-text zoomable-image">${m.q}</div></div></div>`+HR   /* the question, a divider, then the options */
+ return deck(pi)+HR+ttl(m.title)+`<div class="prettify-field prettify-field--front mcq-qf"><div class="center-text"><div class="prettify-field center-text zoomable-image">${m.q}</div></div></div>`+HR   /* the question, a divider, then the options */
   +`<div class="prettify-field prettify-field--front mcq-of"><div class="center-text"><div class="prettify-field option-group center-text">${ops}</div></div></div>`
   +(A&&m.extra?`<hr class="prettify-divider prettify-divider--answer"><div class="prettify-field prettify-field--front mcq-ex"><div class="center-text"><div class="prettify-field center-text extra">${m.extra}</div></div></div>`:'')}
 function face(A){const{n,o}=cur,[,k,pi]=n,f=n[4].map(trimF);let h;

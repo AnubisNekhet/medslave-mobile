@@ -1494,3 +1494,7 @@ button.rp .rp-x{animation:rpX .26s .14s cubic-bezier(.3,1.7,.5,1) both}
    (8px above, 23px below) */
 .mcq-card .option-group{margin:12px 0 0}
 .mcq-card .mcq-of{margin:0 .25em 12px}
+/* the question: the same nesting, so 12px above and below it as well */
+.mcq-card .mcq-qf{margin:12px .25em}.mcq-card .mcq-qf .prettify-field{margin:0}
+/* an MCQ's explanation: at most a third of the screen tall, scrolling in itself beyond that */
+.mcq-card .mcq-ex{max-height:33vh;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}.mcq-card .mcq-ex::-webkit-scrollbar{display:none}

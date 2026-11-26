@@ -11,12 +11,6 @@ body{margin:0}
 #stage.long>.wrap:not(.ghost){padding-bottom:0}
 #stage .prettify-flashcard{max-height:calc(100vh - 1em);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
 #stage .prettify-flashcard::-webkit-scrollbar{display:none}
-/* an MCQ's answer side: the question and options keep their size, the explanation takes what's left and scrolls in itself */
-#stage .prettify-flashcard.mcq-a{display:flex;flex-direction:column;overflow:hidden}
-#stage .prettify-flashcard.mcq-a>*{flex:none}
-#stage .prettify-flashcard.mcq-a>hr{align-self:stretch;width:auto;margin-left:0;margin-right:0}   /* a divider in a column would shrink to nothing */
-#stage .prettify-flashcard.mcq-a>.mcq-ex{flex:0 1 auto;min-height:4em;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
-#stage .mcq-ex::-webkit-scrollbar{display:none}
 </style></head>
 <body class="card night_mode nightMode"><div id="stage"></div>
 <script src="/face.js"></script><script src="/card.js"></script></body></html>
