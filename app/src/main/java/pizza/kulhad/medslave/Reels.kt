@@ -229,10 +229,20 @@ class Reels(private val rs: Rs) {
     private val audio = android.os.HandlerThread("medslave-audio").apply { start() }
     private val ah = Handler(audio.looper)
     private fun au(f: () -> Unit) { ah.post { runCatching(f) } }
+    /* audio focus: when a song starts (or comes back with the app) with the sound on, other apps' music stops; if another app takes the
+       focus back, the song here pauses (it plays again with the next card or when the app comes back) */
+    private val am by lazy { rs.ctx.getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager }
+    private val focusReq by lazy {
+        android.media.AudioFocusRequest.Builder(android.media.AudioManager.AUDIOFOCUS_GAIN)
+            .setAudioAttributes(android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_MEDIA).setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC).build())
+            .setOnAudioFocusChangeListener { f -> if (f < 0) au { if (mp.isPlaying) mp.pause() } }.build()
+    }
+    private fun focus() { if (!muted) runCatching { am.requestAudioFocus(focusReq) } }
     private val mp = MediaPlayer().apply {
+        setAudioAttributes(android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_MEDIA).setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC).build())
         setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
         isLooping = true
-        setOnPreparedListener { prepared = true; isLooping = true; if (want && !paused) { val v = if (muted) 0f else 1f; it.setVolume(v, v); it.start() } }
+        setOnPreparedListener { prepared = true; isLooping = true; if (want && !paused) { val v = if (muted) 0f else 1f; it.setVolume(v, v); h.post { focus() }; it.start() } }
         setOnErrorListener { _, _, _ -> prepared = false; h.post { onError() }; true }
     }
 
@@ -307,8 +317,8 @@ class Reels(private val rs: Rs) {
             if (!rs.busy) java.io.File(f, "media.tmp").deleteRecursively()
         }
     }
-    private fun vol() { val v = if (muted) 0f else 1f; au { mp.setVolume(v, v) } }
-    fun play() { want = true; vol(); if (prepared && !paused) au { if (!mp.isPlaying) mp.start() } }
+    private fun vol() { val v = if (muted) 0f else 1f; au { mp.setVolume(v, v) }; if (!muted && want && prepared && !paused) focus() }   // unmuted: other music stops
+    fun play() { want = true; vol(); if (prepared && !paused) { focus(); au { if (!mp.isPlaying) mp.start() } } }
     fun stop() { want = false; if (prepared) au { if (mp.isPlaying) mp.pause() } }
     fun tapMusic() { muted = !muted; play() }
     fun pause(p: Boolean) { paused = p; if (p) { if (prepared) au { if (mp.isPlaying) mp.pause() } } else if (want) play() }
