@@ -54,6 +54,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -827,11 +828,20 @@ fun ProgressPanel(rs: Rs) {
     val p = if (tot > 0) done.toFloat() / tot else 0f
     val a = remember { Animatable(0f) }
     LaunchedEffect(p) { a.animateTo(p, tween(600, easing = pizza.kulhad.medslave.EASE)) }
+    // the deck being studied, its parent decks above it: key "<id>/A › B" puts the deck's name · A above and B in the middle; a deck's
+    // own star key is its All subjects; the bare star key is All decks
+    val part = rs.deck.parts.find { s.key.startsWith(it.id + "/") }
+    val segs = s.key.removePrefix(part?.let { it.id + "/" } ?: "").let { if (it == "*") emptyList() else it.split(" › ") }
+    val parents = listOfNotNull(part?.name) + segs.dropLast(1)
+    val current = segs.lastOrNull() ?: if (part != null) "All subjects" else s.name
+    val hi = P.hi
     Popup("Progress", { rs.progressOpen = false }) {
         Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            if (parents.isNotEmpty()) Txt(parents.joinToString(" · "), size = 13.6.sp, color = P.faint, align = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+            Txt(current, size = 19.sp, bold = true, align = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 2.dp))
             Box(Modifier.padding(top = 10.dp, bottom = 6.dp).size(152.dp), contentAlignment = Alignment.Center) {
                 val bg = P.border
-                val fg = P.text
+                val fg = hi
                 Canvas(Modifier.fillMaxSize()) {
                     val w = size.width * 10 / 120
                     val r = size.width * 52 / 120
@@ -839,7 +849,7 @@ fun ProgressPanel(rs: Rs) {
                     drawArc(bg, 0f, 360f, false, tl, Size(2 * r, 2 * r), style = Stroke(w))
                     if (a.value > 0) drawArc(fg, -90f, 360f * a.value, false, tl, Size(2 * r, 2 * r), style = Stroke(w, cap = StrokeCap.Round))
                 }
-                Txt("${Math.round(p * 100)}%", size = 30.sp, bold = true)
+                Txt("${Math.round(p * 100)}%", size = 30.sp, bold = true, color = hi)
             }
             Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 6.dp), horizontalArrangement = Arrangement.SpaceAround) {
                 listOf(tot to "Total", done to "Done", (tot - done) to "Remaining").forEach { (n, l) ->
@@ -849,6 +859,19 @@ fun ProgressPanel(rs: Rs) {
                     }
                 }
             }
+            val note = androidx.compose.ui.text.buildAnnotatedString {
+                val acc = androidx.compose.ui.text.SpanStyle(color = hi)
+                append("You can change the current deck in feed by either ")
+                withStyle(acc) { append("changing your feed filter (long press the home button)") }
+                append(" or ")
+                withStyle(acc) { append("select a deck in the deck picker") }
+                append(".")
+            }
+            androidx.compose.foundation.text.BasicText(
+                note,
+                Modifier.fillMaxWidth().padding(top = 14.dp),
+                style = androidx.compose.ui.text.TextStyle(color = P.faint, fontSize = 12.8.sp, fontFamily = Carlito, textAlign = TextAlign.Center, lineHeight = 17.sp)
+            )
         }
     }
 }
