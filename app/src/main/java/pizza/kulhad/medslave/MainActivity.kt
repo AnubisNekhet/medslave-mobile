@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
-import androidx.compose.ui.graphics.toArgb
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -22,11 +21,11 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import pizza.kulhad.medslave.ui.AddDeck
 import pizza.kulhad.medslave.ui.Credits
-import pizza.kulhad.medslave.ui.accented
 import pizza.kulhad.medslave.ui.DialogBox
 import pizza.kulhad.medslave.ui.Home
 import pizza.kulhad.medslave.ui.ImportPanel
@@ -37,6 +36,7 @@ import pizza.kulhad.medslave.ui.SettingsPanel
 import pizza.kulhad.medslave.ui.Sheets
 import pizza.kulhad.medslave.ui.Study
 import pizza.kulhad.medslave.ui.Tutorial
+import pizza.kulhad.medslave.ui.accented
 import pizza.kulhad.medslave.ui.pal
 
 class MainActivity : ComponentActivity() {
@@ -44,24 +44,37 @@ class MainActivity : ComponentActivity() {
     private var openThen: ((Uri) -> Unit)? = null
     private var saveData: ByteArray? = null
 
-    private val opener = registerForActivityResult(ActivityResultContracts.OpenDocument()) { u -> val f = openThen; openThen = null; if (u != null) f?.invoke(u) }
+    private val opener = registerForActivityResult(ActivityResultContracts.OpenDocument()) { u ->
+        val f = openThen
+        openThen = null
+        if (u != null) f?.invoke(u)
+    }
     private val saver = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { u ->
-        val d = saveData; saveData = null
+        val d = saveData
+        saveData = null
         if (u != null && d != null) runCatching { contentResolver.openOutputStream(u)?.use { it.write(d) } }.onFailure { rs.dialog = Dlg("Couldn’t save the file.") }
     }
 
     override fun onCreate(b: Bundle?) {
-        enableEdgeToEdge(SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
-            SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT))
+        enableEdgeToEdge(
+            SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
+            SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
+        )
         super.onCreate(b)
         if (Build.VERSION.SDK_INT >= 29) window.isNavigationBarContrastEnforced = false
-        pizza.kulhad.medslave.ui.You.load(this)   // Material You colours (they change with the wallpaper; the activity is recreated then)
+        pizza.kulhad.medslave.ui.You.load(this) // Material You colours (they change with the wallpaper; the activity is recreated then)
         rs = (lastNonConfigurationInstance as? Rs) ?: Rs(applicationContext).also { it.loadDeck() }
         rs.activity = this
-        if (b == null) rs.reels.prune()   // tidy the cache when the app opens
-        rs.updater.check()   // a newer release? (in the background, once per start)
-        rs.openFile = { mimes, then -> openThen = then; runCatching { opener.launch(mimes) } }
-        rs.saveFile = { name, _, data -> saveData = data; runCatching { saver.launch(name) } }
+        if (b == null) rs.reels.prune() // tidy the cache when the app opens
+        rs.updater.check() // a newer release? (in the background, once per start)
+        rs.openFile = { mimes, then ->
+            openThen = then
+            runCatching { opener.launch(mimes) }
+        }
+        rs.saveFile = { name, _, data ->
+            saveData = data
+            runCatching { saver.launch(name) }
+        }
         handle(intent)
         /* the system splash (the big icon) stays until the deck is loaded, so the app's smaller spinner never takes over from it on launch
            (it looked like the icon shrank as it started spinning). a cap of 3 s in case loading stalls */
@@ -78,16 +91,35 @@ class MainActivity : ComponentActivity() {
         }
         setContent {
             val sys = isSystemInDarkTheme()
-            val dark = when (rs.set.mode) { "light" -> false; "dark" -> true; else -> sys }   // Settings › Appearance › Mode
-            LaunchedEffect(dark) { val t = android.graphics.Color.TRANSPARENT
-                enableEdgeToEdge(if (dark) SystemBarStyle.dark(t) else SystemBarStyle.light(t, t), if (dark) SystemBarStyle.dark(t) else SystemBarStyle.light(t, t)) }
+            val dark = when (rs.set.mode) {
+                "light" -> false
+                "dark" -> true
+                else -> sys
+            } // Settings › Appearance › Mode
+            LaunchedEffect(dark) {
+                val t = android.graphics.Color.TRANSPARENT
+                enableEdgeToEdge(if (dark) SystemBarStyle.dark(t) else SystemBarStyle.light(t, t), if (dark) SystemBarStyle.dark(t) else SystemBarStyle.light(t, t))
+            }
             val p = remember(rs.set.theme, dark, rs.set.accent) { pal(rs.set.theme, dark).accented(pizza.kulhad.medslave.ui.accentOf(rs.set.theme, rs.set.accent, dark)) }
             rs.scope = rememberCoroutineScope()
-            LaunchedEffect(p.hi) { val h = String.format("#%06x", p.hi.toArgb() and 0xffffff); rs.web.accent(h); rs.feed.accHex = h }   // the pages' accent (exam tags)
-            LaunchedEffect(p.hi, rs.set.redlike) { rs.feed.likeHex = if (rs.set.redlike) "#ff3040" else String.format("#%06x", p.hi.toArgb() and 0xffffff) }   // the feed's likes
-            val dn = LocalDensity.current; val cf = LocalConfiguration.current
-            SideEffect { rs.density = dn.density; rs.screenW = cf.screenWidthDp * dn.density; rs.screenH = cf.screenHeightDp * dn.density }
-            LaunchedEffect(rs.set.theme, dark) { rs.dark = dark; rs.web.theme(rs.set.theme, dark); rs.feed.theme(rs.set.theme, dark) }
+            LaunchedEffect(p.hi) {
+                val h = String.format("#%06x", p.hi.toArgb() and 0xffffff)
+                rs.web.accent(h)
+                rs.feed.accHex = h
+            } // the pages' accent (exam tags)
+            LaunchedEffect(p.hi, rs.set.redlike) { rs.feed.likeHex = if (rs.set.redlike) "#ff3040" else String.format("#%06x", p.hi.toArgb() and 0xffffff) } // the feed's likes
+            val dn = LocalDensity.current
+            val cf = LocalConfiguration.current
+            SideEffect {
+                rs.density = dn.density
+                rs.screenW = cf.screenWidthDp * dn.density
+                rs.screenH = cf.screenHeightDp * dn.density
+            }
+            LaunchedEffect(rs.set.theme, dark) {
+                rs.dark = dark
+                rs.web.theme(rs.set.theme, dark)
+                rs.feed.theme(rs.set.theme, dark)
+            }
             /* an open story fills the screen: the status and navigation bars hide (a swipe from the edge shows them for a moment) */
             LaunchedEffect(rs.feed.storyOpen) {
                 val c = androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
@@ -105,7 +137,7 @@ class MainActivity : ComponentActivity() {
                     if (rs.progressOpen) ProgressPanel(rs)
                     Sheets(rs)
                     if (rs.tutorial) Tutorial(rs)
-                    pizza.kulhad.medslave.ui.Tour(rs)   // the app tour (over the app, under dialogs)
+                    pizza.kulhad.medslave.ui.Tour(rs) // the app tour (over the app, under dialogs)
                     if (rs.addDeck) AddDeck(rs)
                     if (rs.feed.pickOpen) pizza.kulhad.medslave.ui.FilterPick(rs)
                     rs.importTypes?.let { ImportPanel(rs, it) }
@@ -120,7 +152,11 @@ class MainActivity : ComponentActivity() {
                 BackHandler(!rs.study && rs.set.reels && rs.feed.profileOpen && !rs.feed.storyOpen) { rs.feed.web.closeProfile() }
                 BackHandler(!rs.study && rs.set.reels && rs.feed.storyOpen) { rs.feed.web.close() }
                 BackHandler(rs.picker != null || rs.heatOpen || rs.creditsOpen || rs.settingsOpen || rs.progressOpen) {
-                    rs.picker = null; rs.heatOpen = false; rs.creditsOpen = false; rs.settingsOpen = false; rs.progressOpen = false
+                    rs.picker = null
+                    rs.heatOpen = false
+                    rs.creditsOpen = false
+                    rs.settingsOpen = false
+                    rs.progressOpen = false
                 }
                 BackHandler(rs.reels.sheet != null) { if (rs.reels.qr) rs.reels.qr = false else rs.reels.close() }
                 BackHandler(rs.tutorial) { rs.tutorial = false }
@@ -130,19 +166,36 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @Deprecated("keeps the app state across rotation") override fun onRetainCustomNonConfigurationInstance(): Any = rs
+    @Deprecated("keeps the app state across rotation")
+    override fun onRetainCustomNonConfigurationInstance(): Any = rs
 
-    override fun onNewIntent(i: Intent) { super.onNewIntent(i); handle(i) }
+    override fun onNewIntent(i: Intent) {
+        super.onNewIntent(i)
+        handle(i)
+    }
 
     /* the volume keys while reviewing (Reels or not, a card on screen, nothing open over it): down = knew it, up = missed it; on the
        question side either one shows the answer. anywhere else they're the volume */
     override fun dispatchKeyEvent(e: android.view.KeyEvent): Boolean {
         val k = e.keyCode
-        if ((k == android.view.KeyEvent.KEYCODE_VOLUME_DOWN || k == android.view.KeyEvent.KEYCODE_VOLUME_UP) && rs.set.volkeys && rs.study && rs.cur != null
-            && !rs.progressOpen && !rs.settingsOpen && rs.dialog == null && rs.reels.sheet == null && !rs.tutorial) {
+        if ((k == android.view.KeyEvent.KEYCODE_VOLUME_DOWN || k == android.view.KeyEvent.KEYCODE_VOLUME_UP) &&
+            rs.set.volkeys &&
+            rs.study &&
+            rs.cur != null &&
+            !rs.progressOpen &&
+            !rs.settingsOpen &&
+            rs.dialog == null &&
+            rs.reels.sheet == null &&
+            !rs.tutorial
+        ) {
             if (e.action == android.view.KeyEvent.ACTION_DOWN && e.repeatCount == 0) {
-                if (rs.stage == 0) rs.advance(true)
-                else if (k == android.view.KeyEvent.KEYCODE_VOLUME_DOWN) rs.advance(true, true) else rs.wrong()
+                if (rs.stage == 0) {
+                    rs.advance(true)
+                } else if (k == android.view.KeyEvent.KEYCODE_VOLUME_DOWN) {
+                    rs.advance(true, true)
+                } else {
+                    rs.wrong()
+                }
             }
             return true
         }
@@ -153,18 +206,42 @@ class MainActivity : ComponentActivity() {
     private fun handle(i: Intent?) {
         val u: Uri? = when (i?.action) {
             Intent.ACTION_VIEW -> i.data
-            Intent.ACTION_SEND -> if (Build.VERSION.SDK_INT >= 33) i.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java) else @Suppress("DEPRECATION") i.getParcelableExtra(Intent.EXTRA_STREAM)
+            Intent.ACTION_SEND -> if (Build.VERSION.SDK_INT >= 33) {
+                i.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                i.getParcelableExtra(Intent.EXTRA_STREAM)
+            }
             else -> null
         }
-        if (u != null) { i?.action = null; rs.study = false; rs.importUri(u) }
+        if (u != null) {
+            i?.action = null
+            rs.study = false
+            rs.importUri(u)
+        }
     }
 
-    override fun onStart() { super.onStart(); if (!rs.study) rs.feed.opened() }
-    override fun onPause() { super.onPause(); rs.reels.pause(true) }
-    override fun onResume() { super.onResume(); rs.reels.pause(false) }
+    override fun onStart() {
+        super.onStart()
+        if (!rs.study) rs.feed.opened()
+    }
+    override fun onPause() {
+        super.onPause()
+        rs.reels.pause(true)
+    }
+    override fun onResume() {
+        super.onResume()
+        rs.reels.pause(false)
+    }
     override fun onDestroy() {
         super.onDestroy()
-        if (!isChangingConfigurations) { rs.reels.release(); rs.web.detach(); rs.activity = null }
-        else { rs.web.detach() }
+        if (!isChangingConfigurations) {
+            rs.reels.release()
+            rs.web.destroy()
+            rs.feed.destroy()
+            rs.activity = null
+        } else {
+            rs.web.detach()
+        }
     }
 }

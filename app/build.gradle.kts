@@ -4,6 +4,13 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("org.jlleitschuh.gradle.ktlint")
+}
+
+// ./gradlew ktlintFormat fixes the style; ktlintCheck (CI) fails on what it can't fix. rules in .editorconfig
+ktlint {
+    version.set("1.3.1")
+    android.set(true)
 }
 
 // release signing: keystore.properties (gitignored) next to settings.gradle.kts
@@ -16,16 +23,18 @@ android {
         applicationId = "pizza.kulhad.medslave"
         minSdk = 26
         targetSdk = 35
-        versionCode = 101
-        versionName = "2.00"
+        versionCode = 103
+        versionName = "2.02"
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
     }
     signingConfigs {
-        if (ks.isNotEmpty()) create("release") {
-            storeFile = rootProject.file(ks.getProperty("storeFile"))
-            storePassword = ks.getProperty("storePassword")
-            keyAlias = ks.getProperty("keyAlias")
-            keyPassword = ks.getProperty("keyPassword")
+        if (ks.isNotEmpty()) {
+            create("release") {
+                storeFile = rootProject.file(ks.getProperty("storeFile"))
+                storePassword = ks.getProperty("storePassword")
+                keyAlias = ks.getProperty("keyAlias")
+                keyPassword = ks.getProperty("keyPassword")
+            }
         }
     }
     buildTypes {
@@ -41,7 +50,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
-    buildFeatures { compose = true; buildConfig = false }
+    buildFeatures {
+        compose = true
+        buildConfig = false
+    }
     packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
 }
 

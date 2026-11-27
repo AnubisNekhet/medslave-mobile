@@ -42,12 +42,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import kotlinx.coroutines.launch
-import pizza.kulhad.medslave.Rs
 import kotlin.math.abs
 import kotlin.math.sign
+import kotlinx.coroutines.launch
+import pizza.kulhad.medslave.Rs
 
-private class Taps { var t = 0L; var x = 0f; var y = 0f }
+private class Taps {
+    var t = 0L
+    var x = 0f
+    var y = 0f
+}
 
 @Composable
 fun Study(rs: Rs) {
@@ -55,9 +59,14 @@ fun Study(rs: Rs) {
     val reelsOn = rs.set.reels && rs.cur != null
     val taps = remember { Taps() }
     Column(Modifier.fillMaxSize().background(P.bg).windowInsetsPadding(WindowInsets.systemBars)) {
-        Box(Modifier.weight(1f).fillMaxWidth().clipToBounds()
-            .onGloballyPositioned { rs.stageRect = it.boundsInWindow(); rs.stageH = it.size.height.toFloat() }
-            .pointerInput(rs.set.flip) { cardGestures(rs, d, taps) }) {
+        Box(
+            Modifier.weight(1f).fillMaxWidth().clipToBounds()
+                .onGloballyPositioned {
+                    rs.stageRect = it.boundsInWindow()
+                    rs.stageH = it.size.height.toFloat()
+                }
+                .pointerInput(rs.set.flip) { cardGestures(rs, d, taps) }
+        ) {
             /* Reels: a card too tall to sit above the account row ends just above it and scrolls there (capReel) */
             val capPx = if (reelsOn && rs.reels.whoTop > 0 && (rs.web.contentH + 16) * d > rs.reels.whoTop - 6 * d) rs.stageH - rs.reels.whoTop + 6 * d else 0f
             LaunchedEffect(capPx > 0) { rs.web.long(capPx > 0) }
@@ -65,11 +74,20 @@ fun Study(rs: Rs) {
                under the account row free instead (--room) */
             val room = if (reelsOn && rs.reels.whoTop > 0) (rs.stageH - rs.reels.whoTop + 6 * d) / d else 0f
             LaunchedEffect(room) { rs.web.room(room) }
-            Box(Modifier.fillMaxSize().graphicsLayer {
-                translationX = rs.tx.value; translationY = rs.ty.value; rotationZ = rs.rot.value; alpha = rs.alpha.value
-                scaleX = rs.scale.value; scaleY = rs.scale.value
-            }) {
-                AndroidView(factory = { rs.web.detach(); rs.web.view }, modifier = Modifier.fillMaxSize())
+            Box(
+                Modifier.fillMaxSize().graphicsLayer {
+                    translationX = rs.tx.value
+                    translationY = rs.ty.value
+                    rotationZ = rs.rot.value
+                    alpha = rs.alpha.value
+                    scaleX = rs.scale.value
+                    scaleY = rs.scale.value
+                }
+            ) {
+                AndroidView(factory = {
+                    rs.web.detach()
+                    rs.web.view
+                }, modifier = Modifier.fillMaxSize())
             }
             if (reelsOn) ReelOverlay(rs)
             rs.ghost?.let { g -> Image(g.img, null, Modifier.fillMaxWidth().height((g.img.height / d).dp).graphicsLayer { translationY = g.top + g.y.value }, contentScale = ContentScale.FillBounds) }
@@ -86,40 +104,107 @@ fun Study(rs: Rs) {
 private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.cardGestures(rs: Rs, d: Float, taps: Taps) = awaitEachGesture {
     val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
     if (rs.cur == null) return@awaitEachGesture
-    val flip = rs.set.flip; val x0 = down.position.x; val y0 = down.position.y; val t0 = down.uptimeMillis
-    var bot = rs.web.atBottom(); var top = rs.web.atTop(); rs.web.exUp = false; rs.web.exDown = false; rs.web.moved = false; rs.web.wire = false
+    val flip = rs.set.flip
+    val x0 = down.position.x
+    val y0 = down.position.y
+    val t0 = down.uptimeMillis
+    var bot = rs.web.atBottom()
+    var top = rs.web.atTop()
+    rs.web.exUp = false
+    rs.web.exDown = false
+    rs.web.moved = false
+    rs.web.wire = false
     /* not while an explanation card under the finger can still scroll that way */
-    fun canBot() = bot && !rs.web.exDown && !rs.web.moved   // and the card didn't scroll during this touch
+    fun canBot() = bot && !rs.web.exDown && !rs.web.moved // and the card didn't scroll during this touch
     fun canTop() = top && !rs.web.exUp && !rs.web.moved
     val tinder = !flip && !rs.leaving
-    var drag = false; var dx = 0f; var dy = 0f; var multi = false; var lastGlow = 0f; var tUp = t0
+    var drag = false
+    var dx = 0f
+    var dy = 0f
+    var multi = false
+    var lastGlow = 0f
+    var tUp = t0
     /* Reels: an answer card follows the finger (with its overlay) instead of waiting for the swipe to end, as reels do */
-    val follow = flip && rs.set.reels && rs.stage == 1 && !rs.leaving; var rdrag = false
-    fun glow(v: Float) { if (!rs.set.reels && abs(v - lastGlow) > .015f) { lastGlow = v; rs.web.glow(v) } }
+    val follow = flip && rs.set.reels && rs.stage == 1 && !rs.leaving
+    var rdrag = false
+    fun glow(v: Float) {
+        if (!rs.set.reels && abs(v - lastGlow) > .015f) {
+            lastGlow = v
+            rs.web.glow(v)
+        }
+    }
     while (true) {
         val ev = awaitPointerEvent(PointerEventPass.Initial)
-        if (ev.changes.count { it.pressed } > 1) { multi = true; bot = false; top = false }
+        if (ev.changes.count { it.pressed } > 1) {
+            multi = true
+            bot = false
+            top = false
+        }
         val c = ev.changes.firstOrNull { it.id == down.id } ?: break
-        dx = (c.position.x - x0) / d; dy = (c.position.y - y0) / d
-        if (!c.pressed) { tUp = c.uptimeMillis; break }
-        if (rs.web.wire) continue   // dragging a wire on a Match card: the card stays put
+        dx = (c.position.x - x0) / d
+        dy = (c.position.y - y0) / d
+        if (!c.pressed) {
+            tUp = c.uptimeMillis
+            break
+        }
+        if (rs.web.wire) continue // dragging a wire on a Match card: the card stays put
         if (follow && !multi) {
-            if (!rdrag && abs(dy) > 10 && abs(dy) > abs(dx) * 1.2f && (dy < 0 && canBot() || dy > 0 && canTop())) { rdrag = true; rs.preCapture() }
-            if (rs.web.wire) {   // a Match card's wire drag: undo anything that started before the page said so
-        if (drag || rdrag) rs.scope.launch { val t = tween<Float>(200); launch { rs.tx.animateTo(0f, t) }; launch { rs.oy.animateTo(0f, t) }; launch { rs.rot.animateTo(0f, t) }; rs.ty.animateTo(0f, t) }
-        if (lastGlow != 0f) rs.web.glow(0f)
-        return@awaitEachGesture
-    }
-    if (rdrag) { c.consume()   /* the reel moves, not the card's page under it */
-                val py = (if (dy < 0 && !bot || dy > 0 && !top) 0f else dy) * d; rs.scope.launch { rs.ty.snapTo(py); rs.oy.snapTo(py) } }
+            if (!rdrag && abs(dy) > 10 && abs(dy) > abs(dx) * 1.2f && (dy < 0 && canBot() || dy > 0 && canTop())) {
+                rdrag = true
+                rs.preCapture()
+            }
+            if (rs.web.wire) { // a Match card's wire drag: undo anything that started before the page said so
+                if (drag || rdrag) {
+                    rs.scope.launch {
+                        val t = tween<Float>(200)
+                        launch { rs.tx.animateTo(0f, t) }
+                        launch { rs.oy.animateTo(0f, t) }
+                        launch { rs.rot.animateTo(0f, t) }
+                        rs.ty.animateTo(0f, t)
+                    }
+                }
+                if (lastGlow != 0f) rs.web.glow(0f)
+                return@awaitEachGesture
+            }
+            if (rdrag) {
+                c.consume() // the reel moves, not the card's page under it
+                val py = (if (dy < 0 && !bot || dy > 0 && !top) 0f else dy) * d
+                rs.scope.launch {
+                    rs.ty.snapTo(py)
+                    rs.oy.snapTo(py)
+                }
+            }
         }
         if (flip) {
-            if (rs.stage == 1 && (bot || top)) glow(if (abs(dy) > 10 && abs(dy) > abs(dx)) (if (dy < 0 && bot) minOf(1f, -dy / 160) else if (dy > 0 && top) -minOf(1f, dy / 160) else 0f) else 0f)
+            if (rs.stage == 1 && (bot || top)) {
+                glow(
+                    if (abs(dy) > 10 && abs(dy) > abs(dx)) {
+                        (
+                            if (dy < 0 && bot) {
+                                minOf(1f, -dy / 160)
+                            } else if (dy > 0 && top) {
+                                -minOf(1f, dy / 160)
+                            } else {
+                                0f
+                            }
+                            )
+                    } else {
+                        0f
+                    }
+                )
+            }
         } else if (tinder) {
             if (!drag && abs(dx) > 10 && abs(dx) > abs(dy) * 1.2f) drag = true
             if (drag) {
-                c.consume(); val px = dx * d; val py = dy * d * .2f; val r = dx / 20
-                rs.scope.launch { rs.tx.snapTo(px); rs.ty.snapTo(py); rs.rot.snapTo(r) }
+                c.consume()
+                val px = dx * d
+                val py = dy * d * .2f
+                val r = dx / 20
+                rs.scope.launch {
+                    rs.tx.snapTo(px)
+                    rs.ty.snapTo(py)
+                    rs.rot.snapTo(r)
+                }
                 if (rs.stage == 1) glow(dx / 160)
             }
         }
@@ -127,32 +212,69 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.cardGest
     if (rdrag) {
         /* let go far or fast enough: it carries on (from where it is) and the next card comes in behind it; otherwise it springs back */
         val v = abs(dy) / (tUp - t0 + 1)
-        if (!multi && (abs(dy) > 90 || v > .5f) && (if (dy < 0) rs.web.atBottom() else rs.web.atTop()) && !rs.web.moved) { rs.dragOff = rs.ty.value; if (dy < 0) rs.advance(true) else rs.advance(true, false) }   // still at its end as it's let go
-        else rs.scope.launch { val t = tween<Float>(260, easing = pizza.kulhad.medslave.EASE_OUTISH); launch { rs.oy.animateTo(0f, t) }; rs.ty.animateTo(0f, t) }
+        if (!multi && (abs(dy) > 90 || v > .5f) && (if (dy < 0) rs.web.atBottom() else rs.web.atTop()) && !rs.web.moved) {
+            rs.dragOff = rs.ty.value
+            if (dy < 0) rs.advance(true) else rs.advance(true, false)
+        } // still at its end as it's let go
+        else {
+            rs.scope.launch {
+                val t = tween<Float>(260, easing = pizza.kulhad.medslave.EASE_OUTISH)
+                launch { rs.oy.animateTo(0f, t) }
+                rs.ty.animateTo(0f, t)
+            }
+        }
     } else if (flip) {
-        if (!multi && abs(dy) > 50 && abs(dy) > abs(dx) * 1.2f) { if (dy < 0 && canBot() && rs.web.atBottom()) rs.advance(true) else if (dy > 0 && canTop() && rs.web.atTop() && rs.stage == 1) rs.advance(true, false) }   // at its end as the finger landed and as it lifted
-        else if (!multi && rs.stage == 1 && abs(dx) > 50 && abs(dx) > abs(dy) * 1.2f) rs.web.turn("y", if (dx > 0) 1 else -1)   // sideways: an MCQ answer turns over (Hide explanation)
+        if (!multi && abs(dy) > 50 && abs(dy) > abs(dx) * 1.2f) {
+            if (dy < 0 && canBot() && rs.web.atBottom()) {
+                rs.advance(true)
+            } else if (dy > 0 && canTop() && rs.web.atTop() && rs.stage == 1) {
+                rs.advance(true, false)
+            }
+        } // at its end as the finger landed and as it lifted
+        else if (!multi && rs.stage == 1 && abs(dx) > 50 && abs(dx) > abs(dy) * 1.2f) {
+            rs.web.turn("y", if (dx > 0) 1 else -1) // sideways: an MCQ answer turns over (Hide explanation)
+        }
         if (!rs.leaving && lastGlow != 0f) rs.web.glow(0f)
     } else if (!flip && !drag && !multi && rs.stage == 1 && abs(dy) > 50 && abs(dy) > abs(dx) * 1.2f && (dy < 0 && bot || dy > 0 && top)) {
-        rs.web.turn("x", if (dy < 0) 1 else -1)   // Tinder: up or down turns an MCQ answer over (Hide explanation)
+        rs.web.turn("x", if (dy < 0) 1 else -1) // Tinder: up or down turns an MCQ answer over (Hide explanation)
     } else if (drag) {
         val v = abs(dx) / (tUp - t0 + 1)
-        if (abs(dx) > 100 || v > .6f) rs.fly(sign(dx).toInt(), dy * d)
-        else { rs.scope.launch { val t = tween<Float>(250); launch { rs.tx.animateTo(0f, t) }; launch { rs.ty.animateTo(0f, t) }; rs.rot.animateTo(0f, t) }; if (lastGlow != 0f) rs.web.glow(0f) }
+        if (abs(dx) > 100 || v > .6f) {
+            rs.fly(sign(dx).toInt(), dy * d)
+        } else {
+            rs.scope.launch {
+                val t = tween<Float>(250)
+                launch { rs.tx.animateTo(0f, t) }
+                launch { rs.ty.animateTo(0f, t) }
+                rs.rot.animateTo(0f, t)
+            }
+            if (lastGlow != 0f) rs.web.glow(0f)
+        }
     }
     /* Reels double tap: two quick taps close together, not on the overlay's buttons */
     if (rs.set.reels && !drag && !multi && abs(dx) < 12 && abs(dy) < 12 && tUp - t0 < 350) {
-        val wx = rs.stageRect.left + down.position.x; val wy = rs.stageRect.top + down.position.y
-        if (rs.reels.excl.any { it.contains(Offset(wx, wy)) }) { taps.t = 0 }
-        else if (tUp - taps.t < 320 && abs(down.position.x - taps.x) < 40 * d && abs(down.position.y - taps.y) < 40 * d) { taps.t = 0; rs.reels.burst(down.position.x, down.position.y) }
-        else { taps.t = tUp; taps.x = down.position.x; taps.y = down.position.y }
+        val wx = rs.stageRect.left + down.position.x
+        val wy = rs.stageRect.top + down.position.y
+        if (rs.reels.excl.any { it.contains(Offset(wx, wy)) }) {
+            taps.t = 0
+        } else if (tUp - taps.t < 320 && abs(down.position.x - taps.x) < 40 * d && abs(down.position.y - taps.y) < 40 * d) {
+            taps.t = 0
+            rs.reels.burst(down.position.x, down.position.y)
+        } else {
+            taps.t = tUp
+            taps.x = down.position.x
+            taps.y = down.position.y
+        }
     }
 }
 
 private fun hint(rs: Rs): String {
     val f = rs.set.flip
-    return if (rs.stage == 1) (if (f) "↑ knew it · ↓ " + (if (rs.set.reels) "or Repost: " else "") + "again" else "→ knew it · ← again")
-    else (if (rs.cur?.again == true) "Again · " else "") + (if (f) "Swipe up " else "Swipe ") + "to reveal the answer"
+    return if (rs.stage == 1) {
+        (if (f) "↑ knew it · ↓ " + (if (rs.set.reels) "or Repost: " else "") + "again" else "→ knew it · ← again")
+    } else {
+        (if (rs.cur?.again == true) "Again · " else "") + (if (f) "Swipe up " else "Swipe ") + "to reveal the answer"
+    }
 }
 
 @Composable
@@ -160,8 +282,14 @@ private fun Footer(rs: Rs, reels: Boolean) {
     if (reels) {
         /* Reels: three buttons, like the home bar: menu, home (the feed), stats */
         Row(Modifier.fillMaxWidth().solidLine(P.divider, true).padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceAround) {
-            IconBtn(Ic.LIST, Modifier.size(51.dp, 42.dp), size = 24.dp, stroke = 2f, plain = true) { rs.home(); rs.tab = "menu" }
-            IconBtn(Ic.HOME, Modifier.size(51.dp, 42.dp), size = 24.dp, plain = true) { rs.home(); rs.tab = "feed" }
+            IconBtn(Ic.LIST, Modifier.size(51.dp, 42.dp), size = 24.dp, stroke = 2f, plain = true) {
+                rs.home()
+                rs.tab = "menu"
+            }
+            IconBtn(Ic.HOME, Modifier.size(51.dp, 42.dp), size = 24.dp, plain = true) {
+                rs.home()
+                rs.tab = "feed"
+            }
             IconBtn(Ic.PIE, Modifier.size(51.dp, 42.dp), size = 24.dp, plain = true) { rs.progressOpen = true }
         }
         return
@@ -185,13 +313,23 @@ private fun Footer(rs: Rs, reels: Boolean) {
 @Composable
 private fun FinCard(rs: Rs, f: pizza.kulhad.medslave.Fin) {
     Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 13.dp, vertical = 8.dp), contentAlignment = Alignment.TopCenter) {
-        Column(Modifier.widthIn(max = 640.dp).fillMaxWidth().shadow(7.dp, RoundedCornerShape(8.dp)).border(1.dp, P.border, RoundedCornerShape(8.dp))
-            .background(P.card, RoundedCornerShape(8.dp)).padding(horizontal = 16.dp, vertical = 22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            Modifier.widthIn(max = 640.dp).fillMaxWidth().shadow(7.dp, RoundedCornerShape(8.dp)).border(1.dp, P.border, RoundedCornerShape(8.dp))
+                .background(P.card, RoundedCornerShape(8.dp)).padding(horizontal = 16.dp, vertical = 22.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Txt("Deck finished", size = 22.sp, bold = true, align = TextAlign.Center)
             Gap(10.dp)
             Txt("You’ve been through all ${f.count} cards in ${f.name}" + (if (f.wr > 0) ", and went back over ${f.wr} you missed" else "") + ".", align = TextAlign.Center, lh = 22.sp)
-            if (f.filtered > 0) Txt("%,d more card%s hidden by the feed filter (Settings › Reviewing › Feed filter in reels).".format(f.filtered, if (f.filtered == 1) " was" else "s were"),
-                size = 13.6.sp, color = P.faint, align = TextAlign.Center, lh = 20.sp)
+            if (f.filtered > 0) {
+                Txt(
+                    "%,d more card%s hidden by the feed filter (Settings › Reviewing › Feed filter in reels).".format(f.filtered, if (f.filtered == 1) " was" else "s were"),
+                    size = 13.6.sp,
+                    color = P.faint,
+                    align = TextAlign.Center,
+                    lh = 20.sp
+                )
+            }
             Gap(20.dp)
             Row(horizontalArrangement = Arrangement.spacedBy(11.dp)) {
                 Btn("Home", h = 42.dp) { rs.home() }

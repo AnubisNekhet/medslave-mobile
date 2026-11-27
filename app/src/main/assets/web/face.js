@@ -44,13 +44,15 @@ function mcqFace(m,A,pi,key){if(MQ.key!=key){MQ.key=key;MQ.picked=null;MQ.order=
 }
 /* the explanation: its own small card under the MCQ card on the answer side (Settings › Reviewing › Show explanation) */
 /* Material You: the phone's colours as card variables (html[data-theme=you]), sent by the app */
+/* an MCQ explanation's chevron (mcqIn) folds it open and shut; a listener, not an onclick: the pages' CSP allows no inline script */
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('.mcq-col>.mcq-chev');if(b){e.stopPropagation();b.parentNode.classList.toggle('open')}},true);
 function youVars(css){let s=document.getElementById('you-vars');if(!s){s=document.createElement('style');s.id='you-vars';document.head.appendChild(s)}s.textContent=css}
 let EXIN=false,TURN=false;   /* TURN: the reviewer can turn an MCQ answer over to its explanation (Hide explanation) */
 /* the answer card with the explanation on its back: both sides share one grid cell, so they're the same height (the taller one, up to the
    card's cap) and each scrolls on its own */
 const mcqTurn=(fr,m)=>`<div class="mcq-flip"><div class="mcq-rot"><div class="mcq-side mcq-front">${fr}</div><div class="mcq-side mcq-back"><div class="prettify-flashcard mcq-exb"><div class="prettify-field center-text extra">${m.extra}</div></div></div></div></div>`;   /* feed posts: the explanation inside the MCQ card, as before */
 /* a post's explanation: under a divider, collapsed to a few lines; the chevron shows the rest or hides it */
-const mcqIn=m=>m.extra&&SET.expl?`<hr class="prettify-divider prettify-divider--answer"><div class="mcq-col"><div class="prettify-field center-text extra mcq-colb">${m.extra}</div><button class="mcq-chev" onclick="event.stopPropagation();this.parentNode.classList.toggle('open')" aria-label="Show more"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>`:'';
+const mcqIn=m=>m.extra&&SET.expl?`<hr class="prettify-divider prettify-divider--answer"><div class="mcq-col"><div class="prettify-field center-text extra mcq-colb">${m.extra}</div><button class="mcq-chev" aria-label="Show more"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>`:'';
 const mcqEx=m=>m.extra&&SET.expl?`<div class="prettify-flashcard mcq-exc"><div class="prettify-field center-text extra">${m.extra}</div></div>`:'';
 function face(A){const{n,o}=cur,[,k,pi]=n,f=n[4].map(trimF);let h;
 const mt=k=='b'&&matchOf(f);if(mt){const fr=`<div class="prettify-flashcard mcq-card mt-card">${matchFace(mt,A,pi,n[0]+':'+o)}${A&&EXIN?mcqIn(mt):''}${tags(n)}</div>`;

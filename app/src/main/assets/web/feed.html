@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en" class="mobile" data-theme="default"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- deck fields go in as HTML: no inline script (onerror=, onclick=, javascript:) may run next to the App bridge. the app's own R.* calls (evaluateJavascript) aren't affected -->
+<meta http-equiv="Content-Security-Policy" content="script-src 'self'; object-src 'none'; base-uri 'none'">
 <link rel="stylesheet" href="/style.css">
 <link rel="stylesheet" href="/feed.css">
 </head>

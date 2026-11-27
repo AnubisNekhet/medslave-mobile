@@ -1,0 +1,10 @@
+root = true
+
+[*.{kt,kts}]
+ktlint_code_style = android_studio
+indent_size = 4
+max_line_length = off
+# @Composable functions are named like classes
+ktlint_function_naming_ignore_when_annotated_with = Composable
+# short constant-style names (S, EXAMS, CAPS) are this codebase's habit
+ktlint_standard_property-naming = disabled

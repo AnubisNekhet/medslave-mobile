@@ -29,14 +29,32 @@ fun svgParse(src: String): List<SvgEl> = CACHE.getOrPut(src) {
         fun f(k: String) = a[k]?.toFloatOrNull() ?: 0f
         val d = when (m.groupValues[1]) {
             "path" -> a["d"]
-            "circle" -> { val r = f("r"); "M${f("cx") - r},${f("cy")}a$r,$r 0 1,0 ${2 * r},0a$r,$r 0 1,0 ${-2 * r},0Z" }
-            "ellipse" -> { val rx = f("rx"); val ry = f("ry"); "M${f("cx") - rx},${f("cy")}a$rx,$ry 0 1,0 ${2 * rx},0a$rx,$ry 0 1,0 ${-2 * rx},0Z" }
-            "rect" -> { val x = f("x"); val y = f("y"); val w = f("width"); val h = f("height"); val r = minOf(f("rx").takeIf { it > 0 } ?: f("ry"), w / 2, h / 2)
-                if (r <= 0) "M$x,${y}h${w}v${h}h${-w}Z"
-                else "M${x + r},${y}h${w - 2 * r}a$r,$r 0 0 1 $r,$r v${h - 2 * r}a$r,$r 0 0 1 ${-r},$r h${-(w - 2 * r)}a$r,$r 0 0 1 ${-r},${-r}v${-(h - 2 * r)}a$r,$r 0 0 1 $r,${-r}Z" }
+            "circle" -> {
+                val r = f("r")
+                "M${f("cx") - r},${f("cy")}a$r,$r 0 1,0 ${2 * r},0a$r,$r 0 1,0 ${-2 * r},0Z"
+            }
+            "ellipse" -> {
+                val rx = f("rx")
+                val ry = f("ry")
+                "M${f("cx") - rx},${f("cy")}a$rx,$ry 0 1,0 ${2 * rx},0a$rx,$ry 0 1,0 ${-2 * rx},0Z"
+            }
+            "rect" -> {
+                val x = f("x")
+                val y = f("y")
+                val w = f("width")
+                val h = f("height")
+                val r = minOf(f("rx").takeIf { it > 0 } ?: f("ry"), w / 2, h / 2)
+                if (r <= 0) {
+                    "M$x,${y}h${w}v${h}h${-w}Z"
+                } else {
+                    "M${x + r},${y}h${w - 2 * r}a$r,$r 0 0 1 $r,$r v${h - 2 * r}a$r,$r 0 0 1 ${-r},$r h${-(w - 2 * r)}a$r,$r 0 0 1 ${-r},${-r}v${-(h - 2 * r)}a$r,$r 0 0 1 $r,${-r}Z"
+                }
+            }
             "line" -> "M${f("x1")},${f("y1")}L${f("x2")},${f("y2")}"
-            "polyline", "polygon" -> { val p = (a["points"] ?: "").trim().split(Regex("[\\s,]+")).filter { it.isNotEmpty() }.chunked(2).filter { it.size == 2 }
-                if (p.isEmpty()) null else "M" + p.joinToString("L") { "${it[0]},${it[1]}" } + if (m.groupValues[1] == "polygon") "Z" else "" }
+            "polyline", "polygon" -> {
+                val p = (a["points"] ?: "").trim().split(Regex("[\\s,]+")).filter { it.isNotEmpty() }.chunked(2).filter { it.size == 2 }
+                if (p.isEmpty()) null else "M" + p.joinToString("L") { "${it[0]},${it[1]}" } + if (m.groupValues[1] == "polygon") "Z" else ""
+            }
             else -> null
         } ?: return@mapNotNull null
         runCatching { SvgEl(PathParser().parsePathString(d).toPath(), a["fill"] == "currentColor") }.getOrNull()
@@ -72,13 +90,13 @@ object Ic {
     const val HEART = "<path d=\"M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z\"/>"
     const val COMMENT = "<path d=\"M7.9 20A9 9 0 1 0 4 16.1L2 22Z\"/>"
     const val REPOST = "<path d=\"m17 2 4 4-4 4\"/><path d=\"M3 11v-1a4 4 0 0 1 4-4h14\"/><path d=\"m7 22-4-4 4-4\"/><path d=\"M21 13v1a4 4 0 0 1-4 4H3\"/>"
-    const val SAVE = "<path d=\"m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z\"/>"   // bookmark
-    const val STOP = "<path d=\"M2.586 16.726A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2h6.624a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586z\"/><path d=\"M8 12h8\"/>"   // stop sign (octagon)
+    const val SAVE = "<path d=\"m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z\"/>" // bookmark
+    const val STOP = "<path d=\"M2.586 16.726A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2h6.624a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586z\"/><path d=\"M8 12h8\"/>" // stop sign (octagon)
     const val FILTER = "<path d=\"M3 6h18\"/><path d=\"M7 12h10\"/><path d=\"M10 18h4\"/>"
     const val PLAY = "<path d=\"M7 4.5v15l12.5-7.5z\"/>"
     const val CHECK = "<path d=\"M20 6 9 17l-5-5\"/>"
     const val BAN = "<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"m4.9 4.9 14.2 14.2\"/>"
-    const val DOTS = "<circle cx=\"12\" cy=\"5\" r=\"1\"/><circle cx=\"12\" cy=\"12\" r=\"1\"/><circle cx=\"12\" cy=\"19\" r=\"1\"/>"   // ⋯ upright
+    const val DOTS = "<circle cx=\"12\" cy=\"5\" r=\"1\"/><circle cx=\"12\" cy=\"12\" r=\"1\"/><circle cx=\"12\" cy=\"19\" r=\"1\"/>" // ⋯ upright
     const val CROSS = "<path d=\"M9.6 9.6l4.8 4.8M14.4 9.6l-4.8 4.8\"/>"
     const val SEND = "<path d=\"m22 2-7 20-4-9-9-4Z\"/><path d=\"M22 2 11 13\"/>"
     const val NOTE = "<path d=\"M9 18V5l12-2v13\"/><circle cx=\"6\" cy=\"18\" r=\"3\"/><circle cx=\"18\" cy=\"16\" r=\"3\"/>"
@@ -99,4 +117,5 @@ val DICO = listOf(
     Regex("ophth|eye") to "<path d=\"M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>",
     Regex("paed|pediat") to "<path d=\"M9 12h.01M15 12h.01M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5\"/><path d=\"M19 6.3a9 9 0 0 1 1.8 3.9 2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1\"/>",
     Regex("medic") to "<path d=\"M11 2v2M5 2v2M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1\"/><path d=\"M8 15a6 6 0 0 0 12 0v-3\"/><circle cx=\"20\" cy=\"10\" r=\"2\"/>",
-    Regex(".") to "<path d=\"M12 7v14\"/><path d=\"M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z\"/>")
+    Regex(".") to "<path d=\"M12 7v14\"/><path d=\"M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z\"/>"
+)

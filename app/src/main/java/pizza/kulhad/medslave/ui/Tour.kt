@@ -78,20 +78,30 @@ private fun tourSteps(rs: Rs, part: String): List<TStep> {
             TStep("menu.subject", "Tap a subject to start it" + (if (reels) " as reels" else "") + "." + (if (kids) " ⌄ picks a subdeck." else "")),
             TStep("menu.gear", "Settings: decks, progress, feed filters and how things look.", round = true),
             TStep("bar.home", "Home is your feed.", round = true),
-            TStep("bar.reels", "Reels picks up where you left off.", round = true))
-    } else listOf(
-        TStep("feed.arch", "Your saved cards. Tap the bookmark on any post to save it.", round = true),
-        TStep("feed.story", "Stories: a few cards from each subject. Tap an account to open its profile.", round = true),
-        TStep("feed.heat", "Your daily cards. Tap a day for its count, and keep the streak going."),
-        TStep("feed.more", "⋯ › Hide keeps a card out of your feed and reels; Block hides everything that account posts.", round = true),
-        TStep("feed.acc", "Tap an account for its profile. Follow it for the Following filter."),
-        TStep("bar.home", "Hold Home to switch feed filters.", 'h', round = true))
+            TStep("bar.reels", "Reels picks up where you left off.", round = true)
+        )
+    } else {
+        listOf(
+            TStep("feed.arch", "Your saved cards. Tap the bookmark on any post to save it.", round = true),
+            TStep("feed.story", "Stories: a few cards from each subject. Tap an account to open its profile.", round = true),
+            TStep("feed.heat", "Your daily cards. Tap a day for its count, and keep the streak going."),
+            TStep("feed.more", "⋯ › Hide keeps a card out of your feed and reels; Block hides everything that account posts.", round = true),
+            TStep("feed.acc", "Tap an account for its profile. Follow it for the Following filter."),
+            TStep("bar.home", "Hold Home to switch feed filters.", 'h', round = true)
+        )
+    }
     return l.filter { it.key in rs.tourRects }
 }
 
 /** piecewise-linear keyframes (time 0–1 → value) */
 private fun kf(t: Float, vararg k: Pair<Float, Float>): Float {
-    for (i in 1 until k.size) if (t <= k[i].first) { val (t0, v0) = k[i - 1]; val (t1, v1) = k[i]; return if (t1 == t0) v1 else v0 + (v1 - v0) * ((t - t0) / (t1 - t0)) }
+    for (i in 1 until k.size) {
+        if (t <= k[i].first) {
+            val (t0, v0) = k[i - 1]
+            val (t1, v1) = k[i]
+            return if (t1 == t0) v1 else v0 + (v1 - v0) * ((t - t0) / (t1 - t0))
+        }
+    }
     return k.last().second
 }
 
@@ -99,7 +109,10 @@ private fun kf(t: Float, vararg k: Pair<Float, Float>): Float {
 fun Tour(rs: Rs) {
     val part = rs.tour ?: return
     val steps = remember(part) { tourSteps(rs, part) }
-    if (steps.isEmpty()) { LaunchedEffect(part) { rs.tourEnd() }; return }
+    if (steps.isEmpty()) {
+        LaunchedEffect(part) { rs.tourEnd() }
+        return
+    }
     var i by remember(part) { mutableIntStateOf(0) }
     val st = steps[i.coerceAtMost(steps.lastIndex)]
     val last = i >= steps.lastIndex
@@ -108,16 +121,31 @@ fun Tour(rs: Rs) {
     val rm = remember { rs.rm() }
     val tt by rememberInfiniteTransition(label = "tour").animateFloat(0f, 1f, infiniteRepeatable(tween(1700, easing = LinearEasing)), label = "t")
     val t = if (rm) .5f else tt
-    LaunchedEffect(part, i) { if (st.g == 'h') { kotlinx.coroutines.delay(1000); rs.reels.buzz() } }   // the hold's buzz, once (nothing opens)
+    LaunchedEffect(part, i) {
+        if (st.g == 'h') {
+            kotlinx.coroutines.delay(1000)
+            rs.reels.buzz()
+        }
+    } // the hold's buzz, once (nothing opens)
     androidx.activity.compose.BackHandler { rs.tourEnd() }
     val ink = P.text
     /* the overlay fades in quickly as the tour starts (straight away with animations off) */
     val shown = remember(part) { androidx.compose.animation.core.Animatable(if (rm) 1f else 0f) }
     LaunchedEffect(part) { shown.animateTo(1f, tween(220, easing = androidx.compose.animation.core.LinearOutSlowInEasing)) }
     /* every touch is the tour's: a tap anywhere goes on, drags do nothing, nothing underneath gets them */
-    BoxWithConstraints(Modifier.fillMaxSize().graphicsLayer { alpha = shown.value }.pointerInput(part, i) {
-        awaitEachGesture { val d = awaitFirstDown(); d.consume(); val up = waitForUpOrCancellation(); if (up != null) { up.consume(); next() } }
-    }) {
+    BoxWithConstraints(
+        Modifier.fillMaxSize().graphicsLayer { alpha = shown.value }.pointerInput(part, i) {
+            awaitEachGesture {
+                val d = awaitFirstDown()
+                d.consume()
+                val up = waitForUpOrCancellation()
+                if (up != null) {
+                    up.consume()
+                    next()
+                }
+            }
+        }
+    ) {
         val h = constraints.maxHeight.toFloat()
         Canvas(Modifier.fillMaxSize().graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }) {
             val pad = 6.dp.toPx()
@@ -135,12 +163,21 @@ fun Tour(rs: Rs) {
             val f = 18.dp.toPx()
             val a = kf(t, 0f to 0f, .12f to 1f, .78f to 1f, .95f to 0f)
             val c = if (st.g == 's') Offset(kf(t, 0f to hole.right - hole.width * .15f, .18f to hole.right - hole.width * .15f, .72f to hole.left + hole.width * .15f, 1f to hole.left + hole.width * .15f), hole.center.y) else hole.center
-            val sc = when (st.g) { 't' -> kf(t, 0f to 1.25f, .15f to 1f, .3f to .82f, .45f to 1f); 'h' -> kf(t, 0f to 1.25f, .15f to 1f, .25f to .85f, .78f to .85f, .9f to 1f); else -> kf(t, 0f to 1.2f, .15f to .9f, .72f to .9f, .85f to 1f) }
-            if (st.g == 't' && t in .3f..0.8f) { val k = (t - .3f) / .5f; drawCircle(ink.copy(alpha = .5f * (1 - k) * a), f * (1 + 1.4f * k), c, style = Stroke(2.dp.toPx())) }   // the tap's ripple
+            val sc = when (st.g) {
+                't' -> kf(t, 0f to 1.25f, .15f to 1f, .3f to .82f, .45f to 1f)
+                'h' -> kf(t, 0f to 1.25f, .15f to 1f, .25f to .85f, .78f to .85f, .9f to 1f)
+                else -> kf(t, 0f to 1.2f, .15f to .9f, .72f to .9f, .85f to 1f)
+            }
+            if (st.g == 't' && t in .3f..0.8f) {
+                val k = (t - .3f) / .5f
+                drawCircle(ink.copy(alpha = .5f * (1 - k) * a), f * (1 + 1.4f * k), c, style = Stroke(2.dp.toPx()))
+            } // the tap's ripple
             drawCircle(ink.copy(alpha = .3f * a), f * sc, c)
             drawCircle(ink.copy(alpha = .9f * a), f * sc, c, style = Stroke(2.dp.toPx()))
-            if (st.g == 'h') { val k = kf(t, 0f to 0f, .25f to 0f, .75f to 1f, 1f to 1f)   // the hold: a ring fills round the finger
-                if (k > 0) drawArc(ink.copy(alpha = a), -90f, 360f * k, false, Offset(c.x - f * 1.6f, c.y - f * 1.6f), androidx.compose.ui.geometry.Size(f * 3.2f, f * 3.2f), style = Stroke(3.dp.toPx())) }
+            if (st.g == 'h') {
+                val k = kf(t, 0f to 0f, .25f to 0f, .75f to 1f, 1f to 1f) // the hold: a ring fills round the finger
+                if (k > 0) drawArc(ink.copy(alpha = a), -90f, 360f * k, false, Offset(c.x - f * 1.6f, c.y - f * 1.6f), androidx.compose.ui.geometry.Size(f * 3.2f, f * 3.2f), style = Stroke(3.dp.toPx()))
+            }
         }
         /* the line, the step dots, Skip and Next: at the bottom when the control is in the top half, at the top otherwise */
         val top = r.center.y > h / 2
