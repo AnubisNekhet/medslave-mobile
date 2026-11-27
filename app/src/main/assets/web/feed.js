@@ -114,7 +114,7 @@ const NEAR=near(FD);
 function watch(e){if(!e.querySelector)return;const b=e.querySelector('.f-pb.f-load');if(b){if(e.closest('#pf'))arrive(b);else{b.__o=NEAR;NEAR.observe(b)}}if(e.classList.contains('f-post'))SEEN.observe(e)}   /* a profile's few posts load straight away (each after its delay) */
 function addPosts(l){const box=$('#posts'),at=F.posts.length;F.posts.push(...l);box.querySelector('.f-loadmore')?.remove();
  const t=document.createElement('div');t.innerHTML=l.map((p,k)=>postHTML(p,at+k)).join('')+(l.length?'<div class="f-loadmore"><i class="lg"></i></div>':'');
- const els=[...t.children];els.forEach(e=>box.appendChild(e));els.forEach(watch);F.wait=false;subs(box)}
+ const els=[...t.children];els.forEach(e=>box.appendChild(e));els.forEach(watch);F.wait=false;els.forEach(subs)}   /* only the new posts' song lines are measured */
 
 /* ---- the buttons */
 function kick(b){b.classList.remove('go');void b.offsetWidth;b.classList.add('go')}   /* restarts a button's one-shot animation */
@@ -255,7 +255,7 @@ ${PF.hl.length?`<div class="f-hl">${PF.hl.map((h,i)=>`<button class="f-st" data-
  const l=$('#pfl');l.innerHTML='';pfAdd(PF.list,0);if(!PF.list.length)l.innerHTML=`<p class="f-none">${j.a==-2?'Saved cards show up here. Tap the bookmark on a post to save it.':'No posts yet.'}</p>`;
  setTimeout(tune,350)}
 function pfAdd(l,at){const box=$('#pfl');box.querySelector('.f-loadmore')?.remove();const t=document.createElement('div');
- t.innerHTML=l.map((p,k)=>postHTML(p,'p'+(at+k))).join('')+(PF.more&&l.length?'<div class="f-loadmore"><i class="lg"></i></div>':'');[...t.children].forEach(e=>{box.appendChild(e);watch(e)});subs(box);PF.wait=false}
+ t.innerHTML=l.map((p,k)=>postHTML(p,'p'+(at+k))).join('')+(PF.more&&l.length?'<div class="f-loadmore"><i class="lg"></i></div>':'');const els=[...t.children];els.forEach(e=>{box.appendChild(e);watch(e)});els.forEach(subs);PF.wait=false}
 function pfClose(now){if(!PF.on)return;PF.on=false;A_.pfOpen(false);PFE.classList.remove('in');const done=()=>{if(PF.on)return;PFE.classList.remove('on');$('#pfl').innerHTML='';$('#pfs').innerHTML='';tune()};
  if(now||RM())return done();setTimeout(done,260)}
 $('#pfs').addEventListener('click',e=>{const pd=e.target.closest('.f-pdots'),hd=pd&&pd.closest('header');if(!e.target.closest('.f-menu'))menuClose();

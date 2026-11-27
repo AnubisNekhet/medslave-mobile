@@ -116,23 +116,31 @@ object DeckStore {
     }
 
     @Volatile private var srcs: List<File> = emptyList()   // the loaded decks' folders, by Note.src
-    private val dbs = HashMap<Int, SQLiteDatabase>()
+    private var dbs = HashMap<Int, SQLiteDatabase>()
+    private fun openAt(f: File): SQLiteDatabase? = if (!f.exists()) null else
+        runCatching { SQLiteDatabase.openDatabase(f.path, null, SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS) }.getOrNull()
     @Synchronized private fun open(src: Int): SQLiteDatabase? {
         dbs[src]?.let { if (it.isOpen) return it }
-        val f = File(srcs.getOrNull(src) ?: return null, "deck.db"); if (!f.exists()) return null
-        return runCatching { SQLiteDatabase.openDatabase(f.path, null, SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS) }.getOrNull()?.also { dbs[src] = it }
+        return openAt(File(srcs.getOrNull(src) ?: return null, "deck.db"))?.also { dbs[src] = it }
     }
     @Synchronized fun close() { dbs.values.forEach { runCatching { it.close() } }; dbs.clear() }
+    /** the new decks' connections in, the old ones closed a little later: a card being read on another thread (the feed) finishes first */
+    private fun swap(ds: List<File>, nd: HashMap<Int, SQLiteDatabase>) {
+        val old = synchronized(this) { val o = dbs; dbs = nd; srcs = ds; o.values.toList() }
+        if (old.isNotEmpty()) Thread { Thread.sleep(10_000); old.forEach { runCatching { it.close() } } }.start()
+    }
 
     /** every deck, merged: paths one after another (each note's p moved along), subjects of the same name together. a note already in
         an earlier deck is skipped */
     fun load(ctx: Context): Deck {
-        close()
-        val ds = dirs(ctx); srcs = ds
+        val ds = dirs(ctx); val nd = HashMap<Int, SQLiteDatabase>()
+        try { return loadAll(ds, nd) } finally { swap(ds, nd) }
+    }
+    private fun loadAll(ds: List<File>, nd: HashMap<Int, SQLiteDatabase>): Deck {
         val paths = ArrayList<String>(); val pc = ArrayList<Int>(); val parts = ArrayList<DeckPart>()
         val bySub = LinkedHashMap<String, ArrayList<Note>>(); val seen = HashSet<Long>()
         ds.forEachIndexed { src, dir ->
-            val d = open(src) ?: return@forEachIndexed
+            val d = openAt(File(dir, "deck.db"))?.also { nd[src] = it } ?: return@forEachIndexed
             try {
                 val info = HashMap<String, String>()
                 d.rawQuery("SELECT k, v FROM info", null).use { c -> while (c.moveToNext()) info[c.getString(0)] = c.getString(1) }
@@ -140,7 +148,7 @@ object DeckStore {
                 val pcs = JSONArray(info["pc"] ?: "[]").let { a -> IntArray(a.length()) { a.getInt(it) } }
                 val names = JSONArray(info["subjects"] ?: "[]").let { a -> List(a.length()) { a.getString(it) } }
                 val off = paths.size
-                val mcq = HashSet<Long>(); d.rawQuery("SELECT id FROM notes WHERE flds LIKE '%mcq-o%' OR flds LIKE '%mt-src%'", null).use { c -> while (c.moveToNext()) mcq.add(c.getLong(0)) }
+                val mcq = mcqIds(d, dir, info["mcq"])
                 d.rawQuery("SELECT id, k, p, ords, cids, subj FROM notes ORDER BY id", null).use { c ->
                     while (c.moveToNext()) {
                         val id = c.getLong(0); if (!seen.add(id)) continue
@@ -152,7 +160,7 @@ object DeckStore {
                 }
                 paths.addAll(ps); pcs.forEach { pc.add(it) }
                 val meta = Meta.of(info["meta"])
-                val size = File(dir, "deck.db").length() + (File(dir, "media").listFiles()?.sumOf { it.length() } ?: 0L)
+                val size = File(dir, "deck.db").length() + (meta?.bytes ?: File(dir, "media").listFiles()?.sumOf { it.length() } ?: 0L)   // the images' size as imported, not a walk of the folder
                 parts.add(DeckPart(dir.name, meta, size, Deck(ps, pcs, names.map { Subject(it, emptyList()) }, meta, src = src, pre = "${dir.name}/"), info["root"]))
             } catch (e: Exception) { }
         }
@@ -164,10 +172,21 @@ object DeckStore {
         return Deck(paths, pc.toIntArray(), subs, meta, parts)
     }
 
-    /** the note as the card page wants it: [id, kind, path, ords, fields, tags, cids] */
+    /** the MCQ and Match notes: from the deck's info (imports since 1.99 note them), else from mcq.json beside it, else found once by
+        searching the fields (a full read of the deck) and kept in mcq.json, so it's never searched again */
+    private fun mcqIds(d: SQLiteDatabase, dir: File, info: String?): Set<Long> {
+        fun parse(s: String) = runCatching { JSONArray(s).let { a -> (0 until a.length()).map { a.getLong(it) }.toHashSet() } }.getOrNull()
+        info?.let { parse(it) }?.let { return it }
+        val side = File(dir, "mcq.json"); if (side.exists()) parse(side.readText())?.let { return it }
+        val m = HashSet<Long>(); d.rawQuery("SELECT id FROM notes WHERE flds LIKE '%mcq-o%' OR flds LIKE '%mt-src%'", null).use { c -> while (c.moveToNext()) m.add(c.getLong(0)) }
+        runCatching { side.writeText(JSONArray(m.toList()).toString()) }
+        return m
+    }
+
+    /** the note as the card page wants it: [id, kind, path, ords, fields, tags, cids]. a read that fails (a deck just deleted) gives empty fields */
     fun noteJson(ctx: Context, n: Note): String {
         var f = "[]"; var t = "[]"
-        open(n.src)?.let { d -> bigQuery(d, "SELECT flds, tags FROM notes WHERE id=?", arrayOf(n.id.toString())).use { c -> if (c.moveToFirst()) { f = c.getString(0); t = c.getString(1) } } }
+        runCatching { open(n.src)?.let { d -> bigQuery(d, "SELECT flds, tags FROM notes WHERE id=?", arrayOf(n.id.toString())).use { c -> if (c.moveToFirst()) { f = c.getString(0); t = c.getString(1) } } } }
         return "[${n.id},\"${n.k}\",${n.p},[${n.ords.joinToString(",")}],$f,$t,[${n.cids.joinToString(",")}]]"
     }
     /** every note id in a deck folder (an import checks it isn't a deck that's already here) */
@@ -176,7 +195,7 @@ object DeckStore {
         return out }
 
     /** one deck's folder goes */
-    fun delete(ctx: Context, id: String) { close(); File(root(ctx), id).deleteRecursively() }
+    fun delete(ctx: Context, id: String) { File(root(ctx), id).deleteRecursively() }   // its open connection keeps working until the reload swaps it out
 
     fun bytes(ctx: Context): Long = root(ctx).walkTopDown().filter { it.isFile }.sumOf { it.length() }
 

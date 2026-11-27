@@ -122,5 +122,7 @@ function mtWire(b,lk,rk){for(const k in MT.con)if(MT.con[k]==rk)delete MT.con[k]
 /* tags: the fade at an edge shows while there's more past it */
 function tagFade(t){const o=t.scrollWidth-t.clientWidth;t.style.setProperty('--fl',o>2&&t.scrollLeft>2?'22px':'0px');t.style.setProperty('--fr',o>2&&t.scrollLeft<o-2?'22px':'0px')}
 document.addEventListener('scroll',e=>{const t=e.target;if(t.classList&&t.classList.contains('prettify-tags'))tagFade(t)},true);
-{let q=0;new MutationObserver(()=>{if(q)return;q=requestAnimationFrame(()=>{q=0;document.querySelectorAll('.prettify-tags').forEach(tagFade)})}).observe(document.documentElement,{childList:true,subtree:true})}
+/* only the tag rows in what was just added are measured (a whole-page pass on every change made long feeds slow) */
+{const due=new Set();let q=0;new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes){if(n.nodeType!==1)continue;if(n.classList.contains('prettify-tags'))due.add(n);else n.querySelectorAll('.prettify-tags').forEach(t=>due.add(t))}
+ if(due.size&&!q)q=requestAnimationFrame(()=>{q=0;due.forEach(t=>{if(t.isConnected)tagFade(t)});due.clear()})}).observe(document.documentElement,{childList:true,subtree:true})}
 addEventListener('resize',()=>document.querySelectorAll('.prettify-tags').forEach(tagFade));

@@ -349,11 +349,18 @@ class Reels(private val rs: Rs) {
         val ok = songs.filter { !it.dead && it !== song && gOn(it) }; if (ok.isNotEmpty()) return pick(ok)
         val any = songs.filter { !it.dead && gOn(it) }; return if (any.isNotEmpty()) pick(any) else pick(songs)
     }
+    private var setGen = 0
     private fun set(s: Song) {
         song = s; prepared = false
-        val f = cached(s); want = true
-        val keep = gOn(s)   // a song from a genre or playlist that's switched off streams but isn't saved
-        au { try { mp.reset(); if (f.exists()) { f.setLastModified(System.currentTimeMillis()); mp.setDataSource(f.path) } else { mp.setDataSource(s.url); if (keep) fetch(s) }; mp.prepareAsync() } catch (e: Exception) { h.post { onError() } } }
+        val f = cached(s); want = true; val g = ++setGen
+        fun start(src: String) = au { if (g != setGen) return@au; try { mp.reset(); mp.setDataSource(src); mp.prepareAsync() } catch (e: Exception) { h.post { if (g == setGen) onError() } } }
+        if (f.exists()) { f.setLastModified(System.currentTimeMillis()); start(f.path); return }
+        if (!gOn(s)) { start(s.url); return }   // a song from a genre or playlist that's switched off streams but isn't saved
+        /* not saved yet: it's downloaded once and played from the file. if that takes over 1.2 s it streams meanwhile (the download still
+           lands in the cache), so a slow connection never waits */
+        var begun = false
+        fetch(s) { ok -> h.post { if (g == setGen && !begun) { begun = true; start(if (ok && f.exists()) f.path else s.url) } } }
+        h.postDelayed({ if (g == setGen && !begun) { begun = true; start(s.url) } }, 1200)
     }
     /** the feed's and stories' song: keeps playing if it's already the one */
     fun playSong(s: Song) { if (song === s && want) return play(); set(s) }
@@ -365,16 +372,18 @@ class Reels(private val rs: Rs) {
     private val songDir by lazy { java.io.File(rs.ctx.cacheDir, "songs").apply { mkdirs() } }
     private fun cached(s: Song) = java.io.File(songDir, Integer.toHexString(s.url.hashCode()) + "-" + Integer.toHexString((s.title + s.artist).hashCode()) + ".m4a")
     private val fetching = HashSet<String>()
-    private fun fetch(s: Song) {
+    /** saves a preview to the cache; done(true) once it's there (not called when it's already downloading: set() then streams after 1.2 s) */
+    private fun fetch(s: Song, done: ((Boolean) -> Unit)? = null) {
         val f = cached(s); val url = s.url
         synchronized(fetching) { if (!fetching.add(url)) return }
         thread {
-            runCatching {
+            val ok = runCatching {
                 val tmp = java.io.File(songDir, f.name + ".part")
                 (URL(url).openConnection() as HttpURLConnection).apply { connectTimeout = 8000; readTimeout = 15000 }.inputStream.use { i -> tmp.outputStream().use { i.copyTo(it) } }
-                if (tmp.length() > 10_000) tmp.renameTo(f) else tmp.delete()
-            }
+                if (tmp.length() > 10_000) tmp.renameTo(f) else { tmp.delete(); false }
+            }.getOrDefault(false)
             synchronized(fetching) { fetching.remove(url) }
+            done?.invoke(ok)
         }
     }
     fun prune() = thread {
@@ -478,15 +487,20 @@ class Reels(private val rs: Rs) {
     private val art = LruCache<String, ImageBitmap>(48)
     private val artDir by lazy { java.io.File(rs.ctx.cacheDir, "art").apply { mkdirs() } }
     private fun artFile(url: String) = java.io.File(artDir, Integer.toHexString(url.hashCode()) + "-" + url.length + ".img")
+    /* covers load on a small shared pool, and a cover already loading is waited on, not fetched again */
+    private val artPool = java.util.concurrent.Executors.newFixedThreadPool(3)
+    private val artWait = HashMap<String, MutableList<(ImageBitmap) -> Unit>>()   // main thread only
     fun art(url: String, then: (ImageBitmap) -> Unit) {
         if (url.isEmpty()) return
         art.get(url)?.let { return then(it) }
-        thread {
+        artWait[url]?.let { it.add(then); return }
+        artWait[url] = mutableListOf(then)
+        artPool.execute {
             val f = artFile(url)
             val bytes = runCatching { if (f.length() > 0) f.readBytes().also { f.setLastModified(System.currentTimeMillis()) } else null }.getOrNull()
                 ?: runCatching { URL(url).openStream().use { it.readBytes() } }.getOrNull()?.also { d -> runCatching { val t = java.io.File(artDir, f.name + ".part"); t.writeBytes(d); t.renameTo(f) } }
             val b = bytes?.let { runCatching { BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap() }.getOrNull() }
-            if (b != null) h.post { art.put(url, b); then(b) }
+            h.post { val l = artWait.remove(url); if (b != null) { art.put(url, b); l?.forEach { it(b) } } }
         }
     }
 }

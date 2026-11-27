@@ -239,7 +239,7 @@ class Importer(private val ctx: Context, private val say: (String, Float?) -> Un
         val out = DeckStore.create(tmpDb)
         try {
             val paths = ArrayList<String>(); val pi = HashMap<String, Int>(); val used = HashSet<String>(); val perPath = ArrayList<Int>()
-            var nn = 0; var nc = 0
+            var nn = 0; var nc = 0; val mcqIds = ArrayList<Long>()   // MCQ and Match notes (kept in info, so loading needn't search for them)
             val sc = SpanColors()   // coloured <span>s into the app's accents (one random accent per odd colour value, for the whole import)
             val ins = out.compileStatement("INSERT OR REPLACE INTO notes(id, k, p, ords, cids, flds, tags, subj, op) VALUES (?,?,?,?,?,?,?,0,?)")
             out.beginTransaction()
@@ -283,7 +283,7 @@ class Importer(private val ctx: Context, private val say: (String, Float?) -> Un
                 ins.bindString(6, JSONArray(fields).toString())
                 ins.bindString(7, JSONArray(r.getString(3).trim().split(Regex("\\s+")).filter { it.isNotEmpty() }).toString())
                 ins.bindLong(8, x.toLong()); ins.executeInsert()
-                nn++; nc += o.size
+                nn++; nc += o.size; if (k == "m" || k == "x") mcqIds.add(id)
                 if (nn % 2000 == 0) { check(); out.setTransactionSuccessful(); out.endTransaction(); out.beginTransaction(); say("Reading cards… %,d".format(nn), 8f + minOf(20f, nn / 1000f)) }
             }
             out.setTransactionSuccessful(); out.endTransaction()
@@ -321,7 +321,8 @@ class Importer(private val ctx: Context, private val say: (String, Float?) -> Un
             val meta = Meta(fileName.replace(Regex("\\.apkg$", RegexOption.IGNORE_CASE), ""), nn, nc, want.size, bytes, Instant.now().toString())
             fun info(k: String, v: String) = out.execSQL("INSERT OR REPLACE INTO info(k, v) VALUES (?, ?)", arrayOf(k, v))
             info("paths", JSONArray(np).toString()); info("pc", JSONArray(pc.toList()).toString()); info("subjects", JSONArray(names).toString()); info("meta", meta.json())
-            if (root != null) info("root", root)   // the parent deck that was dropped: the deck's name on the Menu
+            if (root != null) info("root", root)
+            info("mcq", JSONArray(mcqIds).toString())   // the parent deck that was dropped: the deck's name on the Menu
             out.setTransactionSuccessful(); out.endTransaction(); out.close()
             check()
             val dir = DeckStore.newDir(ctx); dir.mkdirs()   // a deck of its own, next to the others
