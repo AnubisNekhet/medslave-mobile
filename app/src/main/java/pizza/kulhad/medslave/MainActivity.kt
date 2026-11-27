@@ -105,6 +105,7 @@ class MainActivity : ComponentActivity() {
                     if (rs.progressOpen) ProgressPanel(rs)
                     Sheets(rs)
                     if (rs.tutorial) Tutorial(rs)
+                    pizza.kulhad.medslave.ui.Tour(rs)   // the app tour (over the app, under dialogs)
                     if (rs.addDeck) AddDeck(rs)
                     if (rs.feed.pickOpen) pizza.kulhad.medslave.ui.FilterPick(rs)
                     rs.importTypes?.let { ImportPanel(rs, it) }

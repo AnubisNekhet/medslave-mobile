@@ -368,10 +368,10 @@ private fun MusicSheet(rs: Rs) {
         if (keys.all { it in off }) { msg = "Keep at least one genre or playlist on"; return }
         msg = ""; rs.set.goff = off; rs.set.save(); r.genreChanged()
     }
-    @Composable fun row(icon: String, label: String, small: String, k: String, enabled: Boolean, long: (() -> Unit)? = null, lead: (@Composable () -> Unit)? = null, trailing: (@Composable () -> Unit)? = null) {
+    @Composable fun row(icon: String, label: String, small: String, k: String, enabled: Boolean, long: (() -> Unit)? = null, tap: (() -> Unit)? = null, lead: (@Composable () -> Unit)? = null, trailing: (@Composable () -> Unit)? = null) {
         val on = k !in rs.set.goff
-        Row(Modifier.fillMaxWidth().then(if (long != null) Modifier.pointerInput(Unit) { detectTapGestures(onLongPress = { long() }) } else Modifier), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (lead != null) lead() else Icon(icon, 22.dp, if (on && enabled) P.text else dim, 2f)
+        Row(Modifier.fillMaxWidth().then(if (long != null || tap != null) Modifier.pointerInput(Unit) { detectTapGestures(onTap = { tap?.invoke() }, onLongPress = { long?.invoke() }) } else Modifier), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (lead != null) lead() else if (k == r.preview) PlayMark(30.dp) else Icon(icon, 22.dp, if (on && enabled) P.text else dim, 2f)
             Row2(label, small, Modifier.weight(1f)) { trailing?.invoke(); if (enabled) Switch(on) { toggle(k, it) } }
         }
     }
@@ -387,16 +387,15 @@ private fun MusicSheet(rs: Rs) {
                 msg = ""; r.markLists(); rs.set.goff = if (on) rs.set.goff - pk.toSet() else rs.set.goff + pk; rs.set.save(); r.genreChanged()
             }
         }
-        /* with every playlist off (the switch above), the list folds away; one still being found keeps it open */
-        androidx.compose.animation.AnimatedVisibility(!(genreOn && pk.isNotEmpty()) || pk.any { it !in rs.set.goff } || r.lists.any { it.songs.isEmpty() },
-            enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
-            exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()) {
+        /* the list stays open with every playlist off (the switch above turns them all on or off) */
+        run {
             Column {
                 if (r.lists.isNotEmpty()) Txt("Press and hold a playlist to edit it", size = 12.8.sp, color = P.faint)
                 r.lists.toList().forEach { p ->
                     val n = p.songs.size
-                    row(Ic.NOTE, p.name, p.status.ifEmpty { "$n song${if (n == 1) "" else "s"}" }, p.key, n > 0, long = { r.buzz(); editing = p },
-                        lead = if (p.covers.isEmpty()) null else ({ PlCover(r, p.covers.map { it.second }, p.key !in rs.set.goff && n > 0) })) {   // a long press edits it, with a small buzz
+                    /* a tap plays one of its songs (another tap, or closing the sheet, stops it); a long press edits it */
+                    row(Ic.NOTE, p.name, p.status.ifEmpty { "$n song${if (n == 1) "" else "s"}" }, p.key, n > 0, long = { r.stopPreview(); r.buzz(); editing = p }, tap = { r.previewList(p) },
+                        lead = if (p.covers.isEmpty()) null else ({ Box { PlCover(r, p.covers.map { it.second }, p.key !in rs.set.goff && n > 0); if (r.preview == p.key) PlayMark(30.dp) } })) {   // a long press edits it, with a small buzz
                         Box(Modifier.size(32.dp).clip(CircleShape).clickable { r.removePlaylist(p) }, contentAlignment = Alignment.Center) { Txt("×", size = 20.sp, color = P.faint) }
                     }
                 }
@@ -412,7 +411,7 @@ private fun MusicSheet(rs: Rs) {
                 msg = ""; r.markLists(); rs.set.goff = if (on) rs.set.goff - gk.toSet() else rs.set.goff + gk; rs.set.save(); r.genreChanged()
             }
         }
-        /* with every genre off (the switch above), the list folds away; while any genre is on it stays open */
+        /* with every genre off (the switch above), the list folds away; while any genre is on it stays open (Your playlists never folds) */
         androidx.compose.animation.AnimatedVisibility(!(listOn && gk.isNotEmpty()) || gk.any { it !in rs.set.goff },
             enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
             exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()) {
@@ -428,6 +427,15 @@ private fun MusicSheet(rs: Rs) {
     }
     if (adding) AddPlaylist(rs, null) { adding = false }
     editing?.let { p -> AddPlaylist(rs, p) { editing = null } }
+    androidx.compose.runtime.DisposableEffect(Unit) { onDispose { r.stopPreview() } }   // the sheet closed: the preview stops
+}
+
+/** a preview playing: the cover dimmed, a white play triangle on it */
+@Composable
+private fun PlayMark(size: androidx.compose.ui.unit.Dp) {
+    Box(Modifier.size(size).clip(RoundedCornerShape(5.dp)).background(Color.Black.copy(alpha = .5f)), contentAlignment = Alignment.Center) {
+        Icon(Ic.PLAY, size * .5f, Color.White, 1.5f, fill = true)
+    }
 }
 
 /** a new playlist: a name, and the songs pasted as lines or a playlist link. editing one: its found songs as pills (× takes one out),
@@ -438,6 +446,7 @@ private fun AddPlaylist(rs: Rs, edit: pizza.kulhad.medslave.Reels.Playlist?, clo
     var name by remember { mutableStateOf(edit?.name ?: "") }; var text by remember { mutableStateOf("") }
     val kept = remember { androidx.compose.runtime.mutableStateListOf<pizza.kulhad.medslave.Song>().apply { edit?.let { addAll(it.songs) } } }
     val acc = pizza.kulhad.medslave.ui.accents(rs.set.theme).map { if (P.dark) it.second else it.first }   // the pills' colours
+    androidx.compose.runtime.DisposableEffect(Unit) { onDispose { rs.reels.stopPreview() } }   // closing it stops a song playing
     /* wider than a platform dialog: nearly the screen's width, 16dp from each side */
     androidx.compose.ui.window.Dialog(close, androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
         Column(Modifier.padding(horizontal = 16.dp).widthIn(max = 560.dp).fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(P.card).border(1.dp, P.border, RoundedCornerShape(8.dp)).padding(18.dp),
@@ -454,15 +463,18 @@ private fun AddPlaylist(rs: Rs, edit: pizza.kulhad.medslave.Reels.Playlist?, clo
                         LaunchedEffect(s.art) { rs.reels.art(s.art) { cov = it } }
                         /* the cover's dominant hue, made pastel for the theme (coverTint); a grey cover, or none yet, keeps an accent picked by the song */
                         val dark = P.dark
-                        val fgc = P.bg; val bg = remember(cov, dark, fgc) { cov?.let { coverTint(it, dark, fgc) } } ?: if (acc.isEmpty()) P.hi else acc[((s.title + s.artist).hashCode().toUInt() % acc.size.toUInt()).toInt()]
-                        Box(Modifier.fillMaxWidth().height(28.dp).clip(RoundedCornerShape(30.dp)).background(bg)) {   // full width: one song per row
+                        val fgc = P.text; val bg = remember(cov, dark, fgc) { cov?.let { coverTint(it, dark, fgc) } } ?: if (acc.isEmpty()) P.hi else acc[((s.title + s.artist).hashCode().toUInt() % acc.size.toUInt()).toInt()]
+                        /* a tap plays it (from the cache if it's there, otherwise streamed and not saved); another tap stops it */
+                        val pk = "song:" + s.title + "|" + s.artist
+                        Box(Modifier.fillMaxWidth().height(28.dp).clip(RoundedCornerShape(30.dp)).background(bg).clickable { rs.reels.previewSong(s, pk) }) {   // full width: one song per row
                             Box(Modifier.size(28.dp).align(Alignment.CenterStart)) {
                                 cov?.let { Image(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
                                 Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(bg.copy(alpha = .05f), bg))))
+                                if (rs.reels.preview == pk) Box(Modifier.fillMaxSize().clip(CircleShape).background(Color.Black.copy(alpha = .5f)), contentAlignment = Alignment.Center) { Icon(Ic.PLAY, 14.dp, Color.White, 1.5f, fill = true) }
                             }
                             Row(Modifier.fillMaxSize().padding(start = 34.dp, end = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Txt(s.title, size = 13.6.sp, bold = true, color = P.bg, lines = 1, modifier = Modifier.weight(1f))
-                                Box(Modifier.size(28.dp).clip(CircleShape).clickable { kept.remove(s) }, contentAlignment = Alignment.Center) { Txt("×", size = 17.sp, bold = true, color = P.bg) }
+                                Txt(s.title, size = 13.6.sp, bold = true, color = P.text, lines = 1, modifier = Modifier.weight(1f))
+                                Box(Modifier.size(28.dp).clip(CircleShape).clickable { if (rs.reels.preview == pk) rs.reels.stopPreview(); kept.remove(s) }, contentAlignment = Alignment.Center) { Txt("×", size = 17.sp, bold = true, color = P.text) }
                             }
                         }
                     }

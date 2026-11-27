@@ -123,7 +123,7 @@ private fun SettingsBody(rs: Rs, names: Map<String, String>) {
                     Row2("Volume keys", "Down if you knew it, up if you didn’t") { Switch(rs.set.volkeys) { rs.set.volkeys = it; rs.set.save() } }
                     var tdone by remember { mutableStateOf(false) }
                     LaunchedEffect(tdone) { if (tdone) { delay(1500); tdone = false } }
-                    Row2("Show the tutorial again", "On the next card you open") {
+                    Row2("Show the tutorial again", "The app tour and the swipe demo show again") {
                         Btn(if (tdone) "Done" else "Reset", enabled = !tdone, h = 37.dp, size = 14.4.sp, pad = 18.dp) { rs.resetTutorial(); tdone = true }
                     }
                 }
@@ -156,15 +156,19 @@ private fun FiltersSec(rs: Rs) {
     val f = rs.feed
     var editing by remember { mutableStateOf<pizza.kulhad.medslave.Feed.Filter?>(null) }; var adding by remember { mutableStateOf(false) }
     Txt("With a filter on, the feed’s posts and stories come only from its subjects. Long press Home to switch filters.", size = 13.6.sp, color = P.faint, modifier = Modifier.padding(vertical = 6.dp))
-    FilterRow(0, "None", "Every deck", f.active == null || f.filters.none { it.id == f.active }) { f.useFilter(null) }
+    FilterRow(0, "None", "Every deck", noFilter(f)) { f.useFilter(null) }
+    FilterRow(1, "Following", "Only accounts you follow", f.active == pizza.kulhad.medslave.FOLLOW_ID) { f.useFilter(pizza.kulhad.medslave.FOLLOW_ID) }
     f.filters.forEachIndexed { i, x ->
-        FilterRow(i + 1, x.name, null, f.active == x.id, { editing = x }, { f.dropFilter(x.id) }) { f.useFilter(x.id) }
+        FilterRow(i + 2, x.name, null, f.active == x.id, { editing = x }, { f.dropFilter(x.id) }) { f.useFilter(x.id) }
     }
     Btn("Add a filter", Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 8.dp), p = true, h = 38.dp, size = 14.4.sp, enabled = rs.deck.parts.isNotEmpty()) { adding = true }
     if (rs.deck.parts.isEmpty()) Txt("Add a deck first (Settings › Decks).", size = 12.8.sp, color = P.faint)
     if (adding) FilterEdit(rs, null) { adding = false }
     editing?.let { x -> FilterEdit(rs, x) { editing = null } }
 }
+
+/** no filter on: none chosen, or one that's since been deleted */
+private fun noFilter(f: pizza.kulhad.medslave.Feed) = f.active == null || (f.active != pizza.kulhad.medslave.FOLLOW_ID && f.filters.none { it.id == f.active })
 
 /** a filter's subjects as a line, by main deck ("Deck: A, B · Other deck: all"); decks no longer here are left out */
 fun filterDecks(rs: Rs, x: pizza.kulhad.medslave.Feed.Filter): String =
@@ -229,10 +233,11 @@ fun FilterPick(rs: Rs) {
         Column(Modifier.padding(horizontal = 16.dp).widthIn(max = 480.dp).fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(P.card).border(1.dp, P.border, RoundedCornerShape(8.dp)).padding(horizontal = 16.dp, vertical = 14.dp)) {
             Txt("Feed filter", bold = true, modifier = Modifier.padding(bottom = 6.dp))
             Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
-                FilterRow(0, "None", "Every deck", f.active == null || f.filters.none { it.id == f.active }) { f.useFilter(null); close() }
-                f.filters.forEachIndexed { i, x -> FilterRow(i + 1, x.name, null, f.active == x.id) { f.useFilter(x.id); close() } }
+                FilterRow(0, "None", "Every deck", noFilter(f)) { f.useFilter(null); close() }
+                FilterRow(1, "Following", "Only accounts you follow", f.active == pizza.kulhad.medslave.FOLLOW_ID) { f.useFilter(pizza.kulhad.medslave.FOLLOW_ID); close() }
+                f.filters.forEachIndexed { i, x -> FilterRow(i + 2, x.name, null, f.active == x.id) { f.useFilter(x.id); close() } }
             }
-            if (f.filters.isEmpty()) Txt("No filters yet. Make one in Settings › Feed › Feed filters.", size = 12.8.sp, color = P.faint, modifier = Modifier.padding(top = 6.dp))
+            if (f.filters.isEmpty()) Txt("Make your own in Settings › Feed › Feed filters.", size = 12.8.sp, color = P.faint, modifier = Modifier.padding(top = 6.dp))
         }
     }
 }

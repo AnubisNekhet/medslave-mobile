@@ -7,7 +7,7 @@
    App.hide(id, o, text, path): a post's menu › Hide. App.block(account): Block (a profile's ⋯ or a post's menu) hides every subject the
    account posts; the app answers with R.blocked(names).
    App.play(song) / App.mute(): the song of whatever post or story is on screen, by "title · artist" ('' for none) */
-const A_=window.App||{more(){},com(){},share(){},story(){},seen(){},imp(){},settings(){},credits(){},refresh(){},profile(){},pmore(){},pfOpen(){},saved(){},save(){},hide(){},block(){},play(){},mute(){}};
+const A_=window.App||{more(){},com(){},share(){},story(){},seen(){},imp(){},settings(){},credits(){},refresh(){},profile(){},pmore(){},pfOpen(){},saved(){},save(){},hide(){},block(){},follow(){},rects(){},play(){},mute(){}};
 const F={acc:[],posts:[],groups:[],wait:false,saved:new Set()};
 function fitX(){document.querySelectorAll('.f-pb').forEach(clip)}   /* face.js calls it after MathJax and after an MCQ's explanation opens: posts re-check their 'more' */
 const ESC=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
@@ -250,7 +250,7 @@ function pfRender(j){if(!PF.on){PF.on=true;PFE.classList.add('on');PFE.scrollTop
  $('#pfs').innerHTML=`<header class="f-top f-pft"><button class="f-back" aria-label="Back">‹</button><b>${ESC(a.h)}</b>${j.a>=0||SPN[j.a]?`<button class="f-pdots" aria-label="More">${SVG(ICN.dots)}</button>`:''}</header>
 <section class="f-prof${j.a==-2?' f-saved':''}"><div class="f-pr1">${avatar(a,' f-big')}<div class="f-stats">${st(j.posts,'posts')}${st(j.followers,'followers')}${st(j.following,'following')}</div></div>
 ${j.a==-2?'':`<div class="f-bio"><b>${ESC(j.name)}</b>${j.bio?`<p>${ESC(j.bio)}</p>`:''}</div>`}
-${j.a>=0||SPN[j.a]?'<button class="nx f-follow">Follow</button>':''}
+${j.a>=0||SPN[j.a]?(F.fol&&F.fol.has(a.h)?'<button class="nx f-follow on">Following</button>':'<button class="nx f-follow">Follow</button>'):''}
 ${PF.hl.length?`<div class="f-hl">${PF.hl.map((h,i)=>`<button class="f-st" data-g="${i}"><span class="f-ring seen"><span class="f-av f-hlc">${SVG(h.ic)}</span></span><span class="f-stn">${ESC(h.t)}</span></button>`).join('')}</div>`:''}</section>`;
  const l=$('#pfl');l.innerHTML='';pfAdd(PF.list,0);if(!PF.list.length)l.innerHTML=`<p class="f-none">${j.a==-2?'Saved cards show up here. Tap the bookmark on a post to save it.':'No posts yet.'}</p>`;
  setTimeout(tune,350)}
@@ -261,7 +261,7 @@ function pfClose(now){if(!PF.on)return;PF.on=false;A_.pfOpen(false);PFE.classLis
 $('#pfs').addEventListener('click',e=>{const pd=e.target.closest('.f-pdots'),hd=pd&&pd.closest('header');if(!e.target.closest('.f-menu'))menuClose();
  if(pd){if(PD_OPEN!==hd)hd.insertAdjacentHTML('beforeend',`<div class="f-menu"><button class="f-hide f-block">${SVG(ICN.ban)}<span>Block</span></button></div>`);PD_OPEN=null;return}   /* the profile's ⋯ (top right) */
  if(e.target.closest('.f-block'))return blockAcc(PF.a);
- if(e.target.closest('.f-back'))return pfClose();const f=e.target.closest('.f-follow');if(f){f.classList.toggle('on');f.textContent=f.classList.contains('on')?'Following':'Follow'}});
+ if(e.target.closest('.f-back'))return pfClose();const f=e.target.closest('.f-follow');if(f){const on=f.classList.toggle('on');f.textContent=on?'Following':'Follow';const h=accOf(PF.a).h;F.fol=F.fol||new Set();on?F.fol.add(h):F.fol.delete(h);A_.follow(h,on)}});   /* kept by the app (the Following filter) */
 /* whether the profile's menu was open when the finger went down on its dots (a second tap closes it) */
 let PD_OPEN=null;document.addEventListener('pointerdown',e=>{const pd=e.target.closest&&e.target.closest('.f-pdots'),hd=pd&&pd.closest('header');PD_OPEN=hd&&hd.querySelector('.f-menu')?hd:null},true);
 PFE.addEventListener('scroll',()=>{if(PF.more&&!PF.wait&&PFE.clientHeight+PFE.scrollTop>PFE.scrollHeight-PFE.clientHeight*1.5){PF.wait=true;A_.pmore()}},{passive:true});
@@ -276,7 +276,7 @@ function dayHTML(p){const d=new Date(p.day+'T00:00'),y=d.getFullYear(),mo=d.getM
 const R={
  theme(t,dark){document.documentElement.dataset.theme=t;document.body.classList.toggle('night_mode',dark);document.body.classList.toggle('nightMode',dark);
   document.body.style.setProperty('--bgc',getComputedStyle(document.body).backgroundColor)},
- feed(d){DATA.paths=d.paths;SET.source=!!d.source;SET.expl=d.expl!==false;SET.tags=!!d.tags;F.acc=d.acc;F.posts=[];F.groups=d.groups;F.saved=new Set(d.saved||[]);F.hp.cm=d.hcm||[];$('#posts').innerHTML='';svClose(true);pfClose(true);rings();
+ feed(d){DATA.paths=d.paths;SET.source=!!d.source;SET.expl=d.expl!==false;SET.tags=!!d.tags;F.acc=d.acc;F.posts=[];F.groups=d.groups;F.saved=new Set(d.saved||[]);F.hp.cm=d.hcm||[];F.fol=new Set(d.fol||[]);$('#posts').innerHTML='';svClose(true);pfClose(true);rings();
   $('#empty').hidden=!!d.acc.length;HJ='';heat(d.act);addPosts(d.posts);FD.scrollTop=0},
  heat(m){heat(m)},
  refreshed(l){setTimeout(()=>{$('#posts').querySelectorAll('.f-post:not([data-i="h"]),.f-loadmore').forEach(e=>e.remove());F.posts=[];F.wait=false;addPosts(l);
@@ -288,6 +288,12 @@ const R={
  openAccount(ai,p){svClose(true);PF.first=p;A_.profile(ai)},   /* from Reels: that card's account, the card first */
  pposts(l){if(!l.length)PF.more=false;const at=PF.list.length;PF.list.push(...l);setTimeout(()=>pfAdd(l,at),400+Math.random()*700)},
  closeProfile(){pfClose()},
+ /* from Reels: the profile page at once (no slide): its name, back and a spinner; R.profile fills it in */
+ pfShell(a){svClose(true);const ac=accOf(a);if(!ac)return;PFE.style.transition='none';PF.on=true;PF.a=a;PF.list=[];PF.hl=[];PF.more=false;PFE.classList.add('on','in');void PFE.offsetWidth;PFE.style.transition='';PFE.scrollTop=0;A_.pfOpen(true);
+  $('#pfs').innerHTML=`<header class="f-top f-pft"><button class="f-back" aria-label="Back">‹</button><b>${ESC(ac.h)}</b></header>`;$('#pfl').innerHTML='<div class="f-loadmore"><i class="lg"></i></div>'},
+ /* the app tour: where these controls are (CSS px, only ones fully on screen), and the feed held still while it shows */
+ rects(m){const o={};for(const k in m){const e=document.querySelector(m[k]);if(!e)continue;const r=e.getBoundingClientRect();if(r.width&&r.top>=0&&r.bottom<=innerHeight)o[k]=[r.left,r.top,r.width,r.height]}A_.rects(JSON.stringify(o))},
+ tourLock(v){FD.style.overflowY=v?'hidden':''},
  /* the hidden subjects changed (Block): posts and stories from them go */
  blocked(names){const hs=new Set(names),hit=n=>n&&hs.has(subj(n));dropPosts(q=>SPN[q.a]?hs.has(SPN[q.a]):slides(q).some(c=>hit(c.n)));
   const keep=l=>l.filter(g=>!(SPN[g.a]&&hs.has(SPN[g.a]))&&(g.items=g.items.filter(it=>!hit(it.n))).length);F.groups=keep(F.groups);if(F.next)F.next=keep(F.next);if(!SV.on)rings()},

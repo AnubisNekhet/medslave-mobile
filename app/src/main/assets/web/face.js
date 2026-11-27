@@ -118,3 +118,9 @@ function mtWire(b,lk,rk){for(const k in MT.con)if(MT.con[k]==rk)delete MT.con[k]
  const m=cur&&matchOf(cur.n[4].map(trimF));if(!m||m.L.some(x=>!(x.k in MT.con)))return;
  if(m.L.every(x=>MT.con[x.k]==m.pr[x.k])){b.classList.add('mt-ok');setTimeout(()=>{if(MT.key==b.dataset.key&&window.mtDone)mtDone(!MT.bad)},500)}
  else{MT.bad=true;b.classList.remove('mt-no');void b.offsetWidth;b.classList.add('mt-no')}}
+
+/* tags: the fade at an edge shows while there's more past it */
+function tagFade(t){const o=t.scrollWidth-t.clientWidth;t.style.setProperty('--fl',o>2&&t.scrollLeft>2?'22px':'0px');t.style.setProperty('--fr',o>2&&t.scrollLeft<o-2?'22px':'0px')}
+document.addEventListener('scroll',e=>{const t=e.target;if(t.classList&&t.classList.contains('prettify-tags'))tagFade(t)},true);
+{let q=0;new MutationObserver(()=>{if(q)return;q=requestAnimationFrame(()=>{q=0;document.querySelectorAll('.prettify-tags').forEach(tagFade)})}).observe(document.documentElement,{childList:true,subtree:true})}
+addEventListener('resize',()=>document.querySelectorAll('.prettify-tags').forEach(tagFade));

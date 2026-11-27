@@ -162,11 +162,24 @@ class Reels(private val rs: Rs) {
         val e = spotifyEntity("track", sp.groupValues[1]) ?: return null
         val name = e.optString("name").ifEmpty { e.optString("title") }
         val artist = e.optString("subtitle").ifEmpty { e.optJSONArray("artists")?.optJSONObject(0)?.optString("name").orEmpty() }
-        fun norm(s: String) = s.lowercase().replace(Regex("\\s*[\\(\\[].*?[\\)\\]]"), "").replace(Regex(" - .*$"), "").replace(Regex("[^\\p{L}\\p{N}]"), "")
-        val nn = norm(name); val na = norm(artist.split(",").first())
-        val hits = json("https://itunes.apple.com/search?entity=song&limit=15&term=" + URLEncoder.encode("$artist $name".take(120), "UTF-8")).filter { it.has("previewUrl") }.sortedBy(::clean)
-        return (hits.firstOrNull { norm(it.optString("trackName")) == nn && norm(it.optString("artistName")).let { a -> a.isNotEmpty() && (a == na || a in na || na in a) } }
-            ?: hits.firstOrNull { norm(it.optString("trackName")) == nn })?.let(::album)
+        val ms = e.optLong("duration", 0L)   // Spotify's length (ms), when the embed gives it
+        /* the same song on Apple, matched as closely as an Apple link's id: the title (without "feat. …", bracketed or " - Remastered"-style
+           parts) and an artist that overlaps; the length within 3 s when known; the original before the clean edit. searched by the first
+           artist and the title, then the whole artist line, then the title alone, until one matches */
+        fun norm(s: String) = s.lowercase().replace(Regex("\\s*[\\(\\[].*?[\\)\\]]"), "").replace(Regex("\\s+(feat|ft)\\.?\\s.*$"), "").replace(Regex(" - .*$"), "").replace(Regex("[^\\p{L}\\p{N}]"), "")
+        val nn = norm(name); val arts = artist.split(",", "&").map { norm(it) }.filter { it.isNotEmpty() }; val a0 = artist.split(",", "&").first().trim()
+        fun artOk(x: JSONObject) = norm(x.optString("artistName")).let { a -> a.isNotEmpty() && arts.any { it == a || it in a || a in it } }
+        fun titleOk(x: JSONObject) = norm(x.optString("trackName")).let { t -> t == nn || (t.length > 3 && nn.length > 3 && (t in nn || nn in t)) }
+        fun lenOk(x: JSONObject) = ms <= 0 || x.optLong("trackTimeMillis", 0L).let { it <= 0 || kotlin.math.abs(it - ms) <= 3000 }
+        var first: List<JSONObject>? = null
+        for (q in listOf("$a0 $name", "$artist $name", name).distinct()) {
+            val hits = json("https://itunes.apple.com/search?entity=song&limit=20&term=" + URLEncoder.encode(q.take(120), "UTF-8")).filter { it.has("previewUrl") }.sortedBy(::clean)
+            if (first == null) first = hits
+            (hits.firstOrNull { norm(it.optString("trackName")) == nn && artOk(it) && lenOk(it) } ?: hits.firstOrNull { titleOk(it) && artOk(it) && lenOk(it) }
+                ?: hits.firstOrNull { titleOk(it) && artOk(it) })?.let { return album(it) }
+        }
+        /* an artist spelt differently on each (transliterated names): the exact title, its length matching when known */
+        return first?.firstOrNull { norm(it.optString("trackName")) == nn && (ms > 0 && lenOk(it)) }?.let(::album)
     }
     /** an album link's songs, straight from Apple in one request: an Apple Music album as it is, a Spotify album matched to Apple by its
         name, artist and track count. null: not an album link, or no Apple album clearly matches (the songs are then searched one by one) */
@@ -339,14 +352,16 @@ class Reels(private val rs: Rs) {
     private fun set(s: Song) {
         song = s; prepared = false
         val f = cached(s); want = true
-        au { try { mp.reset(); if (f.exists()) { f.setLastModified(System.currentTimeMillis()); mp.setDataSource(f.path) } else { mp.setDataSource(s.url); fetch(s) }; mp.prepareAsync() } catch (e: Exception) { h.post { onError() } } }
+        val keep = gOn(s)   // a song from a genre or playlist that's switched off streams but isn't saved
+        au { try { mp.reset(); if (f.exists()) { f.setLastModified(System.currentTimeMillis()); mp.setDataSource(f.path) } else { mp.setDataSource(s.url); if (keep) fetch(s) }; mp.prepareAsync() } catch (e: Exception) { h.post { onError() } } }
     }
     /** the feed's and stories' song: keeps playing if it's already the one */
     fun playSong(s: Song) { if (song === s && want) return play(); set(s) }
 
     /* ---- the song cache (cache/songs): a preview is saved the first time it plays and played from the phone after that.
-       prune(), when the app opens: songs not played for a week go, the cache stays under 40 MB (oldest first), and an import that
-       didn't finish leaves nothing behind */
+       only songs from genres and playlists that are on are saved. prune(), when the app opens: songs of genres that are off go after a
+       week unplayed; songs of playlists that are off go a week after the playlist was last on; the built-in songs stay under 100 MB
+       (oldest first); and an import that didn't finish leaves nothing behind */
     private val songDir by lazy { java.io.File(rs.ctx.cacheDir, "songs").apply { mkdirs() } }
     private fun cached(s: Song) = java.io.File(songDir, Integer.toHexString(s.url.hashCode()) + "-" + Integer.toHexString((s.title + s.artist).hashCode()) + ".m4a")
     private val fetching = HashSet<String>()
@@ -365,14 +380,15 @@ class Reels(private val rs: Rs) {
     fun prune() = thread {
         runCatching {
             val week = System.currentTimeMillis() - 7L * 24 * 3600 * 1000
-            /* your playlists' songs are kept, switched on or not, until a week after the playlist was last on (or added, if it never was);
-               everything else goes after a week unplayed or past 40 MB */
+            /* your playlists' songs: kept while the playlist is on, and until a week after it was last on (or added, if it never was).
+               the built-in songs: a genre that's on keeps its songs (under 100 MB, below); a genre that's off loses them after a week unplayed */
             h.post { markLists() }
-            val now = System.currentTimeMillis()
-            val keep = lists.toList().filter { now - maxOf(it.lastOn, it.added) < 7L * 24 * 3600 * 1000 || it.key !in rs.set.goff }.flatMap { it.songs.toList() }.map { cached(it).name }.toSet()
-            songDir.listFiles()?.forEach { if (it.name.endsWith(".part") || (it.name !in keep && it.lastModified() < week)) it.delete() }
+            val now = System.currentTimeMillis(); val off = rs.set.goff
+            val keep = lists.toList().filter { now - maxOf(it.lastOn, it.added) < 7L * 24 * 3600 * 1000 || it.key !in off }.flatMap { it.songs.toList() }.map { cached(it).name }.toSet()
+            val on = songs.toList().filter { !it.genre.startsWith("pl:") && it.genre !in off }.map { cached(it).name }.toSet()
+            songDir.listFiles()?.forEach { if (it.name.endsWith(".part") || (it.name !in keep && it.name !in on && it.lastModified() < week)) it.delete() }
             var total = songDir.listFiles()?.filter { it.name !in keep }?.sumOf { it.length() } ?: 0L
-            songDir.listFiles()?.filter { it.name !in keep }?.sortedBy { it.lastModified() }?.forEach { if (total > 40L shl 20) { total -= it.length(); it.delete() } }
+            songDir.listFiles()?.filter { it.name !in keep }?.sortedBy { it.lastModified() }?.forEach { if (total > 100L shl 20) { total -= it.length(); it.delete() } }
             val fortnight = System.currentTimeMillis() - 14L * 24 * 3600 * 1000
             artDir.listFiles()?.forEach { if (it.name.endsWith(".part") || it.lastModified() < fortnight) it.delete() }
             val c = rs.ctx.cacheDir; val f = rs.ctx.filesDir
@@ -422,7 +438,38 @@ class Reels(private val rs: Rs) {
         }
     }
     fun post(text: String) { loading = false; list.add(0, Comment("you", "now", text, 0, pick(DCOL).second)) }
-    fun close() { sheet = null; qr = false; gen++ }
+    fun close() { sheet = null; qr = false; gen++; stopPreview() }
+
+    /* ---- previews (the music sheet: a tap on a playlist plays one of its songs; Edit playlist: a tap on a song plays it). their own player,
+       once through (no loop), the song underneath paused meanwhile and back after. from the cache when it's there, otherwise streamed and
+       not saved. preview: what's playing (a playlist's key, or "song:" + title|artist); null: nothing */
+    var preview by mutableStateOf<String?>(null)
+    private var pv: MediaPlayer? = null
+    fun previewSong(s: Song, key: String) {
+        if (preview == key) return stopPreview()
+        val f = cached(s); val src = if (f.exists()) f.path else s.url
+        preview = key
+        au {
+            pv?.release(); pv = null
+            if (mp.isPlaying) mp.pause()
+            pv = MediaPlayer().apply {
+                setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
+                setDataSource(src)
+                setOnPreparedListener { if (pv === it) { runCatching { am.requestAudioFocus(focusReq) }; it.start() } }
+                setOnCompletionListener { h.post { if (preview == key) stopPreview() } }   // once through, then it stops
+                setOnErrorListener { _, _, _ -> h.post { if (preview == key) stopPreview() }; true }
+                prepareAsync()
+            }
+        }
+    }
+    /** a playlist's preview: a random song of it (another tap on it stops it) */
+    fun previewList(p: Playlist) { if (preview == p.key) return stopPreview(); p.songs.filter { !it.dead }.takeIf { it.isNotEmpty() }?.let { previewSong(it.random(), p.key) } }
+    fun stopPreview() {
+        if (preview == null && pv == null) return
+        preview = null
+        au { pv?.release(); pv = null }
+        if (want) play()   // the song that was playing carries on
+    }
 
     fun release() { au { mp.release() }; audio.quitSafely() }
 

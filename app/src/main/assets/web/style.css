@@ -1557,3 +1557,10 @@ button.rp .rp-x{animation:rpX .26s .14s cubic-bezier(.3,1.7,.5,1) both}
 .mt-ok .mt-it{border-color:rgb(var(--ctp-green))}
 .mt-no{animation:mtNo .42s ease}@keyframes mtNo{20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(2px)}}
 .mt-no .mt-w path{animation:mtRed .6s ease}@keyframes mtRed{30%{stroke:rgb(var(--ctp-red))}}
+
+/* a card's tags: one row that scrolls sideways (never wrapping or squeezed), its edges fading where there's more to see (--fl/--fr,
+   set by face.js as it scrolls) */
+.prettify-tags,.mobile .prettify-tags{display:flex!important;flex-wrap:nowrap;align-items:center;gap:.4em;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;margin:.8em 0 .9em;padding:0 1em;
+  --fl:0px;--fr:0px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 var(--fl),#000 calc(100% - var(--fr)),transparent);mask-image:linear-gradient(90deg,transparent,#000 var(--fl),#000 calc(100% - var(--fr)),transparent)}
+.prettify-tags::-webkit-scrollbar{display:none}
+.prettify-tags .prettify-tag{flex:none;display:inline-block;white-space:nowrap;word-break:normal;margin:0;line-height:1.3}

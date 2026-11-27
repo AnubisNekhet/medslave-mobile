@@ -39,6 +39,8 @@ $('#stage').addEventListener('scroll',e=>{const d=e.target;if(!d.classList)retur
 addEventListener('resize',fitX);$('#stage').addEventListener('load',e=>{if(e.target.tagName=='IMG')ioBox(e.target);fitX()},true);
 $('#stage').addEventListener('dragstart',e=>e.preventDefault());
 /* a touch on an MCQ's explanation card: tell the app which ways it can still scroll, so a swipe there scrolls it rather than the reel */
+/* a tag row that scrolls sideways: this touch scrolls it, the card doesn't swipe (the Match board's wire flag) */
+document.addEventListener('touchstart',e=>{const t=e.target.closest&&e.target.closest('#stage .prettify-tags');if(t&&t.scrollWidth>t.clientWidth+2&&window.App&&App.wire)App.wire()},{passive:true});
 document.addEventListener('touchstart',e=>{const x=e.target.closest&&e.target.closest('#stage .mcq-exc');if(x)A_.ex(x.scrollTop>1,x.scrollTop+x.clientHeight<x.scrollHeight-2)},{passive:true});
 const front=()=>document.querySelector('#stage .flip-front,#stage .fade-front')||$('#stage');
 function reveal(n){const q='.cloze:not(.cloze-inactive):not(.cloze-revealed)',r=front();[...r.querySelectorAll(q)].slice(0,n).forEach(c=>{if(c.hasAttribute('data-cloze'))c.innerHTML=c.getAttribute('data-cloze');c.classList.add('cloze-revealed')});mj(r);syncNxt();fitX()}

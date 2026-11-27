@@ -71,6 +71,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import kotlinx.coroutines.flow.first
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -117,7 +118,14 @@ private fun Menu(rs: Rs) {
                 /* logo + name: tapping opens the credits; they squish in while pressed and pop out while the credits are open */
                 val src = remember { MutableInteractionSource() }; val down by src.collectIsPressedAsState()
                 val sc by animateFloatAsState(if (down) .94f else if (rs.creditsOpen) 1.08f else 1f, tween(if (down) 100 else 350), label = "ttl")
-                Row(Modifier.padding(top = 26.dp, bottom = 19.dp).scale(sc).clickable(src, null) { rs.creditsOpen = true }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                /* the app tour's Menu part: once, the first time the Menu shows with a deck and nothing else open */
+                LaunchedEffect(rs.loaded, rs.deck) {
+                    if (!rs.loaded || rs.deck.empty || rs.tourSeen("menu")) return@LaunchedEffect
+                    kotlinx.coroutines.delay(700)
+                    androidx.compose.runtime.snapshotFlow { rs.tourClear() && rs.tour == null }.first { it }
+                    kotlinx.coroutines.delay(300); if (rs.tourClear() && rs.tour == null && !rs.tourSeen("menu")) rs.tour = "menu"
+                }
+                Row(Modifier.padding(top = 26.dp, bottom = 19.dp).tourTarget(rs, "menu.logo").scale(sc).clickable(src, null) { rs.creditsOpen = true }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Logo(26.dp)
                     Txt("medslave", size = 32.sp, bold = true, spacing = (-.64).sp)
                 }
@@ -127,7 +135,7 @@ private fun Menu(rs: Rs) {
             }
         }
         /* settings: a round button in the top right */
-        Box(Modifier.align(Alignment.TopEnd).padding(12.dp).size(42.dp).border(1.dp, P.border, CircleShape).press(bg = P.card, shape = CircleShape) { rs.settingsSec = null; rs.settingsOpen = true },
+        Box(Modifier.align(Alignment.TopEnd).padding(12.dp).size(42.dp).tourTarget(rs, "menu.gear").border(1.dp, P.border, CircleShape).press(bg = P.card, shape = CircleShape) { rs.settingsSec = null; rs.settingsOpen = true },
             contentAlignment = Alignment.Center) { Icon(Ic.GEAR, 19.dp, P.text) }
     }
 }
@@ -150,7 +158,7 @@ private fun ColumnScope.DeckPages(rs: Rs, w: Dp) {
             Txt(parts.getOrNull(st.currentPage)?.name ?: "Deck", size = 14.4.sp, color = P.faint, bold = true, lines = 1, align = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp))
         }
         /* All subjects: every card in the deck on show; All decks: every card in every deck (one deck: just All decks, they're the same) */
-        Row(Modifier.fillMaxWidth().padding(bottom = 5.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(Modifier.fillMaxWidth().padding(bottom = 5.dp).tourTarget(rs, "menu.all"), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             val sh = RoundedCornerShape(6.dp)
             @Composable fun btn(label: String, go: () -> Unit) =
                 Box(Modifier.weight(1f).border(1.dp, P.border, sh).press(bg = P.card, shape = sh, onClick = go).padding(10.dp), contentAlignment = Alignment.Center) {
@@ -163,12 +171,12 @@ private fun ColumnScope.DeckPages(rs: Rs, w: Dp) {
     /* every page as tall as the tallest (all are composed and measured, up to the room left), so nothing moves while swiping */
     var tall by remember(parts) { mutableIntStateOf(0) }
     val dn = LocalDensity.current
-    androidx.compose.foundation.pager.HorizontalPager(st, Modifier.width(w).weight(1f, fill = false), pageSpacing = 16.dp, verticalAlignment = Alignment.Top, beyondViewportPageCount = parts.size) { i ->
+    androidx.compose.foundation.pager.HorizontalPager(st, Modifier.width(w).weight(1f, fill = false).then(if (parts.size > 1) Modifier.tourTarget(rs, "menu.pager") else Modifier), pageSpacing = 16.dp, verticalAlignment = Alignment.Top, beyondViewportPageCount = parts.size) { i ->
         val t = parts[i].tree
         Column(Modifier.fillMaxWidth().onSizeChanged { if (it.height > tall) tall = it.height }.heightIn(min = with(dn) { tall.toDp() }).verticalScroll(rememberScrollState())) {
-            t.subjects.forEach { s ->
-                val n = t.top.find { it.name == s.name } ?: return@forEach
-                Row(Modifier.fillMaxWidth().padding(bottom = 5.dp), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+            t.subjects.forEachIndexed { k, s ->
+                val n = t.top.find { it.name == s.name } ?: return@forEachIndexed
+                Row(Modifier.fillMaxWidth().padding(bottom = 5.dp).then(if (k == 0 && i == st.currentPage) Modifier.tourTarget(rs, "menu.subject") else Modifier), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                     val sh = RoundedCornerShape(6.dp)
                     Box(Modifier.weight(1f).border(1.dp, P.border, sh).press(bg = P.card, shape = sh) { rs.go(n) }.padding(10.dp), contentAlignment = Alignment.Center) {
                         Txt(s.name, bold = true, align = TextAlign.Center)
@@ -190,6 +198,15 @@ private fun FeedView(rs: Rs) {
     LaunchedEffect(rs.set.nocom) { rs.feed.web.nocom(rs.set.nocom) }
     LaunchedEffect(rs.set.avatar) { rs.feed.web.avatars(rs.set.avatar == "solid") }
     LaunchedEffect(rs.set.fakeload) { rs.feed.web.fake(rs.set.fakeload) }
+    /* the app tour's feed part: once, after the first posts are in and nothing else is open; the page is scrolled up and held, then asked
+       where its controls are (Feed.gotRects starts it) */
+    LaunchedEffect(rs.deck) {
+        if (rs.deck.empty || rs.tourSeen("feed")) return@LaunchedEffect
+        kotlinx.coroutines.delay(2400)
+        androidx.compose.runtime.snapshotFlow { rs.tourClear() && rs.tour == null && rs.tab == "feed" }.first { it }
+        rs.feed.web.top(true); rs.feed.web.tourLock(true); kotlinx.coroutines.delay(600)
+        if (rs.tourClear() && rs.tour == null && rs.tab == "feed") rs.feed.askRects() else rs.feed.web.tourLock(false)
+    }
     /* the feed's song plays while the feed is on screen */
     androidx.compose.runtime.DisposableEffect(Unit) { rs.feed.web.replay(); onDispose { rs.feed.stopSong() } }
     LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(30_000); rs.feed.show() } }   // new stories every 5 minutes
@@ -201,7 +218,9 @@ private fun FeedView(rs: Rs) {
     @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
     val bot = WindowInsets.navigationBarsIgnoringVisibility.getBottom(dn) / dn.density
     LaunchedEffect(top, bot) { rs.feed.web.insets(top, bot) }
-    AndroidView(factory = { rs.feed.web.detach(); rs.feed.web.view.apply { setBackgroundColor(bg) } }, update = { it.setBackgroundColor(bg) }, modifier = Modifier.fillMaxSize())
+    rs.density = dn.density
+    AndroidView(factory = { rs.feed.web.detach(); rs.feed.web.view.apply { setBackgroundColor(bg) } }, update = { it.setBackgroundColor(bg) },
+        modifier = Modifier.fillMaxSize().onGloballyPositioned { rs.feedOrigin = it.positionInRoot() })   // where the page sits (the tour's feed targets)
 }
 
 /* Reels Mode's home bar: Menu, Home (the feed), Reels (the last card reviewed), the current one in the text colour and bolder, the
@@ -212,16 +231,16 @@ fun NavBar(rs: Rs, current: String) {
     val back = rs.recent()
     /* the other views: a solid mid-tone (the text colour mixed into the background), never transparency */
     val off = androidx.compose.ui.graphics.lerp(P.bg, P.text.copy(alpha = 1f), .45f)
-    @Composable fun item(svg: String, on: Boolean, enabled: Boolean = true, stroke: Float = 2f, long: (() -> Unit)? = null, go: () -> Unit) =
-        Box(Modifier.size(51.dp, 42.dp).press(enabled, shape = RoundedCornerShape(8.dp), onLong = long, onClick = go), contentAlignment = Alignment.Center) {
+    @Composable fun item(svg: String, on: Boolean, enabled: Boolean = true, stroke: Float = 2f, tk: String? = null, long: (() -> Unit)? = null, go: () -> Unit) =
+        Box(Modifier.size(51.dp, 42.dp).then(if (tk != null) Modifier.tourTarget(rs, tk) else Modifier).press(enabled, shape = RoundedCornerShape(8.dp), onLong = long, onClick = go), contentAlignment = Alignment.Center) {
             Icon(svg, 24.dp, if (on) P.text else off, if (on) stroke + .4f else stroke)
         }
     Row(Modifier.fillMaxWidth().solidLine(P.divider, true).padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceAround) {
         item(Ic.LIST, current == "menu") { if (rs.study) rs.home(); rs.tab = "menu" }
         /* Home: a long press (with a buzz) picks a feed filter */
-        item(Ic.HOME, current == "feed", long = { rs.reels.buzz(); rs.feed.pickOpen = true }) { if (rs.study) rs.home(); rs.tab = "feed"; if (current == "feed") rs.feed.web.top() }
+        item(Ic.HOME, current == "feed", tk = "bar.home", long = { rs.reels.buzz(); rs.feed.pickOpen = true }) { if (rs.study) rs.home(); rs.tab = "feed"; if (current == "feed") rs.feed.web.top() }
         /* Reels: back to the last card reviewed; the first time, All decks */
-        item(Ic.REELS, current == "reels", enabled = current == "reels" || !rs.deck.empty) { if (current != "reels") rs.go(back ?: rs.deck.all) }
+        item(Ic.REELS, current == "reels", tk = "bar.reels", enabled = current == "reels" || !rs.deck.empty) { if (current != "reels") rs.go(back ?: rs.deck.all) }
     }
 }
 

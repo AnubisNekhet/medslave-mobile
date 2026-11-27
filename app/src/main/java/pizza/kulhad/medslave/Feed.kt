@@ -36,6 +36,8 @@ class FeedBridge(private val f: Feed) {
     @JavascriptInterface fun save(id: String, o: Int, on: Boolean) = h.post { f.save(id.toLong(), o, on) }
     @JavascriptInterface fun hide(id: String, o: Int, text: String, path: String) = h.post { f.hide(id.toLong(), o, text, path) }
     @JavascriptInterface fun block(ai: Int) = h.post { f.block(ai) }
+    @JavascriptInterface fun rects(j: String) = h.post { f.gotRects(j) }
+    @JavascriptInterface fun follow(handle: String, on: Boolean) = h.post { f.follow(handle, on) }
     @JavascriptInterface fun play(k: String) = h.post { f.playSong(k) }
     @JavascriptInterface fun mute() = h.post { f.rs.reels.tapMusic() }
 }
@@ -59,14 +61,20 @@ class FeedWeb(ctx: Context, f: Feed) : Page(ctx, "feed.html", false, { FeedBridg
     fun replay() = js("R.replay()")
     fun profile(j: String) = js("R.profile($j)")
     fun openAccount(ai: Int, post: String) = js("R.openAccount($ai,$post)")
+    fun pfShell(ai: Int) = js("R.pfShell($ai)")
     fun profilePosts(j: String) = js("R.pposts($j)")
     fun closeProfile() = js("R.closeProfile()")
+    /** the app tour: where these controls are (App.rects), and the feed held still while it shows */
+    fun rects(j: String) = js("R.rects($j)")
+    fun tourLock(v: Boolean) = js("R.tourLock($v)")
     /** the hidden subjects (names) changed: posts and stories from them leave the page */
     fun blocked(j: String) = js("R.blocked($j)")
     /** the status and navigation bar heights (CSS px): the page runs behind the status bar and pads itself */
     fun insets(top: Float, bottom: Float) = js("R.insets($top,$bottom)")
 }
 
+/** the built-in Following feed filter's id (only the accounts followed) */
+const val FOLLOW_ID = "following"
 /** countdown.timer: its handle, and its entry in the hidden subjects when blocked */
 const val CD_HANDLE = "countdown.timer"
 const val CD_NAME = "Countdown timer"
@@ -102,6 +110,10 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
     var filters by mutableStateOf(loadFilters())
     var active by mutableStateOf(rs.store.get(FACTIVE))   // the filter that's on (null: none)
     var pickOpen by mutableStateOf(false)                 // the Home long press's picker
+    /* ---- following (a profile's Follow button, kept by handle); the built-in Following filter shows only those accounts */
+    var follows by mutableStateOf(runCatching { JSONArray(rs.store.get(FOLLOWING) ?: "[]").let { a -> List(a.length()) { a.getString(it) }.toSet() } }.getOrDefault(emptySet()))
+    fun follow(h: String, on: Boolean) { follows = if (on) follows + h else follows - h; rs.store.set(FOLLOWING, JSONArray(follows.toList()).toString()) }
+    private val followOnly get() = active == FOLLOW_ID
     @Volatile private var fsrc: Sel? = null               // what the filter that's on lets through (null: everything)
     /** what a filter lets through: whole decks (Note.src; filters made before subjects could be picked) and single subjects ("src/subject") */
     class Sel(val whole: Set<Int>, val subs: Set<String>) { fun ok(src: Int, subject: String) = src in whole || "$src/$subject" in subs }
@@ -115,7 +127,9 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
         f.decks.forEach { k -> val i = idx[k.substringBefore('/')] ?: return@forEach; if ('/' in k) subs.add("$i/${k.substringAfter('/')}") else whole.add(i) }
         return if (whole.isEmpty() && subs.isEmpty()) null else Sel(whole, subs) }
     /** Settings › Reviewing › Feed filter in reels: whether a card's deck is in the filter that's on (always, with the option off or no filter) */
-    fun reelsFilter(): ((Note) -> Boolean)? { if (!rs.set.reels || !rs.set.ffreels) return null; val f = filterSrcs(rs.deck) ?: return null
+    fun reelsFilter(): ((Note) -> Boolean)? { if (!rs.set.reels || !rs.set.ffreels) return null
+        if (followOnly) { val fo = follows; return { n -> acc.getOrNull(accIndex(n))?.h?.let { it in fo } ?: false } }   // Following: cards whose account is followed
+        val f = filterSrcs(rs.deck) ?: return null
         return { n -> val name = subIx(n.id)?.let { rs.deck.subjects.getOrNull(it)?.name }; name == null || f.ok(n.src, name) } }
     fun putFilter(id: String?, name: String, decks: List<String>) {
         val nf = Filter(id ?: System.currentTimeMillis().toString(), name.trim().ifEmpty { "Filter" }, decks)
@@ -177,7 +191,7 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
         io.execute {
             val j = JSONObject().put("paths", JSONArray(d.paths)).put("source", rs.set.source).put("expl", rs.set.expl).put("tags", rs.set.tags)
                 .put("acc", JSONArray(acc.map { a -> JSONObject().put("h", a.h).put("ic", a.ic).put("c", a.c) }))
-                .put("posts", posts(0)).put("hcm", cms(Random(System.nanoTime()), AK_HANDLE)).put("groups", stories(b)).put("act", JSONObject(act())).put("saved", saved())
+                .put("posts", posts(0)).put("hcm", cms(Random(System.nanoTime()), AK_HANDLE)).put("groups", stories(b)).put("act", JSONObject(act())).put("saved", saved()).put("fol", JSONArray(follows.toList()))
             main.post { if (deck === d) { bucket = b; web.feed(j.toString()); web.nocom(rs.set.nocom) } }
         }
     }
@@ -200,6 +214,18 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
     /** Settings › Reviewing changed what cards show */
     fun opts() { made?.opts(rs.set.source, rs.set.expl, rs.set.tags) }
     fun songsChanged() { made?.let { w -> w.songsOn(JSONArray(rs.reels.songs.filter { !it.dead && it.genre !in rs.set.goff }.map { rs.reels.key(it) }).toString()) } }
+    /* ---- the app tour's feed part: the page is asked where its controls are; they become root px for the overlay */
+    private val TOUR_SEL = JSONObject().put("feed.arch", "#arch").put("feed.story", "#stories .f-st .f-ring").put("feed.heat", "#posts [data-i=\"h\"] .f-hmb")
+        .put("feed.more", "#posts .f-post:not([data-i=\"h\"]) .f-more").put("feed.acc", "#posts .f-post:not([data-i=\"h\"]) .f-ph .f-pn b")
+    fun askRects() { web.rects(TOUR_SEL.toString()) }
+    fun gotRects(j: String) {
+        val o = runCatching { JSONObject(j) }.getOrNull() ?: return; val d = rs.density; val at = rs.feedOrigin
+        TOUR_SEL.keys().forEach { rs.tourRects.remove(it) }
+        o.keys().forEach { k -> val a = o.getJSONArray(k)
+            rs.tourRects[k] = androidx.compose.ui.geometry.Rect(at.x + a.getDouble(0).toFloat() * d, at.y + a.getDouble(1).toFloat() * d,
+                at.x + (a.getDouble(0) + a.getDouble(2)).toFloat() * d, at.y + (a.getDouble(1) + a.getDouble(3)).toFloat() * d) }
+        if (rs.tour == null && rs.tourClear() && o.length() > 0) rs.tour = "feed" else web.tourLock(false)
+    }
     fun stopSong() { if (!rs.study) rs.reels.stop() }
 
     fun comments(handle: String) { rs.reels.name = handle; rs.reels.open("com") }
@@ -248,9 +274,11 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
         val out = JSONArray(); if (acc.isEmpty()) return out
         val r = Random(seed * 31 + salt + p * 7919L)
         val d = deck ?: return out
-        val live = acc.indices.filter { ai -> acc[ai].subs.any { !subHidden(it) && notesOf(d, it, acc[ai].src).isNotEmpty() } }; if (live.isEmpty()) return out   // a blocked account (or one outside the filter) doesn't post
+        val fo = follows; val fol = followOnly
+        val live = acc.indices.filter { ai -> (!fol || acc[ai].h in fo) && acc[ai].subs.any { !subHidden(it) && notesOf(d, it, acc[ai].src).isNotEmpty() } }   // a blocked account (or one outside the filter) doesn't post
+        if (live.isEmpty()) return out
         repeat(8) { val roll = r.nextFloat()   // 1% countdown.timer, 1% hydration.break
-            ((if (roll < .01f) countdown(r) else if (roll < .02f) hydration(r) else null) ?: post(r, live[r.nextInt(live.size)]))?.let { out.put(it) } }
+            ((if (roll < .01f && (!fol || CD_HANDLE in fo)) countdown(r) else if (roll >= .01f && roll < .02f && (!fol || HY_HANDLE in fo)) hydration(r) else null) ?: post(r, live[r.nextInt(live.size)]))?.let { out.put(it) } }
         return out
     }
 
@@ -330,7 +358,9 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
     fun backToReels() { if (fromReels) { fromReels = false; if (rs.S != null && rs.cur != null) { rs.study = true; rs.reels.onCard() } } }
     fun openFromReels(n: Note, o: Int) {
         val ai = accIndex(n); if (ai < 0) return
-        rs.home(); rs.tab = "feed"; fromReels = true
+        /* the profile is up (its name and a spinner, no slide) before the feed shows, so the feed never flashes; it fills in when made */
+        web.pfShell(ai); fromReels = true
+        main.post { rs.home(); rs.tab = "feed" }
         io.execute {
             val r = Random(System.nanoTime())
             val p = JSONObject().put("a", ai).put("n", JSONArray(DeckStore.noteJson(rs.ctx, n))).put("o", o).put("likes", r.nextInt(120, 98000)).put("coms", r.nextInt(4, 2400))
@@ -451,7 +481,8 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
         val out = JSONArray(); if (acc.isEmpty()) { groups = emptyList(); return out }
         val r = Random(seed * 131 + b)
         /* every subject on the home page has a story: one of its accounts each (its cards from that subject), then random accounts up to 12 */
-        val sh = acc.indices.shuffled(r); val pick = LinkedHashMap<Int, Int>()   // account → the subject its story is drawn from (-1: any of its niche)
+        val fo = follows; val fol = followOnly
+        val sh = acc.indices.shuffled(r).filter { !fol || acc[it].h in fo }; val pick = LinkedHashMap<Int, Int>()   // Following: only followed accounts   // account → the subject its story is drawn from (-1: any of its niche)
         deck?.subjects?.indices?.shuffled(r)?.forEach { s -> if (notesOf(deck!!, s, -1).isNotEmpty() && !subHidden(s) && pick.values.none { it == s }) sh.firstOrNull { it !in pick && s in acc[it].subs }?.let { pick[it] = s } }
         sh.forEach { if (pick.size < 12 && it !in pick) pick[it] = -1 }
         val times = listOf("1m", "4m", "12m", "38m", "1h", "2h", "3h", "5h", "9h", "14h", "20h")
@@ -463,7 +494,7 @@ private val EXAM = Regex("neet|aiims|inicet", RegexOption.IGNORE_CASE)
             out.put(JSONObject().put("a", ai).put("t", times[r.nextInt(times.size)]).put("items", items).put("seen", "$b:${acc[ai].h}" in seen))
         }
         /* countdown.timer's story: always there (unless blocked), at the back of the row; the page puts the watched ones after it */
-        if (CD_NAME !in hiddenNames()) upcoming().take(3).takeIf { it.isNotEmpty() }?.let { l ->
+        if (CD_NAME !in hiddenNames() && (!fol || CD_HANDLE in fo)) upcoming().take(3).takeIf { it.isNotEmpty() }?.let { l ->
             out.put(JSONObject().put("a", -3).put("t", "1h").put("items", JSONArray(l.map { (days, ex) -> JSONObject().put("cd", days).put("exam", ex).also { song(r, it) } }))
                 .put("seen", "$b:$CD_HANDLE" in seen))
         }

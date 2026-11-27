@@ -136,7 +136,17 @@ class Rs(val ctx: Context) {
     fun go(n: Node) { picker = null; study = true; store.set(RK, n.ps); begin(deck.notesFor(n), n.name, n.ps) }
     /** the home bar's middle button: back to the last card reviewed, in the deck it was in */
     fun recent(): Node? = store.get(RK)?.let { deck.nodeOf(it) }
-    fun resetTutorial() { store.set(SEEN, null); tut = true }
+    fun resetTutorial() { store.set(SEEN, null); store.set(TOUR, null); tut = true }   // the swipe demo and the app tour both show again
+
+    /* ---- the app tour (ui/Tour.kt): the controls' bounds (root px), the part showing, the feed WebView's place in the root */
+    val tourRects = androidx.compose.runtime.mutableStateMapOf<String, androidx.compose.ui.geometry.Rect>()
+    var tour by mutableStateOf<String?>(null)
+    var feedOrigin = androidx.compose.ui.geometry.Offset.Zero
+    fun tourSeen(k: String) = store.obj(TOUR).optInt(k) == 1
+    fun tourEnd() { val k = tour ?: return; store.mapSet(TOUR, k, 1); tour = null; if (k == "feed") feed.web.tourLock(false) }
+    /** nothing else is open (a tour waits for a clear screen) */
+    fun tourClear() = loaded && !deck.empty && !settingsOpen && dialog == null && importTypes == null && !importing && !addDeck && !creditsOpen && picker == null &&
+        !study && !feed.storyOpen && !feed.profileOpen && !feed.pickOpen && !tutorial && reels.sheet == null && !progressOpen && !busy
 
     /** an MCQ's verdict from the option tapped (null: none tapped) */
     private var mcqOk: Boolean? = null
