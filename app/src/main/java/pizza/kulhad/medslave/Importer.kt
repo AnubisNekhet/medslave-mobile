@@ -23,6 +23,11 @@ class ImportType(val id: String, val name: String, val n: Int, val fields: List<
 class Choice(val k: String, val m: IntArray)
 class ImportError(msg: String) : Exception(msg)
 
+internal const val NOT_APKG = "That link didn’t give an Anki package. Use a direct download link to the .apkg file."
+
+/** a zip's first bytes (PK\u0003\u0004): every .apkg starts so */
+internal fun isZip(h: ByteArray) = h.size >= 4 && h[0] == 'P'.code.toByte() && h[1] == 'K'.code.toByte() && h[2] == 3.toByte() && h[3] == 4.toByte()
+
 private class NT(val name: String, var names: MutableList<String>, val cloze: Boolean)
 
 /* each card kind's slots, in field order; the import window labels them (* = needed) */
@@ -262,7 +267,13 @@ class Importer(private val ctx: Context, private val say: (String, Float?) -> Un
                     val b = ByteArray(1 shl 16)
                     var n: Int
                     var t = 0L
+                    val head = ByteArray(4)
                     while (i.read(b).also { n = it } >= 0) {
+                        /* an .apkg is a zip (PK\3\4): anything else (a web page, an error) is refused before it all downloads */
+                        if (t < 4) {
+                            System.arraycopy(b, 0, head, t.toInt(), minOf(n, 4 - t.toInt()))
+                            if (t + n >= 4 && !isZip(head)) throw ImportError(NOT_APKG)
+                        }
                         o.write(b, 0, n)
                         t += n
                         if (t % (2L shl 20) < n) {
@@ -305,7 +316,7 @@ class Importer(private val ctx: Context, private val say: (String, Float?) -> Un
         zip = try {
             ZipFile(pkg)
         } catch (e: Exception) {
-            throw ImportError(if (fetched) "That link didn’t give an Anki package. Use a direct download link to the .apkg file." else "This isn’t an Anki package (no zip directory found).")
+            throw ImportError(if (fetched) NOT_APKG else "This isn’t an Anki package (no zip directory found).")
         }
         val cn = listOf("collection.anki21b", "collection.anki21", "collection.anki2").find { zip!!.getEntry(it) != null }
             ?: throw ImportError("No Anki collection inside this file. Export the deck from Anki as a .apkg.")

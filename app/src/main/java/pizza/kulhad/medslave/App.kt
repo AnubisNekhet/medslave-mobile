@@ -127,6 +127,7 @@ class Rs(val ctx: Context) {
     private fun post(f: () -> Unit) = main.post(f)
 
     private var pending: Uri? = null
+    private var pendingLink: String? = null // a deck link that opened the app before the decks loaded
     fun loadDeck() {
         io.execute {
             DeckStore.migrate(ctx)?.let { store.prefixProgress(it) } // the single deck from before: into its own folder, its progress along
@@ -139,6 +140,10 @@ class Rs(val ctx: Context) {
                 pending?.let {
                     pending = null
                     importUri(it)
+                }
+                pendingLink?.let {
+                    pendingLink = null
+                    importUrl(it)
                 }
             }
         }
@@ -734,6 +739,10 @@ class Rs(val ctx: Context) {
 
     /** a deck from a link: downloaded, then the same as a file */
     fun importUrl(link: String) {
+        if (!loaded) {
+            pendingLink = link
+            return
+        }
         if (busy) return
         if (!Regex("^https?://", RegexOption.IGNORE_CASE).containsMatchIn(link.trim())) {
             dialog = Dlg("That isn’t a link. Paste a link starting with https://")

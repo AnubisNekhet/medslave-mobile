@@ -115,4 +115,12 @@ class ImporterTest {
         val ks = listOf("b", "ii", "10", "2", "a", "iv").sortedBy(::keyOrder)
         assertEquals(listOf("2", "10", "ii", "iv", "a", "b"), ks)
     }
+
+    /* ---- deck links: only a zip downloads */
+
+    @Test fun zipHeader() {
+        assertTrue(isZip(byteArrayOf('P'.code.toByte(), 'K'.code.toByte(), 3, 4, 20)))
+        assertFalse(isZip("<!DOCTYPE html>".toByteArray()))
+        assertFalse(isZip(byteArrayOf('P'.code.toByte(), 'K'.code.toByte())))
+    }
 }

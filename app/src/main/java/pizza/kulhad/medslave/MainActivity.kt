@@ -206,6 +206,19 @@ class MainActivity : ComponentActivity() {
 
     /** "Open with medslave" / share to medslave: an .apkg from a file manager or a chat app */
     private fun handle(i: Intent?) {
+        /* a deck link, medslave://import?url=…: downloaded like a pasted link (a download that isn't an .apkg is refused) */
+        val d = i?.data
+        if (i?.action == Intent.ACTION_VIEW && d?.scheme.equals("medslave", true)) {
+            i?.action = null
+            val link = if (d?.host.equals("import", true)) runCatching { d?.getQueryParameter("url") }.getOrNull() else null
+            if (link.isNullOrBlank()) {
+                rs.dialog = Dlg("That medslave link has no deck in it.")
+            } else {
+                rs.study = false
+                rs.importUrl(link)
+            }
+            return
+        }
         val u: Uri? = when (i?.action) {
             Intent.ACTION_VIEW -> i.data
             Intent.ACTION_SEND -> if (Build.VERSION.SDK_INT >= 33) {
