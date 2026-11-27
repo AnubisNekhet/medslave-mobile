@@ -144,6 +144,7 @@ class MainActivity : ComponentActivity() {
                     if (rs.importing) pizza.kulhad.medslave.ui.ImportProgress(rs)
                     rs.dialog?.let { DialogBox(rs, it) }
                     if (rs.updater.offer != null) pizza.kulhad.medslave.ui.UpdateBox(rs)
+                    if (rs.updater.notes != null && rs.updater.offer == null) pizza.kulhad.medslave.ui.NotesBox(rs) // What's new, after an update
                 }
                 /* the back gesture closes the topmost popup, then leaves the deck (the site's pOn/pOff history entries) */
                 BackHandler(rs.study) { rs.home() }
@@ -161,6 +162,7 @@ class MainActivity : ComponentActivity() {
                 BackHandler(rs.reels.sheet != null) { if (rs.reels.qr) rs.reels.qr = false else rs.reels.close() }
                 BackHandler(rs.tutorial) { rs.tutorial = false }
                 BackHandler(rs.importTypes != null || rs.importing) { rs.importCancel() }
+                BackHandler(rs.updater.notes != null && rs.updater.offer == null) { rs.updater.notes = null }
                 BackHandler(rs.dialog != null) { if (rs.dialog?.cancel == true) rs.dialog = null }
             }
         }

@@ -23,6 +23,9 @@ jobs:
       - name: Code style (ktlint)
         run: ./gradlew ktlintCheck
 
+      - name: Unit tests
+        run: ./gradlew testReleaseUnitTest
+
       - name: Signed release APK
         if: env.KEYSTORE_BASE64 != ''
         env:

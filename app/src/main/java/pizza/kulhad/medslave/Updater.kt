@@ -53,22 +53,29 @@ class Updater(private val rs: Rs) {
 
     private fun current(): String = runCatching { rs.ctx.packageManager.getPackageInfo(rs.ctx.packageName, 0).versionName }.getOrNull() ?: "0"
 
-    /** "1.10" > "1.9": the numbers compared one by one */
-    private fun newer(a: String, b: String): Boolean {
-        val x = a.trimStart('v').split('.').map { it.toIntOrNull() ?: 0 }
-        val y = b.trimStart('v').split('.').map { it.toIntOrNull() ?: 0 }
-        for (i in 0 until maxOf(x.size, y.size)) {
-            val p = x.getOrElse(i) { 0 }
-            val q = y.getOrElse(i) { 0 }
-            if (p != q) return p > q
+    /** release notes to show after an update: assets/notes/<version>.md for each version since the one that last ran, newest first */
+    class Notes(val version: String, val md: String)
+    var notes by mutableStateOf<List<Notes>?>(null)
+
+    /** the first start of a new version: its notes (and any skipped versions') pop up once. a fresh install shows none */
+    private fun whatsNew() {
+        val cur = current()
+        val last = rs.store.get(VK)
+        if (last == cur) return
+        rs.store.set(VK, cur)
+        if (last == null && rs.store.firstVisit) return
+        val have = runCatching { rs.ctx.assets.list("notes")?.toList() }.getOrNull().orEmpty().filter { it.endsWith(".md") }.map { it.removeSuffix(".md") }
+        val l = notesFor(have, last, cur).mapNotNull { v ->
+            runCatching { rs.ctx.assets.open("notes/$v.md").bufferedReader().use { it.readText() }.trim() }.getOrNull()?.takeIf { it.isNotEmpty() }?.let { Notes(v, it) }
         }
-        return false
+        if (l.isNotEmpty()) notes = l
     }
 
-    /** once per start: clear an old download, then look for a newer release */
+    /** once per start: release notes after an update, clear an old download, then look for a newer release */
     fun check() {
         if (checked) return
         checked = true
+        whatsNew()
         thread {
             runCatching { dir.deleteRecursively() }
             runCatching {
@@ -79,7 +86,7 @@ class Updater(private val rs: Rs) {
                 if (c.responseCode != 200) return@thread
                 val j = JSONObject(c.inputStream.use { String(it.readBytes()) })
                 val tag = j.optString("tag_name")
-                if (tag.isEmpty() || !newer(tag, current())) return@thread
+                if (tag.isEmpty() || !newerVersion(tag, current())) return@thread
                 val assets = j.optJSONArray("assets") ?: return@thread
                 val all = (0 until assets.length()).map { assets.getJSONObject(it) }.filter { it.optString("name").endsWith(".apk") }
                 val a = all.firstOrNull { it.optString("name") == "medslave-Universal.apk" } ?: all.firstOrNull() ?: return@thread
@@ -190,3 +197,28 @@ class InstallReceiver : BroadcastReceiver() {
         Updater.cur?.answered(st, i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE))
     }
 }
+
+/** "1.10" > "1.9": the numbers compared one by one (a leading v ignored, a missing part counts as 0) */
+internal fun newerVersion(a: String, b: String): Boolean {
+    val x = a.trimStart('v').split('.').map { it.toIntOrNull() ?: 0 }
+    val y = b.trimStart('v').split('.').map { it.toIntOrNull() ?: 0 }
+    for (i in 0 until maxOf(x.size, y.size)) {
+        val p = x.getOrElse(i) { 0 }
+        val q = y.getOrElse(i) { 0 }
+        if (p != q) return p > q
+    }
+    return false
+}
+
+/** the versions whose notes to show: newer than last and not newer than cur, newest first. last null (updated from a version from before
+ release notes): only cur's */
+internal fun notesFor(have: List<String>, last: String?, cur: String): List<String> = have.filter { v -> !newerVersion(v, cur) && if (last == null) !newerVersion(cur, v) else newerVersion(v, last) }
+    .sortedWith { a, b ->
+        if (newerVersion(a, b)) {
+            -1
+        } else if (newerVersion(b, a)) {
+            1
+        } else {
+            0
+        }
+    }

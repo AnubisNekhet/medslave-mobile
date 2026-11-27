@@ -56,17 +56,17 @@ private val CLZ = Regex("\\{\\{c\\d+::")
 private val PXF = Regex("\\[\\[rect\\d*::\\s*[\\d.]+,")
 
 /** an MCQ note type: a question, a correct-answer field and at least two option fields */
-private fun isMCQ(names: List<String>): Boolean {
+internal fun isMCQ(names: List<String>): Boolean {
     val l = names.map { it.lowercase().trim() }
     return SLOT["m"]!!.let { m -> l.any { m[0].containsMatchIn(it) } && l.any { m[1].containsMatchIn(it) } && l.any { m[2].containsMatchIn(it) } && l.any { m[3].containsMatchIn(it) } }
 }
 
 /** a Match note type: a left column, a right column and the pairs */
-private fun isMatch(names: List<String>): Boolean {
+internal fun isMatch(names: List<String>): Boolean {
     val l = names.map { it.lowercase().trim() }
     return SLOT["x"]!!.let { m -> l.any { m[1].containsMatchIn(it) } && l.any { m[2].containsMatchIn(it) } && l.any { m[3].containsMatchIn(it) } }
 }
-private fun isIOE(names: List<String>) = names.any { rx("question.?mask").containsMatchIn(it) } && names.any { rx("answer.?mask").containsMatchIn(it) }
+internal fun isIOE(names: List<String>) = names.any { rx("question.?mask").containsMatchIn(it) } && names.any { rx("answer.?mask").containsMatchIn(it) }
 
 /* shared decks come from anywhere and their fields go into the page as HTML: no scripts, styles, embeds, event handlers, javascript: links */
 private val C1 = rx("<(script|style|iframe|object|embed|template)\\b[\\s\\S]*?</\\1\\s*>")
@@ -75,10 +75,10 @@ private val C3 = rx("\\son[a-z]+\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)")
 private val C4 = rx("\\b(href|src|action)\\s*=\\s*([\"']?)\\s*javascript:")
 private val SND = Regex("\\[sound:[^\\]]*\\]")
 private val IMG = rx("<img\\b([^>]*?)\\bsrc\\s*=\\s*([\"']?)([^\"'\\s>]+)\\2")
-private fun clean(s: String) = s.replace(C1, "").replace(C2, "").replace(C3, "").replace(C4) { "${it.groupValues[1]}=${it.groupValues[2]}#" }
+internal fun clean(s: String) = s.replace(C1, "").replace(C2, "").replace(C3, "").replace(C4) { "${it.groupValues[1]}=${it.groupValues[2]}#" }
 
 /** fields: images become <img data-m="file"> (the card page loads them from the app's media folder), [sound:…] is dropped */
-private fun html(s: String, used: MutableSet<String>, sc: SpanColors) = sc.fix(clean(s)).replace(SND, "").replace(IMG) { m ->
+internal fun html(s: String, used: MutableSet<String>, sc: SpanColors) = sc.fix(clean(s)).replace(SND, "").replace(IMG) { m ->
     val (pre, _, src) = m.destructured
     if (rx("^(https?:|data:|blob:|//)").containsMatchIn(src)) {
         m.value
@@ -91,7 +91,7 @@ private fun html(s: String, used: MutableSet<String>, sc: SpanColors) = sc.fix(c
 }
 
 /** which field goes in each slot, by name (the main text falls back to the first unused field) */
-private fun plan(names: List<String>, k: String): IntArray {
+internal fun plan(names: List<String>, k: String): IntArray {
     val l = names.map { it.lowercase().trim() }
     val used = HashSet<Int>()
     val m = SLOT[k]!!.map { r ->
@@ -127,7 +127,7 @@ private fun plan(names: List<String>, k: String): IntArray {
 private val ENT = mapOf("amp" to "&", "lt" to "<", "gt" to ">", "quot" to "\"", "apos" to "'", "nbsp" to " ")
 
 /** a field's preview for the import window: plain text, clozes as their answer, images named */
-private fun strip(x: String): String {
+internal fun strip(x: String): String {
     if (Regex("image-occlusion:|\\[\\[rect\\d*::").containsMatchIn(x)) return "(occlusion shapes)"
     var t = x.replace(Regex("\\{\\{c\\d+::([\\s\\S]*?)(?:::[\\s\\S]*?)?\\}\\}"), "$1").replace(rx("<img\\b[^>]*>"), " (image) ")
         .replace(rx("<br\\s*/?>|</(div|p|li)>"), " ").replace(Regex("<[^>]*>"), "").replace(SND, " (audio) ")
@@ -143,7 +143,7 @@ private fun strip(x: String): String {
 }
 
 /** protobuf, just enough for the media list and a notetype's kind: [(field, Long | ByteArray)] */
-private fun pb(u: ByteArray): List<Pair<Int, Any>> {
+internal fun pb(u: ByteArray): List<Pair<Int, Any>> {
     val o = ArrayList<Pair<Int, Any>>()
     var p = 0
     fun v(): Long {
@@ -490,10 +490,7 @@ class Importer(private val ctx: Context, private val say: (String, Float?) -> Un
                     "m" -> {
                         val q = fields[0]
                         val cr = fields[1]
-                        val op = (2..5).map { fields[it] }.filter { it.isNotBlank() }
-                        val plain = { x: String -> x.replace(Regex("<[^>]*>"), "").replace("&nbsp;", " ").trim() }
-                        val key = plain(cr).lowercase()
-                        val right = key.toIntOrNull()?.minus(1) ?: ("abcd".indexOf(key.take(1)).takeIf { key.length == 1 && it >= 0 } ?: op.indexOfFirst { plain(it).equals(plain(cr), true) })
+                        val (op, right) = mcqOptions(cr, (2..5).map { fields[it] })
                         val li = { mark: Boolean -> op.mapIndexed { i, x -> "<li class=\"mcq-o${if (mark && i == right) " mcq-ok" else ""}\">$x</li>" }.joinToString("") }
                         val ol = { mark: Boolean -> "<ol class=\"mcq\" type=\"A\">${li(mark)}</ol>" }
                         fields = mutableListOf("$q${ol(false)}", "$q${ol(true)}", fields[6], fields[8], fields[7], "", "ioe")
@@ -626,7 +623,7 @@ class Importer(private val ctx: Context, private val say: (String, Float?) -> Un
 private val MK = "(?:[0-9]{1,2}|ix|iv|vi{0,3}|i{1,3}|x|[A-Za-z])" // roman numerals before single letters, so "ii" is one key
 private val MPAIR = Regex("(?<![\\w])($MK)\\s*[-–:→]\\s*($MK)(?![\\w])")
 private fun roman(k: String) = listOf("i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x").indexOf(k.lowercase())
-private fun keyOrder(k: String): Int = k.toIntOrNull() ?: roman(k).takeIf { it >= 0 && k.length > 1 }?.plus(100) ?: (k.lowercase()[0] - 'a' + 200)
+internal fun keyOrder(k: String): Int = k.toIntOrNull() ?: roman(k).takeIf { it >= 0 && k.length > 1 }?.plus(100) ?: (k.lowercase()[0] - 'a' + 200)
 private fun matchItems(html: String, keys: List<String>): List<String> {
     val seg = html.split(Regex("<br\\b[^>]*>|</(?:div|p|li|tr)>|\\n", RegexOption.IGNORE_CASE)).map { it.replace(Regex("</?(?:div|p|ul|ol|li|table|tbody|tr|td|th)\\b[^>]*>", RegexOption.IGNORE_CASE), "").trim() }
         .filter { it.replace(Regex("<(?!img)[^>]*>"), "").replace("&nbsp;", " ").isNotBlank() }
@@ -643,7 +640,18 @@ private fun matchItems(html: String, keys: List<String>): List<String> {
     }
     return out.map { it ?: "" }
 }
-private fun matchTable(left: String, right: String, pairs: String): String {
+
+/** an MCQ's options (the blank ones dropped) and the right one's index among them (-1: none found). cr, the correct-option field, is its
+ number (1–4), its letter (a–d) or its text; a number or letter counts the option fields as they are, blanks included */
+internal fun mcqOptions(cr: String, raw: List<String>): Pair<List<String>, Int> {
+    val plain = { x: String -> x.replace(Regex("<[^>]*>"), "").replace("&nbsp;", " ").trim() }
+    val key = plain(cr).lowercase()
+    val ri = key.toIntOrNull()?.minus(1) ?: "abcd".indexOf(key).takeIf { key.length == 1 && it >= 0 } ?: raw.indexOfFirst { it.isNotBlank() && plain(it).equals(plain(cr), true) }
+    val keep = raw.indices.filter { raw[it].isNotBlank() }
+    return keep.map { raw[it] } to keep.indexOf(ri)
+}
+
+internal fun matchTable(left: String, right: String, pairs: String): String {
     val ps = MPAIR.findAll(pairs.replace(Regex("<[^>]*>"), " ")).map { it.groupValues[1] to it.groupValues[2] }.toList()
     if (ps.isEmpty()) return ""
     val lk = ps.map { it.first }.distinct()

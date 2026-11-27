@@ -23,8 +23,8 @@ android {
         applicationId = "pizza.kulhad.medslave"
         minSdk = 26
         targetSdk = 35
-        versionCode = 103
-        versionName = "2.02"
+        versionCode = 104
+        versionName = "2.03"
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
     }
     signingConfigs {
@@ -65,4 +65,7 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.webkit:webkit:1.12.1")
     implementation("com.github.luben:zstd-jni:1.5.6-8@aar")
+    // JVM unit tests (app/src/test, ./gradlew testReleaseUnitTest): Android's own org.json is only a stub there
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
 }

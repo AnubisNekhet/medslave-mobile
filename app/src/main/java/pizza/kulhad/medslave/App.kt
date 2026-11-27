@@ -211,6 +211,7 @@ class Rs(val ctx: Context) {
         !deck.empty &&
         !settingsOpen &&
         dialog == null &&
+        updater.notes == null &&
         importTypes == null &&
         !importing &&
         !addDeck &&

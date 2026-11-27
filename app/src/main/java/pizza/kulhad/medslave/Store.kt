@@ -24,6 +24,7 @@ const val FOLLOWING = "medslave:following" // the accounts followed (their handl
 const val FACTIVE = "medslave:filter" // the feed filter that's on (its id; none: no filter)
 const val SAVED = "medslave:saved" // saved cards [[note id, ordinal], …] (the feed's save button)
 const val PLAYLISTS = "medslave:playlists" // the user's playlists [{name, songs: [[title, artist, preview, art]]}]
+const val VK = "app:version" // the version that last ran (release notes after an update); not medslave:*, so backups neither carry nor wipe it
 const val RK = "medslave:recent" // the deck reviewed last (its path), for the home bar's resume button
 
 class Store(ctx: Context) {
