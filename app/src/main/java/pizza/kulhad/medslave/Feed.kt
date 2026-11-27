@@ -212,9 +212,9 @@ class Feed(val rs: Rs) {
         return if (whole.isEmpty() && subs.isEmpty()) null else Sel(whole, subs)
     }
 
-    /** Settings › Reviewing › Feed filter in reels: whether a card's deck is in the filter that's on (always, with the option off or no filter) */
+    /** Reels Mode: whether a card's deck is in the feed filter that's on (null: no filter, or not Reels Mode) */
     fun reelsFilter(): ((Note) -> Boolean)? {
-        if (!rs.set.reels || !rs.set.ffreels) return null
+        if (!rs.set.reels) return null
         if (followOnly) {
             val fo = follows
             return { n -> acc.getOrNull(accIndex(n))?.h?.let { it in fo } ?: false }
@@ -225,6 +225,10 @@ class Feed(val rs: Rs) {
             name == null || f.ok(n.src, name)
         }
     }
+
+    /** the name of the filter that's on, for the Progress popup */
+    fun activeName(): String? = if (followOnly) "Following" else filters.find { it.id == active }?.name
+
     fun putFilter(id: String?, name: String, decks: List<String>) {
         val nf = Filter(id ?: System.currentTimeMillis().toString(), name.trim().ifEmpty { "Filter" }, decks)
         filters = if (id != null && filters.any { it.id == id }) filters.map { if (it.id == id) nf else it } else filters + nf
@@ -612,6 +616,7 @@ class Feed(val rs: Rs) {
         if (fromReels) {
             fromReels = false
             if (rs.S != null && rs.cur != null) {
+                rs.unhold()
                 rs.study = true
                 rs.reels.onCard()
             }

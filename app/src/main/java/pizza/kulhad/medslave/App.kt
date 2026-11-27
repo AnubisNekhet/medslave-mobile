@@ -32,8 +32,9 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** a pass's queue entry: a note (its ordinal picked when it comes up), or a missed card coming back (rq) */
-class Item(val n: Note, val rq: Boolean, val o: Int = 0)
+/** a pass's queue entry: a note (its ordinal picked when it comes up), or a missed card coming back (rq), or the card held over from a
+ deck picked under a feed filter (pin: shown once at the start, not saved as the place) */
+class Item(val n: Note, val rq: Boolean, val o: Int = 0, val pin: Boolean = false)
 class Session(val notes: List<Note>, val name: String, val key: String, val q: MutableList<Item>, var i: Int, var ri: Int, var first: Int?) {
     var wr = 0
 }
@@ -180,10 +181,38 @@ class Rs(val ctx: Context) {
 
     /* ---------------------------------------------------------------- study (deck.js) */
     fun go(n: Node) {
+        /* Reels Mode with a feed filter on: a deck with nothing in the filter isn't opened; one that has is played (only its cards the
+           filter lets through) until the person leaves for another view */
+        val f = feed.reelsFilter()
+        val notes = deck.notesFor(n)
+        if (f != null && notes.none(f)) {
+            dialog = Dlg("“${n.name}” isn’t in the feed filter “${feed.activeName() ?: "Filter"}”.")
+            return
+        }
+        held = null
         picker = null
         study = true
         store.set(RK, n.ps)
-        begin(deck.notesFor(n), n.name, n.ps)
+        begin(notes, n.name, n.ps)
+    }
+
+    /** a deck picked under a feed filter, left for another view: the card that was up, shown first when Reels opens the filter's set */
+    private var held: Pair<Note, Int>? = null
+
+    /** the home bar's Reels: with a feed filter on, every deck's cards the filter lets through (starting with a held card); otherwise the
+     last deck reviewed */
+    fun reelsGo() {
+        if (feed.reelsFilter() == null) return go(recent() ?: deck.all)
+        val h = held
+        held = null
+        picker = null
+        study = true
+        begin(deck.notesFor(deck.all), deck.all.name, deck.all.ps, pin = h)
+    }
+
+    /** back from a profile opened from Reels: the same session goes on, nothing held */
+    fun unhold() {
+        held = null
     }
 
     /** the home bar's middle button: back to the last card reviewed, in the deck it was in */
@@ -237,9 +266,12 @@ class Rs(val ctx: Context) {
         }
     }
 
-    /** the feed filter for this session (Feed filter in reels), only when the deck opened has cards it lets through: a deck or subject outside
-     the filter plays in full instead of looking finished */
-    private var rf: ((Note) -> Boolean)? = null
+    /** the feed filter for this session (Reels Mode, a filter on), only when the deck opened has cards it lets through: a deck or subject outside
+     the filter plays in full instead of looking finished. rfName: its name (the Progress popup) */
+    var rf: ((Note) -> Boolean)? = null
+        private set
+    var rfName: String? = null
+        private set
 
     /* the next card's fields, read on another thread while this one is up, so next() needn't wait on the database on the main thread */
     private val pre = Executors.newSingleThreadExecutor()
@@ -252,8 +284,9 @@ class Rs(val ctx: Context) {
         if (!ahead.containsKey(n)) pre.execute { if (S === s) ahead.putIfAbsent(n, DeckStore.noteJson(ctx, n)) }
     }
     private var fsk = 0 // cards the filter skipped this session (the end card says so)
-    fun begin(notes: List<Note>, name: String, key: String, resume: Boolean = true) {
+    fun begin(notes: List<Note>, name: String, key: String, resume: Boolean = true, pin: Pair<Note, Int>? = null) {
         rf = feed.reelsFilter()?.takeIf { f -> notes.any(f) }
+        rfName = rf?.let { feed.activeName() }
         fsk = 0
         ahead.clear()
         val sv = if (resume) lastOf(key) else null
@@ -279,6 +312,7 @@ class Rs(val ctx: Context) {
         } else {
             store.mapSet(AGK, key, null)
         }
+        if (pin != null) s.q.add(minOf(s.q.size, p.start), Item(pin.first, false, pin.second, pin = true))
         fin = null
         progressOpen = false
         next()
@@ -295,12 +329,12 @@ class Rs(val ctx: Context) {
             s.i++
             if (s.i >= s.q.size) return finish()
             it = s.q[s.i]
-            o = if (it.rq) it.o else (s.first ?: it.n.ords[(Math.random() * it.n.ords.size).toInt()]).also { s.first = null }
+            o = if (it.rq || it.pin) it.o else (s.first ?: it.n.ords[(Math.random() * it.n.ords.size).toInt()]).also { s.first = null }
             if (feed.isHidden(it.n.id, o)) continue
-            if (rf?.invoke(it.n) == false) {
+            if (!it.pin && rf?.invoke(it.n) == false) {
                 if (!it.rq) fsk++
                 continue
-            } // with Feed filter in reels on: only what the filter lets through
+            } // Reels Mode with a feed filter on: only what the filter lets through
             break
         }
         val n = it.n
@@ -308,7 +342,7 @@ class Rs(val ctx: Context) {
         cur = c
         stage = 0
         mcqOk = null
-        if (!it.rq) {
+        if (!it.rq && !it.pin) {
             s.ri = s.i
             remember()
         }
@@ -337,7 +371,7 @@ class Rs(val ctx: Context) {
         store.mapSet(LK, s.key, null)
         if (!set.ordered) store.mapSet(OK, s.key, Order.planPass(s.notes, null, null, last).seed)
         progressOpen = false
-        fin = Fin(s.name, s.q.count { !it.rq } - fsk, s.wr, fsk)
+        fin = Fin(s.name, s.q.count { !it.rq && !it.pin } - fsk, s.wr, fsk)
         web.clear()
         scope.launch { pose() }
         reels.onCard()
@@ -347,6 +381,10 @@ class Rs(val ctx: Context) {
         begin(s.notes, s.name, s.key, false)
     }
     fun home() {
+        /* leaving a deck picked under a feed filter: hold its card for when Reels opens the filter's set (that set resumes on its own) */
+        val s = S
+        val c = cur
+        if (study && s != null && c != null && s.key != deck.all.ps && feed.reelsFilter() != null) held = c.n to c.o
         study = false
         reels.sheet = null
         reels.onCard()

@@ -119,7 +119,6 @@ class Settings(private val st: Store) {
     var tags by mutableStateOf(false) // show a card's tags at its bottom (Settings › Reviewing)
     var hidex by mutableStateOf(true) // an MCQ's explanation on the back of its answer card, on by default (Settings › Reviewing; stored as exback)
     var volkeys by mutableStateOf(false) // the volume keys answer cards (Settings › Reviewing)
-    var ffreels by mutableStateOf(false) // Reels Mode: the feed filter that's on also limits reels (Settings › Reviewing)
     var avatar by mutableStateOf("waves") // Reels Mode's account avatars: waves | solid (Settings › Appearance › Profile style)
 
     init {
@@ -141,7 +140,6 @@ class Settings(private val st: Store) {
         tags = o.optBoolean("tags", false)
         volkeys = o.optBoolean("volkeys", false)
         hidex = o.optBoolean("exback", true)
-        ffreels = o.optBoolean("ffreels", false)
         avatar = o.optString("avatar", "waves").let { if (it == "solid") it else "waves" }
         goff = o.optJSONArray("goff")?.let { a -> (0 until a.length()).map { a.optString(it) }.toSet() } ?: emptySet()
     }
@@ -149,7 +147,7 @@ class Settings(private val st: Store) {
         st.set(
             SK,
             JSONObject().put("ordered", ordered).put("style", style).put("reveal", reveal).put("theme", theme).put("mode", mode).put("fakeload", fakeload).put("likered", redlike).put("accent", accent)
-                .put("reels", reels).put("source", source).put("nocom", nocom).put("tags", tags).put("volkeys", volkeys).put("exback", hidex).put("avatar", avatar).put("ffreels", ffreels).put("goff", JSONArray(goff.toList())).toString()
+                .put("reels", reels).put("source", source).put("nocom", nocom).put("tags", tags).put("volkeys", volkeys).put("exback", hidex).put("avatar", avatar).put("goff", JSONArray(goff.toList())).toString()
         )
     }
 

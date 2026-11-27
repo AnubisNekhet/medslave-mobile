@@ -271,7 +271,6 @@ private fun FeedView(rs: Rs) {
    reviewer's (menu, home, stats) */
 @Composable
 fun NavBar(rs: Rs, current: String) {
-    val back = rs.recent()
     /* the other views: a solid mid-tone (the text colour mixed into the background), never transparency */
     val off = androidx.compose.ui.graphics.lerp(P.bg, P.text.copy(alpha = 1f), .45f)
 
@@ -293,8 +292,8 @@ fun NavBar(rs: Rs, current: String) {
             rs.tab = "feed"
             if (current == "feed") rs.feed.web.top()
         }
-        /* Reels: back to the last card reviewed; the first time, All decks */
-        item(Ic.REELS, current == "reels", tk = "bar.reels", enabled = current == "reels" || !rs.deck.empty) { if (current != "reels") rs.go(back ?: rs.deck.all) }
+        /* Reels: with a feed filter on, its set (Rs.reelsGo); otherwise back to the last card reviewed, the first time All decks */
+        item(Ic.REELS, current == "reels", tk = "bar.reels", enabled = current == "reels" || !rs.deck.empty) { if (current != "reels") rs.reelsGo() }
     }
 }
 

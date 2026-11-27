@@ -145,14 +145,6 @@ private fun SettingsBody(rs: Rs, names: Map<String, String>) {
                             }
                         }
                     }
-                    if (rs.set.reels) {
-                        Row2("Feed filter in reels", "Reels show only the subjects of the feed filter that’s on") {
-                            Switch(rs.set.ffreels) {
-                                rs.set.ffreels = it
-                                rs.set.save()
-                            }
-                        }
-                    }
                     Row2("Volume keys", "Down if you knew it, up if you didn’t") {
                         Switch(rs.set.volkeys) {
                             rs.set.volkeys = it
@@ -823,8 +815,14 @@ private fun ProgressSec(rs: Rs) {
 @Composable
 fun ProgressPanel(rs: Rs) {
     val s = rs.S ?: return run { rs.progressOpen = false }
-    val tot = s.q.size
-    val done = if (rs.cur != null) s.i else tot
+    // with a feed filter on in reels, only the cards it lets through count
+    val f = rs.rf
+    val tot = if (f == null) s.q.size else s.q.count { f(it.n) }
+    val done = when {
+        rs.cur == null -> tot
+        f == null -> s.i
+        else -> (0 until minOf(s.i, s.q.size)).count { f(s.q[it].n) }
+    }
     val p = if (tot > 0) done.toFloat() / tot else 0f
     val a = remember { Animatable(0f) }
     LaunchedEffect(p) { a.animateTo(p, tween(600, easing = pizza.kulhad.medslave.EASE)) }
@@ -851,6 +849,7 @@ fun ProgressPanel(rs: Rs) {
                 }
                 Txt("${Math.round(p * 100)}%", size = 30.sp, bold = true, color = hi)
             }
+            rs.rfName?.let { Txt(it, size = 19.sp, bold = true, color = hi, align = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 2.dp)) }
             Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 6.dp), horizontalArrangement = Arrangement.SpaceAround) {
                 listOf(tot to "Total", done to "Done", (tot - done) to "Remaining").forEach { (n, l) ->
                     Column {
@@ -860,7 +859,7 @@ fun ProgressPanel(rs: Rs) {
                 }
             }
             val note = androidx.compose.ui.text.buildAnnotatedString {
-                val acc = androidx.compose.ui.text.SpanStyle(color = hi)
+                val acc = androidx.compose.ui.text.SpanStyle(color = P.text)
                 append("You can change the current deck in feed by either ")
                 withStyle(acc) { append("changing your feed filter (long press the home button)") }
                 append(" or ")
