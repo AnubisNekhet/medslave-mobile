@@ -92,10 +92,10 @@ class Store(ctx: Context) {
         val o = obj(AK)
         return o.keys().asSequence().associateWith { o.optInt(it) }
     }
-    fun actBump() {
+    fun actBump(by: Int = 1) {
         val k = LocalDate.now().toString()
         val m = obj(AK)
-        m.put(k, m.optInt(k) + 1)
+        m.put(k, maxOf(0, m.optInt(k) + by))
         set(AK, m.toString())
     }
 }

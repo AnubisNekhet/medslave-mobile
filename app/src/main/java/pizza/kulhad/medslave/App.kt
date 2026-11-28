@@ -165,11 +165,69 @@ class Rs(val ctx: Context) {
         }
         store.mapSet(AGK, s.key, if (l.length() > 0) l else null)
     }
-    private fun requeue(c: Cur) {
-        val s = S ?: return
+    private fun requeue(c: Cur): Item? {
+        val s = S ?: return null
         val at = minOf(s.q.size, s.i + 1 + Order.RQMIN + (Math.random() * (Order.RQMAX - Order.RQMIN + 1)).toInt())
-        s.q.add(at, Item(c.n, true, c.o))
+        val x = Item(c.n, true, c.o)
+        s.q.add(at, x)
         saveAgain()
+        return x
+    }
+
+    /* ---------------------------------------------------------------- Reels' swipe down: back a card, its verdict undone */
+
+    /** a card's side as it was left, so it comes back that way (an answered MCQ keeps its pick and option order: mcq, from card.js) */
+    private class Kept(val o: Int, val stage: Int, val mcqOk: Boolean?) {
+        var mcq: String? = null
+    }
+
+    /** a card reviewed this session: its place in the queue, what that was before the verdict, and the copy a miss queued */
+    private class Past(val i: Int, val ri: Int, val fsk: Int, val place: Any?, val kept: Kept, val requeued: Item?)
+    private val past = ArrayList<Past>()
+    private val kept = HashMap<Item, Kept>() // by identity (Item has no equals)
+
+    private fun keep() = Kept(cur!!.o, stage, mcqOk).also { k -> web.mcqState { k.mcq = it } }
+
+    /** the card on show is leaving with a verdict: a miss comes back later; Reels Mode remembers it all for a swipe down */
+    private fun verdict(c: Cur, ok: Boolean) {
+        val s = S ?: return
+        val rq = if (ok) null else requeue(c)
+        if (!ok) s.wr++
+        if (set.reels) past.add(Past(s.i, s.ri, fsk, store.obj(LK).opt(s.key), keep(), rq))
+    }
+
+    /** there's a card to go back to (one hidden since it was reviewed is passed over) */
+    fun canBack(): Boolean {
+        val s = S ?: return false
+        while (past.isNotEmpty() && past.last().let { feed.isHidden(s.q[it.i].n.id, it.kept.o) }) past.removeAt(past.lastIndex)
+        return set.reels && cur != null && past.isNotEmpty()
+    }
+
+    /** back to the card reviewed before this one, as it was left, with its verdict taken back. this one keeps its side for when it
+     comes round again. false: nowhere to go, or a card is already on its way */
+    fun back(): Boolean {
+        val s = S ?: return false
+        if (leaving || reels.reposting || !canBack()) return false
+        val p = past.removeAt(past.lastIndex)
+        kept[s.q[s.i]] = keep()
+        leave(1, false) {
+            val i = p.requeued?.let { r -> s.q.indexOfFirst { it === r } } ?: -1
+            if (i >= 0) {
+                s.q.removeAt(i)
+                s.wr--
+            }
+            if (p.kept.stage == 0) { // reposted from the question: revealing it again counts it again
+                store.actBump(-1)
+                heatTick++
+            }
+            kept[s.q[p.i]] = p.kept
+            s.i = p.i - 1
+            s.ri = p.ri
+            fsk = p.fsk
+            store.mapSet(LK, s.key, p.place)
+            next(-1)
+        }
+        return true
     }
     fun setOrdered(v: Boolean) {
         set.ordered = v
@@ -294,6 +352,8 @@ class Rs(val ctx: Context) {
         rfName = rf?.let { feed.activeName() }
         fsk = 0
         ahead.clear()
+        past.clear()
+        kept.clear()
         val sv = if (resume) lastOf(key) else null
         val p = if (set.ordered) {
             Order.planOrdered(notes, sv)
@@ -334,7 +394,8 @@ class Rs(val ctx: Context) {
             s.i++
             if (s.i >= s.q.size) return finish()
             it = s.q[s.i]
-            o = if (it.rq || it.pin) it.o else (s.first ?: it.n.ords[(Math.random() * it.n.ords.size).toInt()]).also { s.first = null }
+            o = kept[it]?.o ?: if (it.rq || it.pin) it.o else s.first ?: it.n.ords[(Math.random() * it.n.ords.size).toInt()]
+            if (!it.rq && !it.pin) s.first = null
             if (feed.isHidden(it.n.id, o)) continue
             if (!it.pin && rf?.invoke(it.n) == false) {
                 if (!it.rq) fsk++
@@ -345,8 +406,9 @@ class Rs(val ctx: Context) {
         val n = it.n
         val c = Cur(n, o, it.rq, jsonOf(n))
         cur = c
-        stage = 0
-        mcqOk = null
+        val k = kept.remove(it) // a card gone back to, or one gone back from: the side it was left on
+        stage = k?.stage ?: 0
+        mcqOk = k?.mcqOk
         if (!it.rq && !it.pin) {
             s.ri = s.i
             remember()
@@ -356,7 +418,7 @@ class Rs(val ctx: Context) {
         val m = set.rev
         val anim = m != "none" && !rm()
         if (anim) prepEnter(m, d)
-        web.show(c.json, o, 0, set.flip) {
+        web.show(c.json, o, stage, set.flip, k?.mcq) {
             if (cur === c) {
                 if (anim) runEnter(m, d) else scope.launch { pose() }
             }
@@ -419,10 +481,7 @@ class Rs(val ctx: Context) {
             ok0
         }
         if (stage == 1) {
-            if (!ok) {
-                requeue(c)
-                S?.let { it.wr++ }
-            }
+            verdict(c, ok)
             return if (set.flip) leave(if (ok || reelMcq) -1 else 1, ok) else next() // Reels Mode: an MCQ's answer always scrolls up
         }
         if (!sw && web.seqLeft > web.seqN) {
@@ -470,12 +529,13 @@ class Rs(val ctx: Context) {
         }
     }
 
-    /** Flip: leaving an answer moves the card up (knew it, d = -1) or down (missed it, d = 1). Scroll up: a picture of the old card rides
-     off while the next one comes in from the other side; otherwise the card slides away, then the next one is drawn */
-    fun leave(d: Int, ok: Boolean = d < 0) {
+    /** Flip: leaving an answer moves the card up (knew it, d = -1) or down (missed it, d = 1; in Reels Mode, down is going back). Scroll
+     up: a picture of the old card rides off while the next one comes in from the other side; otherwise the card slides away, then the
+     next one is drawn. then: what draws it */
+    fun leave(d: Int, ok: Boolean = d < 0, then: () -> Unit = { next(-d) }) {
         if (leaving) return
         if (dragOff * d < 0) dragOff = 0f // dragged one way but leaving the other (a Reels MCQ): no hand-off from the drag
-        if (rm()) return next(-d)
+        if (rm()) return then()
         if (!set.reels) web.glow(if (ok) 1f else -1f)
         leaving = true
         if (set.rev == "up") {
@@ -485,7 +545,7 @@ class Rs(val ctx: Context) {
                     ghost = g
                     slide(g, stageH - kotlin.math.abs(dragOff))
                 }
-                next(-d)
+                then()
                 scope.launch {
                     delay(450)
                     leaving = false
@@ -519,7 +579,7 @@ class Rs(val ctx: Context) {
             launch { alpha.animateTo(0f, t) }
             delay(230)
             leaving = false
-            next(-d)
+            then()
         }
     }
 
@@ -551,8 +611,7 @@ class Rs(val ctx: Context) {
                     store.actBump()
                     heatTick++
                 }
-                requeue(c)
-                S?.let { it.wr++ }
+                verdict(c, false)
                 leave(-1, false)
             }
             after()

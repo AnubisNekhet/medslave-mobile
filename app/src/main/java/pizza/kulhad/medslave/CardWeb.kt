@@ -194,14 +194,17 @@ class CardWeb(ctx: Context) : Page(ctx, "card.html", true, { CardBridge(it as Ca
     fun opts(source: Boolean, tags: Boolean) = js("R.opts($source,true,$tags)")
 
     /** draws a card; onReady runs once it's on screen */
-    fun show(noteJson: String, o: Int, stage: Int, flip: Boolean, onReady: () -> Unit = {}) {
+    fun show(noteJson: String, o: Int, stage: Int, flip: Boolean, mcq: String? = null, onReady: () -> Unit = {}) {
         val s = ++seq
         waits.clear()
         waits[s] = onReady
         top = true
         bot = false // at its end only once the page says so
-        js("R.show($s,$noteJson,$o,$stage,$flip)")
+        js("R.show($s,$noteJson,$o,$stage,$flip,${mcq ?: "null"})")
     }
+
+    /** the MCQ on screen's option order and pick (JSON), to draw it the same way again */
+    fun mcqState(then: (String) -> Unit) = view.evaluateJavascript("R.mcq()") { then(it) }
     fun clear() {
         waits.clear()
         js("R.clear()")

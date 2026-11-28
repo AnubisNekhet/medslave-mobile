@@ -890,7 +890,16 @@ fun Tutorial(rs: Rs) {
         ) {
             TutDemo(f, reel)
             Txt((if (f) "Swipe the card up" else "Swipe the card left or right") + " to show the answer.", align = TextAlign.Center, bold = true)
-            Txt(if (f) "Then swipe up if you knew it, down if you didn’t" + (if (reel) " (or tap Repost)" else "") + "." else "Then swipe right if you knew it, left if you didn’t.", align = TextAlign.Center)
+            Txt(
+                if (reel) {
+                    "Then swipe up if you knew it, or tap Repost if you didn’t. Swipe down to go back a card."
+                } else if (f) {
+                    "Then swipe up if you knew it, down if you didn’t."
+                } else {
+                    "Then swipe right if you knew it, left if you didn’t."
+                },
+                align = TextAlign.Center
+            )
             Txt((if (reel) "" else "Or tap Next › if you knew it. ") + "Missed cards come back 20–40 cards later.", size = 13.6.sp, color = P.faint, align = TextAlign.Center)
             Btn("Got it", Modifier.padding(top = 4.dp), onClick = close)
         }

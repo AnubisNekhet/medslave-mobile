@@ -67,7 +67,8 @@ const R={
  turn(ax,dir){const r=document.querySelector('#stage .mcq-rot');if(!r)return;r.dataset.ax=ax;const a=(+r.dataset.a||0)+dir*180;r.dataset.a=a;
   r.style.transform=ax=='y'?`rotateY(${a}deg)`:`rotateX(${-a}deg)`;r.classList.toggle('turned',Math.abs(a/180)%2==1);setTimeout(scRep,480)},   /* Settings › Reviewing */
  theme(t,dark){document.documentElement.dataset.theme=t;document.body.classList.toggle('night_mode',dark);document.body.classList.toggle('nightMode',dark)},
- show(seq,n,o,s,flip){cur={n,o};stage=s;FL=!!flip;draw();requestAnimationFrame(()=>A_.ready(seq))},
+ mcq(){return{key:MQ.key,order:MQ.order,picked:MQ.picked}},
+ show(seq,n,o,s,flip,mq){if(mq)Object.assign(MQ,mq);cur={n,o};stage=s;FL=!!flip;draw();requestAnimationFrame(()=>A_.ready(seq))},
  clear(){cur=null;$('#stage').innerHTML='';A_.h(0)},
  answer(rm){answer(rm)},
  step(){reveal(seqN())},

@@ -98,9 +98,16 @@ fun Study(rs: Rs) {
     }
 }
 
+/** a drag with nowhere to go: it gives less the further the finger gets, up to RUBBER dp (reached, and held, at three times that) */
+private fun rubber(dy: Float): Float {
+    val left = 1f - (dy / (RUBBER * 3)).coerceIn(0f, 1f)
+    return RUBBER * (1f - left * left * left)
+}
+private const val RUBBER = 110f
+
 /* Tinder: a sideways drag moves the card (the answer side tints green/red), released far or fast enough it flies off.
    Flip: a swipe up reveals / means knew it (once the card's end is in view), down means missed it (from the card's top).
-   Reels: a double tap likes the card. The WebView keeps scrolling and taps; a Tinder drag takes the touch from it. */
+   Reels: down goes back a card instead (missed it is Repost). A double tap likes the card. The WebView keeps scrolling and taps; a Tinder drag takes the touch from it. */
 private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.cardGestures(rs: Rs, d: Float, taps: Taps) = awaitEachGesture {
     val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
     if (rs.cur == null) return@awaitEachGesture
@@ -124,9 +131,12 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.cardGest
     var multi = false
     var lastGlow = 0f
     var tUp = t0
-    /* Reels: an answer card follows the finger (with its overlay) instead of waiting for the swipe to end, as reels do */
-    val follow = flip && rs.set.reels && rs.stage == 1 && !rs.leaving
+    /* Reels: the card follows the finger (with its overlay) instead of waiting for the swipe to end, as reels do: up on an answer,
+       down (back a card) on either side. rdir: the way this drag set off */
+    val follow = flip && rs.set.reels && !rs.leaving
     var rdrag = false
+    var rdir = 0
+    var undo = false // there's a card to go back to; without one a downward drag only gives a little
     fun glow(v: Float) {
         if (!rs.set.reels && abs(v - lastGlow) > .015f) {
             lastGlow = v
@@ -149,9 +159,11 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.cardGest
         }
         if (rs.web.wire) continue // dragging a wire on a Match card: the card stays put
         if (follow && !multi) {
-            if (!rdrag && abs(dy) > 10 && abs(dy) > abs(dx) * 1.2f && (dy < 0 && canBot() || dy > 0 && canTop())) {
+            if (!rdrag && abs(dy) > 10 && abs(dy) > abs(dx) * 1.2f && (dy < 0 && rs.stage == 1 && canBot() || dy > 0 && canTop())) {
                 rdrag = true
-                rs.preCapture()
+                rdir = sign(dy).toInt()
+                undo = rdir > 0 && rs.canBack()
+                if (rdir < 0 || undo) rs.preCapture()
             }
             if (rs.web.wire) { // a Match card's wire drag: undo anything that started before the page said so
                 if (drag || rdrag) {
@@ -168,7 +180,15 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.cardGest
             }
             if (rdrag) {
                 c.consume() // the reel moves, not the card's page under it
-                val py = (if (dy < 0 && !bot || dy > 0 && !top) 0f else dy) * d
+                val py = d * if (rdir < 0) {
+                    if (bot) minOf(dy, 0f) else 0f
+                } else if (!top) {
+                    0f
+                } else if (undo) {
+                    maxOf(dy, 0f)
+                } else {
+                    rubber(dy)
+                }
                 rs.scope.launch {
                     rs.ty.snapTo(py)
                     rs.oy.snapTo(py)
@@ -210,13 +230,22 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.cardGest
         }
     }
     if (rdrag) {
-        /* let go far or fast enough: it carries on (from where it is) and the next card comes in behind it; otherwise it springs back */
+        /* let go far or fast enough: it carries on (from where it is) and the next card (or the one before) comes in behind it;
+           otherwise it springs back */
         val v = abs(dy) / (tUp - t0 + 1)
-        if (!multi && (abs(dy) > 90 || v > .5f) && (if (dy < 0) rs.web.atBottom() else rs.web.atTop()) && !rs.web.moved) {
-            rs.dragOff = rs.ty.value
-            if (dy < 0) rs.advance(true) else rs.advance(true, false)
-        } // still at its end as it's let go
-        else {
+        var gone = false
+        if (!multi && dy * rdir > 0 && (abs(dy) > 90 || v > .5f) && !rs.web.moved && (if (rdir < 0) rs.web.atBottom() else rs.web.atTop())) { // still at its end as it's let go
+            if (rdir < 0) {
+                rs.dragOff = rs.ty.value
+                rs.advance(true)
+                gone = true
+            } else if (undo) {
+                rs.dragOff = rs.ty.value
+                gone = rs.back()
+                if (!gone) rs.dragOff = 0f
+            }
+        }
+        if (!gone) {
             rs.scope.launch {
                 val t = tween<Float>(260, easing = pizza.kulhad.medslave.EASE_OUTISH)
                 launch { rs.oy.animateTo(0f, t) }
@@ -227,8 +256,12 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.cardGest
         if (!multi && abs(dy) > 50 && abs(dy) > abs(dx) * 1.2f) {
             if (dy < 0 && canBot() && rs.web.atBottom()) {
                 rs.advance(true)
-            } else if (dy > 0 && canTop() && rs.web.atTop() && rs.stage == 1) {
-                rs.advance(true, false)
+            } else if (dy > 0 && canTop() && rs.web.atTop()) {
+                if (rs.set.reels) {
+                    rs.back()
+                } else if (rs.stage == 1) {
+                    rs.advance(true, false)
+                }
             }
         } // at its end as the finger landed and as it lifted
         else if (!multi && rs.stage == 1 && abs(dx) > 50 && abs(dx) > abs(dy) * 1.2f) {
@@ -271,7 +304,15 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.cardGest
 private fun hint(rs: Rs): String {
     val f = rs.set.flip
     return if (rs.stage == 1) {
-        (if (f) "↑ knew it · ↓ " + (if (rs.set.reels) "or Repost: " else "") + "again" else "→ knew it · ← again")
+        (
+            if (rs.set.reels) {
+                "↑ knew it · Repost: again · ↓ back"
+            } else if (f) {
+                "↑ knew it · ↓ again"
+            } else {
+                "→ knew it · ← again"
+            }
+            )
     } else {
         (if (rs.cur?.again == true) "Again · " else "") + (if (f) "Swipe up " else "Swipe ") + "to reveal the answer"
     }
